@@ -50,7 +50,16 @@ app.post(['/api/vote', '/vote'], async (req, res) => {
     if (!bvid || !userId) return res.status(400).json({ success: false });
 
     let data = await getDB();
-    if (!data[bvid]) data[bvid] = { title, votes: {} };
+    
+    // 确保视频对象存在
+    if (!data[bvid]) {
+        data[bvid] = { title: title || '未知视频', votes: {} };
+    }
+    
+    // 再次确保 votes 属性存在（防御性编程）
+    if (!data[bvid].votes) {
+        data[bvid].votes = {};
+    }
 
     let active = false;
     if (data[bvid].votes[userId]) {
