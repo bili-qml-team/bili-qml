@@ -44,6 +44,7 @@ function getBvid() {
 }
 
 let isInjecting = false;
+let isSyncing = false; // 新增：正在同步状态的锁
 let currentBvid = ''; // 记录当前页面正在处理的 BVID
 
 // 同步按钮状态（亮或灭）及计数
@@ -52,11 +53,13 @@ async function syncButtonState() {
     if (!qBtn) return;
 
     const bvid = getBvid();
-    if (!bvid) return;
+    if (!bvid || !userId) return; // 确保 userId 已准备好
 
-    const userId = await getUserId();
+    // 如果已经在同步该视频的状态，则跳过
+    if (isSyncing) return;
     
     try {
+        isSyncing = true;
         const statusRes = await fetch(`${API_BASE}/status?bvid=${bvid}&userId=${userId}`);
         const statusData = await statusRes.json();
         
@@ -70,12 +73,17 @@ async function syncButtonState() {
         // 更新显示的数量
         const countText = qBtn.querySelector('.qmr-text');
         if (countText) {
-            countText.innerText = statusData.count > 0 ? formatCount(statusData.count) : '问号';
+            const newText = statusData.count > 0 ? formatCount(statusData.count) : '问号';
+            if (countText.innerText !== newText) {
+                countText.innerText = newText;
+            }
         }
 
         currentBvid = bvid;
     } catch (e) {
         console.error('[B站问号榜] 同步状态失败:', e);
+    } finally {
+        isSyncing = false;
     }
 }
 
@@ -166,9 +174,30 @@ async function injectQuestionButton() {
     });
 }
 
-// 使用 MutationObserver 监听 DOM 变化，确保在 SPA 路由切换或动态加载时注入
+// 防抖函数
+function debounce(fn, delay) {
+    let timer = null;
+    return function() {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => fn.apply(this, arguments), delay);
+    }
+}
+
+let userId = null;
+async function initUserId() {
+    userId = await getUserId();
+}
+initUserId();
+
+const debouncedInject = debounce(injectQuestionButton, 500);
+
+// 使用 MutationObserver 监听 DOM 变化
 const observer = new MutationObserver((mutations) => {
-    injectQuestionButton();
+    // 检查是否有节点增加，避免不必要的触发
+    const hasNewNodes = mutations.some(m => m.addedNodes.length > 0);
+    if (hasNewNodes) {
+        debouncedInject();
+    }
 });
 
 observer.observe(document.body, {
