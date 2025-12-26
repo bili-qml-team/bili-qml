@@ -17,7 +17,14 @@ async function getDB() {
             headers: { Authorization: `Bearer ${REDIS_TOKEN}` }
         });
         const data = await res.json();
-        return data.result ? JSON.parse(data.result) : {};
+        if (!data.result) return {};
+        
+        let parsed = JSON.parse(data.result);
+        // 关键修复：如果解析出来还是字符串（双重序列化），再解析一次
+        if (typeof parsed === 'string') {
+            parsed = JSON.parse(parsed);
+        }
+        return (parsed && typeof parsed === 'object') ? parsed : {};
     } catch (e) {
         console.error('Redis 读取失败', e);
         return {};
@@ -29,7 +36,7 @@ async function setDB(data) {
         await fetch(`${REDIS_URL}/set/votes`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
-            body: JSON.stringify(JSON.stringify(data))
+            body: JSON.stringify(data) // 关键修复：只进行一次序列化
         });
     } catch (e) {
         console.error('Redis 写入失败', e);
@@ -46,32 +53,36 @@ app.get('/', (req, res) => {
 
 // 处理投票
 app.post(['/api/vote', '/vote'], async (req, res) => {
-    const { bvid, title, userId } = req.body;
-    if (!bvid || !userId) return res.status(400).json({ success: false });
+    try {
+        const { bvid, title, userId } = req.body;
+        if (!bvid || !userId) return res.status(400).json({ success: false });
 
-    let data = await getDB();
-    
-    // 确保视频对象存在
-    if (!data[bvid]) {
-        data[bvid] = { title: title || '未知视频', votes: {} };
-    }
-    
-    // 再次确保 votes 属性存在（防御性编程）
-    if (!data[bvid].votes) {
-        data[bvid].votes = {};
-    }
+        let data = await getDB();
+        
+        // 确保 data 是对象且包含 bvid 路径
+        if (!data || typeof data !== 'object') data = {};
+        if (!data[bvid] || typeof data[bvid] !== 'object') {
+            data[bvid] = { title: title || '未知视频', votes: {} };
+        }
+        if (!data[bvid].votes) {
+            data[bvid].votes = {};
+        }
 
-    let active = false;
-    if (data[bvid].votes[userId]) {
-        delete data[bvid].votes[userId];
-        active = false;
-    } else {
-        data[bvid].votes[userId] = Date.now();
-        active = true;
-    }
+        let active = false;
+        if (data[bvid].votes[userId]) {
+            delete data[bvid].votes[userId];
+            active = false;
+        } else {
+            data[bvid].votes[userId] = Date.now();
+            active = true;
+        }
 
-    await setDB(data);
-    res.json({ success: true, active });
+        await setDB(data);
+        res.json({ success: true, active });
+    } catch (error) {
+        console.error('Vote Error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
 });
 
 // 获取状态
