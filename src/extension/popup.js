@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="rank">${index + 1}</div>
                 <div class="info">
                     <a href="https://www.bilibili.com/video/${item.bvid}" target="_blank" class="title" title="${item.title}">${item.title}</a>
-                    <div class="count">❓ ${item.count} 次困惑</div>
+                    <div class="count">❓ 抽象指数: ${item.count}</div>
                 </div>
             `;
             leaderboard.appendChild(div);
