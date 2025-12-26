@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "B站问号榜",
+  "version": "1.0",
+  "description": "在B站视频下方增加问号按钮，统计并展示困惑视频排行榜。",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://*.bilibili.com/*",
+    "http://localhost:3000/*"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.bilibili.com/video/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "content.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}
