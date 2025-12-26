@@ -55,16 +55,17 @@ async function syncButtonState() {
     const bvid = getBvid();
     if (!bvid) return;
 
-    // 如果已经在同步该视频的状态，则跳过
     if (isSyncing) return;
     
     try {
         isSyncing = true;
-        const userId = await getUserId(); // 恢复局部获取，确保可靠
-        const statusRes = await fetch(`${API_BASE}/status?bvid=${bvid}&userId=${userId}`);
+        const userId = await getUserId();
+        // 增加 _t 参数防止浏览器缓存 GET 请求
+        const statusRes = await fetch(`${API_BASE}/status?bvid=${bvid}&userId=${userId}&_t=${Date.now()}`);
         const statusData = await statusRes.json();
         
-        // 更新按钮激活状态
+        console.log(`[B站问号榜] 状态同步 | BVID: ${bvid} | UserID: ${userId} | 已点亮: ${statusData.active}`);
+        
         if (statusData.active) {
             qBtn.classList.add('active');
         } else {

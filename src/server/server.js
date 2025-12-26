@@ -46,6 +46,12 @@ async function setDB(data) {
 app.use(cors());
 app.use(bodyParser.json());
 
+// 禁用所有 API 的缓存
+app.use((req, res, next) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    next();
+});
+
 // 根路径欢迎页
 app.get('/', (req, res) => {
     res.send('<h1>B站问号榜服务器已启动 ❓</h1><p>已连接至云数据库。</p>');
