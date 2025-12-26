@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<!-- saved from url=(0100)https://s1.hdslb.com/bfs/seed/jinkela/short/leader-election/iframe.html?leaderID=watchlaterpipwindow -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Leader Iframe</title>
+</head>
+
+<body>
+  <script src="./leader.iife.min.js.下载"></script>
+  <script>
+    const queryString = window.location.search;
+    const urlParams = new URLSearchParams(queryString);
+    const leaderID = urlParams.get('leaderID');
+
+    if (leaderID) {
+      const leaderElection = new IframeLeaderElection(leaderID);
+    }
+  </script>
+
+
+</body></html>

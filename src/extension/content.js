@@ -1,6 +1,73 @@
 // content.js
 const API_BASE = 'https://bili-qml.vercel.app/api';
 
+// 注入 B 站风格的 CSS
+const style = document.createElement('style');
+style.innerHTML = `
+    #bili-qmr-btn {
+        position: absolute;
+        display: flex;
+        align-items: center;
+        width: 92px;
+        height: 28px;
+        white-space: nowrap;
+        transition: all .3s;
+        font-size: 13px;
+        color: #61666d; /* 对应 var(--text2) */
+        font-weight: 500;
+        cursor: pointer;
+        user-select: none;
+        z-index: 10000;
+    }
+    #bili-qmr-btn .qmr-icon-wrap {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        height: 100%;
+        transition: color .3s;
+    }
+    #bili-qmr-btn .qmr-icon {
+        flex-shrink: 0;
+        width: 28px;
+        height: 28px;
+        margin-right: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        font-weight: bold;
+        transition: transform .2s ease;
+    }
+    #bili-qmr-btn .qmr-text {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        word-break: break-word;
+        white-space: nowrap;
+    }
+    /* 悬停与点亮状态 */
+    #bili-qmr-btn:hover, #bili-qmr-btn.voted {
+        color: #00aeec !important; /* 对应 var(--brand_blue) */
+    }
+    #bili-qmr-btn:hover .qmr-icon {
+        transform: scale(0.85);
+    }
+    #bili-qmr-btn:active .qmr-icon {
+        transform: scale(0.7);
+    }
+    /* 大屏适配 (min-width: 1681px) */
+    @media (min-width: 1681px) {
+        #bili-qmr-btn {
+            width: 100px;
+            font-size: 14px;
+        }
+        #bili-qmr-btn .qmr-icon {
+            width: 36px;
+            height: 36px;
+        }
+    }
+`;
+document.head.appendChild(style);
+
 // 获取或生成模拟用户 ID
 async function getUserId() {
     return new Promise((resolve) => {
@@ -67,9 +134,9 @@ async function syncButtonState() {
         console.log(`[B站问号榜] 状态同步 | BVID: ${bvid} | UserID: ${userId} | 已点亮: ${statusData.active}`);
         
         if (statusData.active) {
-            qBtn.classList.add('active');
+            qBtn.classList.add('voted');
         } else {
-            qBtn.classList.remove('active');
+            qBtn.classList.remove('voted');
         }
         
         // 更新显示的数量
@@ -126,20 +193,12 @@ async function injectQuestionButton() {
             
             qBtn = document.createElement('div');
             qBtn.id = 'bili-qmr-btn';
-            qBtn.style.cssText = `
-                position: absolute;
-                z-index: 10000;
-                cursor: pointer;
-                display: flex;
-                align-items: center;
-                transition: opacity 0.3s;
-                pointer-events: auto;
-                white-space: nowrap;
-            `;
+            // 移除 style.cssText 中的 position 等，改为由 CSS 控制
+            qBtn.style.pointerEvents = 'auto';
             qBtn.innerHTML = `
-                <div class="qmr-icon-wrap" style="display: flex; align-items: center; color: #61666d;">
-                    <span class="qmr-icon" style="font-size: 18px; margin-right: 4px;">?</span>
-                    <span class="qmr-text" style="font-size: 13px;">...</span>
+                <div class="qmr-icon-wrap">
+                    <span class="qmr-icon">?</span>
+                    <span class="qmr-text">...</span>
                 </div>
             `;
             document.body.appendChild(qBtn);

@@ -1,0 +1,126 @@
+@font-face {
+  font-family: "bp-icon-font";
+  src: url('./bp-icon-font.woff') format('woff');
+}
+
+.bp-icon-font {
+  font-family: "bp-icon-font" !important;
+  font-size: 14px;
+  font-style: normal;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-stroke-width: 0.2px;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.bp-icon-font.icon-add:before {
+  content: "\E001";
+}
+
+.bp-icon-font.icon-btn-triangle-left:before {
+  content: "\E002";
+}
+
+.bp-icon-font.icon-btn-triangle-right:before {
+  content: "\E003";
+}
+
+.bp-icon-font.icon-close:before {
+  content: "\E004";
+}
+
+.bp-icon-font.icon-danmu-a:before {
+  content: "\E005";
+}
+
+.bp-icon-font.icon-emoji-btn:before {
+  content: "\E006";
+}
+
+.bp-icon-font.icon-gantan-01:before {
+  content: "\E007";
+}
+
+.bp-icon-font.icon-good:before {
+  content: "\E008";
+}
+
+.bp-icon-font.icon-group-dynamic:before {
+  content: "\E009";
+}
+
+.bp-icon-font.icon-ic_timer:before {
+  content: "\E00A";
+}
+
+.bp-icon-font.icon-info-circle:before {
+  content: "\E00B";
+}
+
+.bp-icon-font.icon-information_warning:before {
+  content: "\E00C";
+}
+
+.bp-icon-font.icon-jinz-01:before {
+  content: "\E00D";
+}
+
+.bp-icon-font.icon-left-r-dynamic:before {
+  content: "\E00E";
+}
+
+.bp-icon-font.icon-link:before {
+  content: "\E00F";
+}
+
+.bp-icon-font.icon-lottery-btn:before {
+  content: "\E010";
+}
+
+.bp-icon-font.icon-more-1:before {
+  content: "\E011";
+}
+
+.bp-icon-font.icon-pic-btn:before {
+  content: "\E012";
+}
+
+.bp-icon-font.icon-play-a:before {
+  content: "\E013";
+}
+
+.bp-icon-font.icon-right-r-dynamic:before {
+  content: "\E014";
+}
+
+.bp-icon-font.icon-routine_processing:before {
+  content: "\E015";
+}
+
+.bp-icon-font.icon-sq-dynamic:before {
+  content: "\E016";
+}
+
+.bp-icon-font.icon-ss-dynamic:before {
+  content: "\E017";
+}
+
+.bp-icon-font.icon-top:before {
+  content: "\E018";
+}
+
+.bp-icon-font.icon-topic:before {
+  content: "\E019";
+}
+
+.bp-icon-font.icon-vote-btn:before {
+  content: "\E01A";
+}
+
+.bp-icon-font.icon-vote-create-btn:before {
+  content: "\E01B";
+}
+
+.bp-icon-font.icon-bp-icon-font.html:before {
+  content: "\E01C";
+}
+

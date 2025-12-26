@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<!-- saved from url=(0060)https://s1.hdslb.com/bfs/seed/jinkela/short/cols/iframe.html -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cross Origin Local Storage</title>
+  </head>
+  <body>
+    <script>
+      ;(function () {
+        'use strict'
+
+        var COLS_GET = 'COLS_GET'
+        var COLS_SET = 'COLS_SET'
+        var COLS_RM = 'COLS_RM'
+        var COLS_KEYS = 'COLS_KEYS'
+        var COLS_CLR = 'COLS_CLR'
+        var COLS_LIS = 'COLS_LIS' // add listener
+
+        var COLS_LIS_UN = 'COLS_LIS_UN' // remove listener
+
+        var COLS_RES = 'COLS_RES'
+        var listenMap = {}
+        window.addEventListener('storage', function (e) {
+          if (listenMap[e.key]) {
+            listenMap[e.key].forEach(function (v) {
+              var _v$
+
+              return (_v$ = v[1]) === null || _v$ === void 0 ? void 0 : _v$.call(v, e.newValue)
+            })
+          }
+        })
+
+        var response = function response(e, value) {
+          e.source.postMessage(
+            {
+              type: COLS_RES,
+              id: e.data.id,
+              key: e.data.key,
+              value: value,
+            },
+            e.origin
+          )
+        }
+
+        window.addEventListener('message', function (e) {
+          var _e$data = e.data,
+            type = _e$data.type,
+            id = _e$data.id,
+            key = _e$data.key
+
+          try {
+            switch (type) {
+              case COLS_SET: {
+                localStorage.setItem(key, e.data.value)
+                response(e)
+                break
+              }
+
+              case COLS_GET: {
+                response(e, localStorage.getItem(key))
+                break
+              }
+
+              case COLS_RM: {
+                localStorage.removeItem(key)
+                response(e)
+                break
+              }
+
+              case COLS_KEYS: {
+                var prefix = e.data.key + ':'
+                var keys = Object.keys(localStorage).filter(function (v) {
+                  return v.indexOf(prefix) === 0
+                })
+                response(e, keys)
+                break
+              }
+
+              case COLS_CLR: {
+                var _prefix = e.data.key + ':'
+
+                var _keys = Object.keys(localStorage).filter(function (v) {
+                  return v.indexOf(_prefix) === 0
+                })
+
+                _keys.forEach(function (v) {
+                  return localStorage.removeItem(v)
+                })
+
+                response(e)
+                break
+              }
+
+              case COLS_LIS: {
+                var handler = function handler(value) {
+                  response(e, value)
+                }
+
+                if (listenMap[key]) {
+                  listenMap[key].push([id, handler])
+                } else {
+                  listenMap[key] = [[id, handler]]
+                }
+
+                break
+              }
+
+              case COLS_LIS_UN: {
+                if (listenMap[key]) {
+                  listenMap[key] = listenMap[key].filter(function (v) {
+                    return v[0] !== id
+                  })
+                }
+
+                break
+              }
+            }
+          } catch (err) {
+            response(e)
+          }
+        })
+      })()
+    </script>
+  
+
+</body></html>
