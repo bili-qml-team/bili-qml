@@ -122,6 +122,8 @@ app.get('/api/leaderboard', (req, res) => {
     res.json({ success: true, list: sortedList });
 });
 
-app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
-});
+// app.listen(PORT, () => {
+//     console.log(`Server running at http://localhost:${PORT}`);
+// });
+
+module.exports = app;
