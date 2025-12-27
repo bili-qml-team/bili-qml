@@ -1,5 +1,5 @@
 // content.js
-const API_BASE = 'https://bili-qml.top/api';
+const API_BASE = 'https://www.bili-qml.top/api';
 
 // 注入 B 站风格的 CSS
 const style = document.createElement('style');

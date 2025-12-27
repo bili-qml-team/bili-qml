@@ -1,5 +1,5 @@
 // popup.js
-const API_BASE = 'https://bili-qml.top/api';
+const API_BASE = 'https://www.bili-qml.top/api';
 
 document.addEventListener('DOMContentLoaded', () => {
     const leaderboard = document.getElementById('leaderboard');
