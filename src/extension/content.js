@@ -26,17 +26,23 @@ style.innerHTML = `
         height: 100%;
         transition: color .3s;
     }
-    #bili-qmr-btn .qmr-icon {
-        flex-shrink: 0;
-        width: 28px;
-        height: 28px;
-        margin-right: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 20px;
-        font-weight: bold;
-        transition: transform .2s ease;
+    #bili-qmr-btn .qmr-icon-img {
+        width: 20px;
+        height: 20px;
+        margin-right: 6px;
+        transition: transform 0.3s, filter 0.3s;
+        display: block;
+        object-fit: contain;
+    }
+    /* 未点亮且未悬停时：灰色 */
+    #bili-qmr-btn:not(.voted) .qmr-icon-img {
+        filter: grayscale(1) opacity(0.6);
+    }
+    /* 悬停或已点亮时：变蓝色 */
+    /* 技巧：通过 drop-shadow 创建一个偏移的蓝色投影，并隐藏原图 */
+    #bili-qmr-btn:hover .qmr-icon-img,
+    #bili-qmr-btn.voted .qmr-icon-img {
+        filter: drop-shadow(0 0 0 #00aeec);
     }
     #bili-qmr-btn .qmr-text {
         overflow: hidden;
@@ -48,10 +54,10 @@ style.innerHTML = `
     #bili-qmr-btn:hover, #bili-qmr-btn.voted {
         color: #00aeec !important; /* 对应 var(--brand_blue) */
     }
-    #bili-qmr-btn:hover .qmr-icon {
+    #bili-qmr-btn:hover .qmr-icon-img {
         transform: scale(0.85);
     }
-    #bili-qmr-btn:active .qmr-icon {
+    #bili-qmr-btn:active .qmr-icon-img {
         transform: scale(0.7);
     }
     /* 大屏适配 (min-width: 1681px) */
@@ -60,9 +66,9 @@ style.innerHTML = `
             width: 100px;
             font-size: 14px;
         }
-        #bili-qmr-btn .qmr-icon {
-            width: 36px;
-            height: 36px;
+        #bili-qmr-btn .qmr-icon-img {
+            width: 24px;
+            height: 24px;
         }
     }
 `;
@@ -171,6 +177,7 @@ function sendDanmaku(text) {
     
     // 创建一个临时的可视化提示浮层（显示在网页左上角，方便用户直接看到）
     const showNotice = (msg, isError = false) => {
+        /* 调试用：发布版已注释
         const notice = document.createElement('div');
         notice.style.cssText = `
             position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
@@ -185,6 +192,7 @@ function sendDanmaku(text) {
             notice.style.opacity = '0';
             setTimeout(() => notice.remove(), 500);
         }, 2000);
+        */
     };
 
     try {
@@ -299,9 +307,10 @@ async function injectQuestionButton() {
             qBtn.id = 'bili-qmr-btn';
             // 移除 style.cssText 中的 position 等，改为由 CSS 控制
             qBtn.style.pointerEvents = 'auto';
+            const iconUrl = chrome.runtime.getURL('icons/button-icon.png');
             qBtn.innerHTML = `
                 <div class="qmr-icon-wrap">
-                    <span class="qmr-icon">?</span>
+                    <img class="qmr-icon-img" src="${iconUrl}" />
                     <span class="qmr-text">...</span>
                 </div>
             `;
