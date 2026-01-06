@@ -52,15 +52,23 @@ app.use(bodyParser.json());
 
 // 安全中间件：检查请求头，增加简单的防刷逻辑
 const securityCheck = (req, res, next) => {
-    const origin = req.headers.origin;
-    const userAgent = req.headers['user-agent'];
+    const userAgent = req.headers['user-agent'] || '';
     
-    // 简单的防爬虫逻辑
-    if (!userAgent || userAgent.includes('axios') || userAgent.includes('node-fetch')) {
-        return res.status(403).json({ success: false, error: 'Access Denied' });
+    // 拦截非浏览器、常见脚本工具、以及没有 UA 的请求
+    const isBot = !userAgent || 
+                  userAgent.includes('curl') || 
+                  userAgent.includes('python') || 
+                  userAgent.includes('axios') || 
+                  userAgent.includes('node-fetch') ||
+                  userAgent.includes('Postman');
+
+    if (isBot) {
+        return res.status(403).json({ success: false, error: 'Access Denied: Bot detected' });
     }
     next();
 };
+
+app.use(securityCheck); // 应用到所有路由
 
 // 禁用所有 API 的缓存
 app.use((req, res, next) => {
@@ -104,14 +112,34 @@ app.use((req, res, next) => {
 app.post(['/api/vote', '/vote'], async (req, res) => {
     try {
         const { bvid, title, userId } = req.body;
-        if (!bvid || !userId) return res.status(400).json({ success: false });
+        
+        // 1. 基础参数校验
+        if (!bvid || !userId) return res.status(400).json({ success: false, error: 'Missing params' });
+        
+        // 2. BVID 格式强校验
+        if (!bvid.startsWith('BV') || bvid.length < 10) {
+            return res.status(400).json({ success: false, error: 'Invalid BVID' });
+        }
+
+        // 3. 标题清洗 (防御重点)
+        // 截断过长的标题，并过滤恶意词汇
+        let safeTitle = (title || '未知视频').substring(0, 80).trim();
+        const sensitiveWords = ['服务器', '入侵', 'hack', 'admin', 'system', 'root', '脚本', '刷榜'];
+        if (sensitiveWords.some(word => safeTitle.toLowerCase().includes(word))) {
+            safeTitle = '内容包含敏感词已过滤';
+        }
 
         let data = await getDB();
         
         // 确保 data 是对象且包含 bvid 路径
         if (!data || typeof data !== 'object') data = {};
         if (!data[bvid] || typeof data[bvid] !== 'object') {
-            data[bvid] = { title: title || '未知视频', votes: {} };
+            data[bvid] = { title: safeTitle, votes: {} };
+        } else {
+            // 如果已有该视频，且标题是“未知视频”或包含敏感词，则更新为当前清洗后的标题
+            if (data[bvid].title === '未知视频' || data[bvid].title === '内容包含敏感词已过滤') {
+                data[bvid].title = safeTitle;
+            }
         }
         if (!data[bvid].votes) {
             data[bvid].votes = {};
