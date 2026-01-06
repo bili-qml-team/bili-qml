@@ -20,7 +20,7 @@ async function getDB() {
         if (!data.result) return {};
         
         let parsed = JSON.parse(data.result);
-        // 关键修复：如果解析出来还是字符串（双重序列化），再解析一次
+        // 如果解析出来还是字符串（双重序列化），再解析一次
         if (typeof parsed === 'string') {
             parsed = JSON.parse(parsed);
         }
@@ -36,7 +36,7 @@ async function setDB(data) {
         await fetch(`${REDIS_URL}/set/votes`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
-            body: JSON.stringify(data) // 关键修复：只进行一次序列化
+            body: JSON.stringify(data) // 只进行一次序列化
         });
     } catch (e) {
         console.error('Redis 写入失败', e);
@@ -53,23 +53,36 @@ app.use(bodyParser.json());
 // 安全中间件：检查请求头，增加简单的防刷逻辑
 const securityCheck = (req, res, next) => {
     const userAgent = req.headers['user-agent'] || '';
-    const apiKey = req.headers['x-api-key']; // 只有我们的插件知道这个 Key
-    
-    // 拦截没有正确 Key 的请求
-    if (apiKey !== process.env.VOTE_API_KEY) {
-        return res.status(401).json({ success: false, error: 'Unauthorized: Missing or invalid API Key' });
-    }
-    
-    // 拦截非浏览器、常见脚本工具
-    const isBot = !userAgent || 
-                  userAgent.includes('curl') || 
-                  userAgent.includes('python') || 
-                  userAgent.includes('axios') || 
-                  userAgent.includes('node-fetch');
 
-    if (isBot) {
-        return res.status(403).json({ success: false, error: 'Access Denied: Bot detected' });
+    // 1. 拦截自动化工具 (开源安全型：不依赖秘密令牌)
+    const ua = userAgent.toLowerCase();
+    const botKeywords = ['curl', 'python', 'httpclient', 'axios', 'node-fetch', 'go-http', 'wget', 'postman'];
+    if (botKeywords.some(kw => ua.includes(kw))) {
+        return res.status(403).json({ success: false, error: 'Access Denied' });
     }
+
+    // 2. 内容清洗与安全过滤
+    if (req.method === 'POST' && req.body) {
+        let { title, bvid, userId } = req.body;
+
+        // 强行清洗标题：防止恶意内容展示
+        if (title) {
+            const forbidden = /服务器|入侵|hack|attack|admin|system|database|root/i;
+            if (forbidden.test(title)) {
+                // 发现敏感词，不报错，但悄悄把标题改掉，让攻击者“白费力气”
+                req.body.title = "未知视频 (已拦截违规内容)";
+            } else {
+                // 限制长度，防止数据库压力
+                req.body.title = String(title).substring(0, 50).trim();
+            }
+        }
+        
+        // 校验 BVID 格式（简单正则）
+        if (bvid && !/^BV[a-zA-Z0-9]{10}$/.test(bvid)) {
+            return res.status(400).json({ success: false, error: 'Invalid ID' });
+        }
+    }
+
     next();
 };
 
