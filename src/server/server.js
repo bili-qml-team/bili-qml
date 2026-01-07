@@ -154,6 +154,26 @@ app.post(['/api/vote', '/vote'], async (req, res) => {
     }
 });
 
+app.post(['/api/unvote', '/unvote'], async (req, res) => {
+    try {
+        const { bvid, userId } = req.body;
+
+        // 1. 基础参数校验
+        if (!bvid || !userId) return res.status(400).json({ success: false, error: 'Missing params' });
+
+        const isMember = await redis.sismember(`voted:${bvid}`, userId);
+        if (!isMember) return res.status(400).json({ error: 'Not voted yet' });
+        // 总票处理
+        await redis.srem(`voted:${bvid}`, userId);           // 删除投票记录
+        await redis.zrem('votes:recent', `${bvid}:${userId}`); // 删除排行榜记录
+        await redis.hincrby(`video:${bvid}`, 'votesTotal', -1);
+        res.json({ success: true});
+    } catch (error) {
+        console.error('Vote Error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // 获取状态
 app.get(['/api/status', '/status'], async (req, res) => {
     const { bvid, userId } = req.query;
