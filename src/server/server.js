@@ -48,13 +48,13 @@ async function getLeaderBoard(range){
             return leaderBoardCache.caches[0];
             break;
         case "daily":
-            return leaderBoardCache.caches[0];
+            return leaderBoardCache.caches[1];
             break;
         case "weekly":
-            return leaderBoardCache.caches[0];
+            return leaderBoardCache.caches[2];
             break;
         case "monthly":
-            return leaderBoardCache.caches[0];
+            return leaderBoardCache.caches[3];
             break;
     }
 }
