@@ -157,15 +157,23 @@ app.post(['/api/vote', '/vote'], async (req, res) => {
 // 获取状态
 app.get(['/api/status', '/status'], async (req, res) => {
     const { bvid, userId } = req.query;
+    try{
     const isVoted = (await redis.sismember(`voted:${bvid}`, userId))===1?true:false;
     const totalCount = await redis.hget(`video:${bvid}`, 'votesTotal');
+    }catch(error){
+        res.status(500).json({ success: false, error: error.message });
+    }
     res.json({ success: true, active: !!isVoted, count: totalCount });
 });
 
 // 获取排行榜
 app.get(['/api/leaderboard', '/leaderboard'], async (req, res) => {
     const range = req.query.range || 'realtime';
+    try{
     const board=await getLeaderBoard(range);
+    }catch(error){
+        res.status(500).json({ success: false, error: error.message });
+    }
     const list=board.map((array) => {return {bvid: array[0],count: array[1]}});
     res.json({ success: true, list: list});
 });
