@@ -2,46 +2,64 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const moment = require('moment');
+const {Redis} = require('@upstash/redis');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Redis 配置
-const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
-const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+const TIMESTAP_EXPIRE_MS=process.env.TIMESTAP_EXPIRE_MS || 30 * 24 * 3600 * 1000; //排行榜总数据过期时间
+const CACHE_EXPIRE_MS=process.env.CACHE_EXPIRE_MS || 3600 * 1000; // 排行榜cache过期时间
+const leaderboardTimeInterval=[12 * 3600 * 1000,24 * 3600 * 1000,7* 24 * 3600 * 1000,30 * 24 * 3600 * 1000]; //排行榜相差时间
 
-// 辅助函数：与 Redis 交互
-async function getDB() {
-    try {
-        const res = await fetch(`${REDIS_URL}/get/votes`, {
-            headers: { Authorization: `Bearer ${REDIS_TOKEN}` }
-        });
-        const data = await res.json();
-        if (!data.result) return {};
-        
-        let parsed = JSON.parse(data.result);
-        // 如果解析出来还是字符串（双重序列化），再解析一次
-        if (typeof parsed === 'string') {
-            parsed = JSON.parse(parsed);
-        }
-        return (parsed && typeof parsed === 'object') ? parsed : {};
-    } catch (e) {
-        console.error('Redis 读取失败', e);
-        return {};
+var leaderBoardCache={
+    caches:[],
+    expireTime:0
+};
+
+const redis = Redis.fromEnv();
+
+async function getLeaderBoardFromTime(periodMs = 24 * 3600 * 1000, limit = 50){
+    const now = Date.now();
+    const minTime = now - periodMs;
+    await redis.zremrangebyscore('votes:recent', '-inf', now - TIMESTAP_EXPIRE_MS - 1);
+    const recentVotes = await redis.zrange('votes:recent', minTime, now, { byScore: true });
+    const counts = {};
+    for (const member of recentVotes) {
+        const bvid = member.split(':')[0];  // 从 `${bvid}:${userId}` 提取
+        counts[bvid] = (counts[bvid] || 0) + 1;
+    }
+    const sorted = Object.entries(counts)
+        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+        .slice(0, limit);
+    return sorted;
+}
+
+async function getLeaderBoard(range){
+    const now = Date.now();
+    if(leaderBoardCache.expireTime<now){
+        var cache=[];
+        leaderBoardCache.expireTime=Date.now()+CACHE_EXPIRE_MS;
+        leaderBoardCache.caches=await Promise.all(leaderboardTimeInterval.map((time)=>{
+            return getLeaderBoardFromTime(time);
+        }));
+    }
+    switch(range){ //滑动窗口榜单 以UNIX时间戳计算
+        case "realtime":
+            return leaderBoardCache.caches[0];
+            break;
+        case "daily":
+            return leaderBoardCache.caches[0];
+            break;
+        case "weekly":
+            return leaderBoardCache.caches[0];
+            break;
+        case "monthly":
+            return leaderBoardCache.caches[0];
+            break;
     }
 }
 
-async function setDB(data) {
-    try {
-        await fetch(`${REDIS_URL}/set/votes`, {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
-            body: JSON.stringify(data) // 只进行一次序列化
-        });
-    } catch (e) {
-        console.error('Redis 写入失败', e);
-    }
-}
+// 服务器逻辑区
 
 app.use(cors({
     origin: ['https://www.bilibili.com', 'chrome-extension://*'],
@@ -65,18 +83,6 @@ const securityCheck = (req, res, next) => {
     if (req.method === 'POST' && req.body) {
         let { title, bvid, userId } = req.body;
 
-        // 强行清洗标题：防止恶意内容展示
-        if (title) {
-            const forbidden = /服务器|入侵|hack|attack|admin|system|database|root/i;
-            if (forbidden.test(title)) {
-                // 发现敏感词，不报错，但悄悄把标题改掉，让攻击者“白费力气”
-                req.body.title = "未知视频 (已拦截违规内容)";
-            } else {
-                // 限制长度，防止数据库压力
-                req.body.title = String(title).substring(0, 50).trim();
-            }
-        }
-        
         // 校验 BVID 格式（简单正则）
         if (bvid && !/^BV[a-zA-Z0-9]{10}$/.test(bvid)) {
             return res.status(400).json({ success: false, error: 'Invalid ID' });
@@ -133,47 +139,15 @@ app.post(['/api/vote', '/vote'], async (req, res) => {
         
         // 1. 基础参数校验
         if (!bvid || !userId) return res.status(400).json({ success: false, error: 'Missing params' });
-        
-        // 2. BVID 格式强校验
-        if (!bvid.startsWith('BV') || bvid.length < 10) {
-            return res.status(400).json({ success: false, error: 'Invalid BVID' });
-        }
-
-        // 3. 标题清洗 (防御重点)
-        // 截断过长的标题，并过滤恶意词汇
-        let safeTitle = (title || '未知视频').substring(0, 80).trim();
-        const sensitiveWords = ['服务器', '入侵', 'hack', 'admin', 'system', 'root', '脚本', '刷榜'];
-        if (sensitiveWords.some(word => safeTitle.toLowerCase().includes(word))) {
-            safeTitle = '内容包含敏感词已过滤';
-        }
-
-        let data = await getDB();
-        
-        // 确保 data 是对象且包含 bvid 路径
-        if (!data || typeof data !== 'object') data = {};
-        if (!data[bvid] || typeof data[bvid] !== 'object') {
-            data[bvid] = { title: safeTitle, votes: {} };
-        } else {
-            // 如果已有该视频，且标题是“未知视频”或包含敏感词，则更新为当前清洗后的标题
-            if (data[bvid].title === '未知视频' || data[bvid].title === '内容包含敏感词已过滤') {
-                data[bvid].title = safeTitle;
-            }
-        }
-        if (!data[bvid].votes) {
-            data[bvid].votes = {};
-        }
-
-        let active = false;
-        if (data[bvid].votes[userId]) {
-            delete data[bvid].votes[userId];
-            active = false;
-        } else {
-            data[bvid].votes[userId] = Date.now();
-            active = true;
-        }
-
-        await setDB(data);
-        res.json({ success: true, active });
+        // 用户投票记录
+        const voted = await redis.sadd(`voted:${bvid}`, userId);
+        if (voted === 0) return res.status(400).json({ success: false, error: 'Already Voted' });
+        // 总票统计
+        await redis.hincrby(`video:${bvid}`, 'votesTotal', 1);
+        // 排行榜时间戳记录
+        const now = Date.now();
+        await redis.zadd('votes:recent',{score: now,member: `${bvid}:${userId}`});
+        res.json({ success: true});
     } catch (error) {
         console.error('Vote Error:', error);
         res.status(500).json({ success: false, error: error.message });
@@ -183,51 +157,21 @@ app.post(['/api/vote', '/vote'], async (req, res) => {
 // 获取状态
 app.get(['/api/status', '/status'], async (req, res) => {
     const { bvid, userId } = req.query;
-    const data = await getDB();
-    const videoData = data[bvid] || { votes: {} };
-    const isVoted = videoData.votes[userId];
-    const totalCount = Object.keys(videoData.votes).length;
+    const isVoted = (await redis.sismember(`voted:${bvid}`, userId))===1?true:false;
+    const totalCount = await redis.hget(`video:${bvid}`, 'votesTotal');
     res.json({ success: true, active: !!isVoted, count: totalCount });
 });
 
 // 获取排行榜
 app.get(['/api/leaderboard', '/leaderboard'], async (req, res) => {
     const range = req.query.range || 'realtime';
-    const data = await getDB();
-    
-    // 关键修复：强制使用北京时间 (UTC+8)
-    const now = () => moment().utcOffset(8);
-    
-    let startTime = 0;
-    let endTime = now().valueOf();
-
-    if (range === 'realtime') {
-        // 实时榜：今天零点至今
-        startTime = now().startOf('day').valueOf();
-    } else if (range === 'daily') {
-        // 日榜：昨天零点到昨天 23:59:59
-        startTime = now().subtract(1, 'days').startOf('day').valueOf();
-        endTime = now().subtract(1, 'days').endOf('day').valueOf();
-    } else if (range === 'weekly') {
-        // 周榜：本周一零点至今
-        startTime = now().startOf('isoWeek').valueOf(); 
-    } else if (range === 'monthly') {
-        // 月榜：本月1号零点至今
-        startTime = now().startOf('month').valueOf();
-    }
-
-    const list = [];
-    for (const bvid in data) {
-        const video = data[bvid];
-        // 过滤在指定时间范围内的投票
-        const validVotesCount = Object.values(video.votes).filter(ts => ts >= startTime && ts <= endTime).length;
-        if (validVotesCount > 0) {
-            list.push({ bvid, title: video.title, count: validVotesCount });
-        }
-    }
-
-    const sortedList = list.sort((a, b) => b.count - a.count).slice(0, 5);
-    res.json({ success: true, list: sortedList });
+    const board=await getLeaderBoard(range);
+    const list=board.map((array) => {return {bvid: array[0],count: array[1]}});
+    res.json({ success: true, list: list});
 });
 
 module.exports = app;
+//未知实际部署方式，故添加下列独立运行代码
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Bili投票服务器已启动：http://localhost:${PORT}`);
+});
