@@ -7,8 +7,8 @@ const {Redis} = require('@upstash/redis');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const TIMESTAP_EXPIRE_MS=process.env.TIMESTAP_EXPIRE_MS || 30 * 24 * 3600 * 1000; //排行榜总数据过期时间
-const CACHE_EXPIRE_MS=process.env.CACHE_EXPIRE_MS || 300 * 1000; // 排行榜cache过期时间
+const TIMESTAMP_EXPIRE_MS=Number(process.env.TIMESTAMP_EXPIRE_MS) || 30 * 24 * 3600 * 1000; //排行榜总数据过期时间
+const CACHE_EXPIRE_MS=Number(process.env.CACHE_EXPIRE_MS) || 300 * 1000; // 排行榜cache过期时间
 const leaderboardTimeInterval=[12 * 3600 * 1000,24 * 3600 * 1000,7* 24 * 3600 * 1000,30 * 24 * 3600 * 1000]; //排行榜相差时间
 
 var leaderBoardCache={
@@ -21,7 +21,7 @@ const redis = Redis.fromEnv();
 async function getLeaderBoardFromTime(periodMs = 24 * 3600 * 1000, limit = 50){
     const now = Date.now();
     const minTime = now - periodMs;
-    await redis.zremrangebyscore('votes:recent', '-inf', now - TIMESTAP_EXPIRE_MS - 1);
+    await redis.zremrangebyscore('votes:recent', '-inf', now - TIMESTAMP_EXPIRE_MS - 1);
     const recentVotes = await redis.zrange('votes:recent', minTime, now, { byScore: true });
     const counts = {};
     for (const member of recentVotes) {
@@ -191,11 +191,11 @@ app.get(['/api/leaderboard', '/leaderboard'], async (req, res) => {
     const range = req.query.range || 'realtime';
     try{
     const board=await getLeaderBoard(range);
+    const list=board.map((array) => {return {bvid: array[0],count: array[1]}});
+    res.json({ success: true, list: list});
     }catch(error){
         res.status(500).json({ success: false, error: error.message });
     }
-    const list=board.map((array) => {return {bvid: array[0],count: array[1]}});
-    res.json({ success: true, list: list});
 });
 
 module.exports = app;
