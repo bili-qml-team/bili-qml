@@ -25,7 +25,11 @@
 ## 快速开始
 
 ### 方法 1：使用chrome/edge插件市场安装 (最简单)
-操作步骤见宣传视频 https://www.bilibili.com/video/BV1zJiGBREPB/
+* [Chrome 插件市场](https://chromewebstore.google.com/detail/b%E7%AB%99%E9%97%AE%E5%8F%B7%E6%A6%9C/kpfomdjnloglfedoamjaflnhojkcjndh?hl=zh-c)
+* [Edge 插件市场](https://microsoftedge.microsoft.com/addons/detail/b%E7%AB%99%E9%97%AE%E5%8F%B7%E6%A6%9C/fnlcdhaoobciclcjlnlopbcncmhjkdog)
+
+如果不会从插件市场安装，可以查看操作步骤：https://www.bilibili.com/video/BV1zJiGBREPB/
+
 
 ### 方法 2：加载已解压的扩展程序
 操作步骤见链接 https://www.bilibili.com/opus/1154715533972602918
