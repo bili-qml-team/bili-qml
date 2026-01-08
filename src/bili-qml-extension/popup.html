@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="UTF-8">
     <link rel="stylesheet" href="popup.css">
 </head>
+
 <body>
     <div class="container">
         <header>
@@ -13,12 +15,36 @@
                 <button class="tab-btn" data-range="daily">日榜</button>
                 <button class="tab-btn" data-range="weekly">周榜</button>
                 <button class="tab-btn" data-range="monthly">月榜</button>
+                <button class="tab-btn" data-type="settings">设置</button>
             </div>
         </header>
-        <main id="leaderboard">
+        <main id="leaderboard" class="content-panel">
             <div class="loading">加载中...</div>
+        </main>
+        <main id="settings" class="content-panel" style="display: none;">
+            <div class="settings-section">
+                <h3>弹幕发送设置</h3>
+                <p class="settings-desc">点亮问号后，是否自动发送"?"弹幕</p>
+                <div class="radio-group">
+                    <label class="radio-item">
+                        <input type="radio" name="danmaku-pref" value="ask">
+                        <span>每次询问</span>
+                    </label>
+                    <label class="radio-item">
+                        <input type="radio" name="danmaku-pref" value="always">
+                        <span>总是发送</span>
+                    </label>
+                    <label class="radio-item">
+                        <input type="radio" name="danmaku-pref" value="never">
+                        <span>总是不发送</span>
+                    </label>
+                </div>
+                <button id="save-settings" class="save-btn">保存设置</button>
+                <div id="save-status" class="save-status"></div>
+            </div>
         </main>
     </div>
     <script src="popup.js"></script>
 </body>
+
 </html>

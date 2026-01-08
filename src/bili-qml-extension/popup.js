@@ -1,16 +1,19 @@
 // popup.js
 const API_BASE = 'https://www.bili-qml.top/api';
+const STORAGE_KEY_DANMAKU_PREF = 'danmakuPreference';
 
 document.addEventListener('DOMContentLoaded', () => {
     const leaderboard = document.getElementById('leaderboard');
+    const settingsPanel = document.getElementById('settings');
     const tabs = document.querySelectorAll('.tab-btn');
 
+    // 加载排行榜
     async function fetchLeaderboard(range = 'realtime') {
         leaderboard.innerHTML = '<div class="loading">加载中...</div>';
         try {
             const response = await fetch(`${API_BASE}/leaderboard?range=${range}`);
             const data = await response.json();
-            
+
             if (data.success && data.list.length > 0) {
                 renderList(data.list);
             } else {
@@ -38,13 +41,105 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // 加载设置
+    async function loadSettings() {
+        return new Promise((resolve) => {
+            chrome.storage.sync.get([STORAGE_KEY_DANMAKU_PREF], (result) => {
+                const preference = result[STORAGE_KEY_DANMAKU_PREF];
+                let value = 'ask'; // 默认每次询问
+
+                if (preference === true) {
+                    value = 'always';
+                } else if (preference === false) {
+                    value = 'never';
+                }
+
+                // 设置选中的单选按钮
+                const radio = document.querySelector(`input[name="danmaku-pref"][value="${value}"]`);
+                if (radio) {
+                    radio.checked = true;
+                }
+
+                resolve();
+            });
+        });
+    }
+
+    // 保存设置
+    async function saveSettings() {
+        const selectedRadio = document.querySelector('input[name="danmaku-pref"]:checked');
+        if (!selectedRadio) return;
+
+        const value = selectedRadio.value;
+        let preference;
+
+        if (value === 'always') {
+            preference = true;
+        } else if (value === 'never') {
+            preference = false;
+        } else {
+            preference = null; // 每次询问
+        }
+
+        return new Promise((resolve) => {
+            if (preference === null) {
+                // 删除存储的偏好，恢复到默认状态
+                chrome.storage.sync.remove([STORAGE_KEY_DANMAKU_PREF], () => {
+                    showSaveStatus('设置已保存');
+                    resolve();
+                });
+            } else {
+                chrome.storage.sync.set({ [STORAGE_KEY_DANMAKU_PREF]: preference }, () => {
+                    showSaveStatus('设置已保存');
+                    resolve();
+                });
+            }
+        });
+    }
+
+    // 显示保存状态提示
+    function showSaveStatus(message) {
+        const statusDiv = document.getElementById('save-status');
+        statusDiv.textContent = message;
+        statusDiv.style.opacity = '1';
+
+        setTimeout(() => {
+            statusDiv.style.opacity = '0';
+        }, 2000);
+    }
+
+    // 切换面板
+    function switchPanel(panelType) {
+        if (panelType === 'settings') {
+            leaderboard.style.display = 'none';
+            settingsPanel.style.display = 'block';
+            loadSettings();
+        } else {
+            leaderboard.style.display = 'block';
+            settingsPanel.style.display = 'none';
+        }
+    }
+
+    // 标签页点击事件
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
             tabs.forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
-            fetchLeaderboard(tab.dataset.range);
+
+            if (tab.dataset.type === 'settings') {
+                switchPanel('settings');
+            } else {
+                switchPanel('leaderboard');
+                fetchLeaderboard(tab.dataset.range);
+            }
         });
     });
+
+    // 保存设置按钮
+    const saveBtn = document.getElementById('save-settings');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', saveSettings);
+    }
 
     // 默认加载日榜
     fetchLeaderboard();
