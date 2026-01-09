@@ -4,7 +4,6 @@ const bodyParser = require('body-parser');
 const { Redis } = require('@upstash/redis');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
 const TIMESTAMP_EXPIRE_MS = Number(process.env.TIMESTAMP_EXPIRE_MS) || 30 * 24 * 3600 * 1000; //排行榜总数据过期时间
 const CACHE_EXPIRE_MS = Number(process.env.CACHE_EXPIRE_MS) || 300 * 1000; // 排行榜cache过期时间
@@ -36,7 +35,6 @@ async function getLeaderBoardFromTime(periodMs = 24 * 3600 * 1000, limit = 50) {
 async function getLeaderBoard(range) {
     const now = Date.now();
     if (leaderBoardCache.expireTime < now) {
-        var cache = [];
         leaderBoardCache.expireTime = Date.now() + CACHE_EXPIRE_MS;
         leaderBoardCache.caches = await Promise.all(leaderboardTimeInterval.map((time) => {
             return getLeaderBoardFromTime(time);
@@ -45,16 +43,12 @@ async function getLeaderBoard(range) {
     switch (range) { //滑动窗口榜单 以UNIX时间戳计算
         case "realtime":
             return leaderBoardCache.caches[0];
-            break;
         case "daily":
             return leaderBoardCache.caches[1];
-            break;
         case "weekly":
             return leaderBoardCache.caches[2];
-            break;
         case "monthly":
             return leaderBoardCache.caches[3];
-            break;
     }
 }
 
@@ -66,7 +60,7 @@ app.use(cors({
         /^chrome-extension:\/\/.+$/,
         /^moz-extension:\/\/.+$/
     ],
-    methods: ['GET', 'POST'], 
+    methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(bodyParser.json());
@@ -191,10 +185,35 @@ app.get(['/api/status', '/status'], async (req, res) => {
 
 // 获取排行榜
 app.get(['/api/leaderboard', '/leaderboard'], async (req, res) => {
-    const range = req.query.range || 'realtime';
+    const { range = 'realtime', type } = req.query;
+    type = parseInt(type);
     try {
         const board = await getLeaderBoard(range);
         const list = board.map((array) => { return { bvid: array[0], count: array[1] } });
+        // no type or type != 2: add backward capability
+        if (!type || type !== 2) {
+            await Promise.all(list.map(async (item, index) => {
+                try {
+                    const conn = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${item.bvid}`,
+                        {
+                            headers: {
+                                "Origin": "https://www.bilibili.com",
+                                "Referer": `https://www.bilibili.com/video/${item.bvid}/`,
+                                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
+                            }
+                        });
+                    const json = await conn.json();
+                    if (json.code === 0 && json.data?.title) {
+                        data.list[index].title = json.data.title;
+                    } else {
+                        data.list[index].title = '未知标题';
+                    }
+                } catch (err) {
+                    console.error(`获取标题失败 ${item.bvid}:`, err);
+                    data.list[index].title = '加载失败';
+                }
+            }));
+        }
         res.json({ success: true, list: list });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
