@@ -13,7 +13,20 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(`${API_BASE}/leaderboard?range=${range}`);
             const data = await response.json();
-
+            await Promise.all(data.list.map(async (item, index) => {
+            try {
+                const conn = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${item.bvid}`);
+                const json = await conn.json();
+                if (json.code === 0 && json.data?.title) {
+                    data.list[index].title = json.data.title;
+                } else {
+                    data.list[index].title = '未知标题';
+                }
+            } catch (err) {
+                console.error(`获取标题失败 ${item.bvid}:`, err);
+                data.list[index].title = '加载失败';
+            }
+            }));
             if (data.success && data.list.length > 0) {
                 renderList(data.list);
             } else {
