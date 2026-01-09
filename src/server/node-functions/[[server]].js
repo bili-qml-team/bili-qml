@@ -201,4 +201,9 @@ app.get(['/api/leaderboard', '/leaderboard'], async (req, res) => {
     }
 });
 
-export default app;
+module.exports = app;
+if (require.main === module) { //loacl node.js debug
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log(`Bili投票服务器已启动：http://localhost:${PORT}`);
+    });
+}
