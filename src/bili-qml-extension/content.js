@@ -3,6 +3,122 @@ const API_BASE = 'https://www.bili-qml.top/api';
 // for debug
 //const API_BASE = 'http://localhost:3000/api'
 
+// 存储键名
+const STORAGE_KEY_DANMAKU_PREF = 'danmakuPreference';
+
+// 获取弹幕发送偏好
+// 返回: null (未设置), true (总是发送), false (总是不发送)
+async function getDanmakuPreference() {
+    return new Promise((resolve) => {
+        chrome.storage.sync.get([STORAGE_KEY_DANMAKU_PREF], (result) => {
+            resolve(result[STORAGE_KEY_DANMAKU_PREF] !== undefined ? result[STORAGE_KEY_DANMAKU_PREF] : null);
+        });
+    });
+}
+
+// 设置弹幕发送偏好
+async function setDanmakuPreference(preference) {
+    return new Promise((resolve) => {
+        chrome.storage.sync.set({ [STORAGE_KEY_DANMAKU_PREF]: preference }, () => {
+            resolve();
+        });
+    });
+}
+
+// 显示弹幕发送确认对话框
+function showDanmakuConfirmDialog() {
+    return new Promise((resolve) => {
+        // 创建遮罩层
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 999999;
+            display: flex; align-items: center; justify-content: center;
+        `;
+
+        // 创建对话框
+        const dialog = document.createElement('div');
+        dialog.style.cssText = `
+            background: white; border-radius: 8px; padding: 24px;
+            width: 360px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+        `;
+
+        dialog.innerHTML = `
+            <div style="font-size: 18px; font-weight: bold; color: #18191c; margin-bottom: 16px;">
+                发送弹幕确认
+            </div>
+            <div style="font-size: 14px; color: #61666d; margin-bottom: 20px;">
+                点亮问号后是否自动发送"?"弹幕？
+            </div>
+            <div style="margin-bottom: 20px;">
+                <label style="display: flex; align-items: center; cursor: pointer; user-select: none;">
+                    <input type="checkbox" id="qmr-dont-ask" style="margin-right: 8px;">
+                    <span style="font-size: 14px; color: #61666d;">不再询问（记住我的选择）</span>
+                </label>
+            </div>
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button id="qmr-btn-no" style="
+                    padding: 8px 20px; border: 1px solid #e3e5e7; border-radius: 4px;
+                    background: white; color: #61666d; cursor: pointer;
+                    font-size: 14px; transition: all 0.2s;
+                ">
+                    不发送
+                </button>
+                <button id="qmr-btn-yes" style="
+                    padding: 8px 20px; border: none; border-radius: 4px;
+                    background: #00aeec; color: white; cursor: pointer;
+                    font-size: 14px; transition: all 0.2s;
+                ">
+                    发送弹幕
+                </button>
+            </div>
+        `;
+
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+
+        // 按钮悬停效果
+        const btnNo = dialog.querySelector('#qmr-btn-no');
+        const btnYes = dialog.querySelector('#qmr-btn-yes');
+
+        btnNo.addEventListener('mouseenter', () => {
+            btnNo.style.background = '#f4f5f7';
+        });
+        btnNo.addEventListener('mouseleave', () => {
+            btnNo.style.background = 'white';
+        });
+
+        btnYes.addEventListener('mouseenter', () => {
+            btnYes.style.background = '#00a1d6';
+        });
+        btnYes.addEventListener('mouseleave', () => {
+            btnYes.style.background = '#00aeec';
+        });
+
+        // 处理选择
+        const handleChoice = (sendDanmaku) => {
+            const dontAsk = dialog.querySelector('#qmr-dont-ask').checked;
+            overlay.remove();
+            resolve({ sendDanmaku, dontAskAgain: dontAsk });
+        };
+
+        btnNo.addEventListener('click', () => handleChoice(false));
+        btnYes.addEventListener('click', () => handleChoice(true));
+
+        // ESC 键关闭
+        const escHandler = (e) => {
+            if (e.key === 'Escape') {
+                overlay.remove();
+                resolve({ sendDanmaku: false, dontAskAgain: false });
+                document.removeEventListener('keydown', escHandler);
+            }
+        };
+        document.addEventListener('keydown', escHandler);
+    });
+}
+
 // 注入 B 站风格的 CSS
 // const style = document.createElement('style');
 // style.innerHTML = `
@@ -105,7 +221,7 @@ function getBvid() {
     // 3. 从 B站原生变量获取 (最准确)
     const bvidFromWindow = window.__INITIAL_STATE__?.bvid || window.p_bvid;
     if (bvidFromWindow) return bvidFromWindow;
-    
+
     return null;
 }
 
@@ -123,17 +239,17 @@ async function syncButtonState() {
     if (!bvid) return;
 
     if (isSyncing) return;
-    
+
     try {
         isSyncing = true;
         const userId = getUserId();
         // 增加 _t 参数防止浏览器缓存 GET 请求
         const statusRes = await fetch(`${API_BASE}/status?bvid=${bvid}&userId=${userId || ''}&_t=${Date.now()}`);
         const statusData = await statusRes.json();
-        
+
         currentBvid = bvid;
         lastSyncedUserId = userId;
-        
+
         const isLoggedIn = !!userId;
         if (statusData.active && isLoggedIn) {
             qBtn.classList.add('voted');
@@ -142,7 +258,7 @@ async function syncButtonState() {
             qBtn.classList.remove('voted');
             document.getElementById('bili-qmr-btn-inner').classList.remove('on');
         }
-        
+
         // 更新显示的数量
         const countText = qBtn.querySelector('.qmr-text');
         if (countText) {
@@ -218,7 +334,7 @@ function sendDanmaku(text) {
                     dmSendBtn.click();
                 }
             }, 100);
-        }, 150); 
+        }, 150);
 
     } catch (e) {
         console.error('[B站问号榜] 弹幕瞬发失败:', e);
@@ -235,19 +351,19 @@ async function injectQuestionButton() {
         const shareBtn = document.querySelector('.video-toolbar-left-item.share') ||
             document.querySelector('.video-share') ||
             document.querySelector('.share-info');
-        
+
         if (!toolbarLeft || !shareBtn) return;
 
         let qBtn = document.getElementById('bili-qmr-btn');
-        
+
         // 2. 如果按钮不存在，创建并挂载
         if (!qBtn) {
             if (isInjecting) return;
             isInjecting = true;
-            
+
             qBtn = document.createElement('div');
             qBtn.id = 'bili-qmr-btn';
-             qBtn.className = 'toolbar-left-item-wrap';
+            qBtn.className = 'toolbar-left-item-wrap';
             qBtnInner = document.createElement('div');
             qBtnInner.id = 'bili-qmr-btn-inner';
             qBtnInner.className = 'qmr-icon-wrap video-toolbar-left-item';
@@ -291,7 +407,7 @@ async function injectQuestionButton() {
                     return;
                 }
 
-                const activeBvid = getBvid(); 
+                const activeBvid = getBvid();
                 const title = document.querySelector('.video-title')?.innerText || document.title;
                 if (!activeBvid) return;
 
@@ -312,24 +428,40 @@ async function injectQuestionButton() {
                         },
                         body: JSON.stringify({ bvid: activeBvid, title, userId })
                     });
-                    
+
                     const resData = await response.json();
                     if (resData.success) {
                         syncButtonState();
-                        // 只有当点亮（active 为 true）时才发弹幕
+                        // 只有当点亮（active 为 true）时才考虑发弹幕
                         if (resData.active) {
-                            sendDanmaku('？');
+                            const preference = await getDanmakuPreference();
+
+                            if (preference === null) {
+                                // 首次使用，显示确认对话框
+                                const choice = await showDanmakuConfirmDialog();
+                                if (choice.sendDanmaku) {
+                                    sendDanmaku('？');
+                                }
+                                if (choice.dontAskAgain) {
+                                    await setDanmakuPreference(choice.sendDanmaku);
+                                }
+                            } else if (preference === true) {
+                                // 用户选择了总是发送
+                                sendDanmaku('？');
+                            }
+                            // preference === false 时不发送
                         }
                     } else {
                         alert('投票失败: ' + (resData.error || '未知错误'));
                     }
                 } catch (err) {
                     console.error('[B站问号榜] 投票请求异常:', err);
-                } finally { 
-                    qBtn.style.pointerEvents = 'auto'; 
+                } finally {
+                    qBtn.style.pointerEvents = 'auto';
                     qBtn.style.opacity = '1';
                 }
             };
+
             isInjecting = false;
         }
 
@@ -350,7 +482,7 @@ window.addEventListener('resize', injectQuestionButton, { passive: true });
 // 防抖函数
 function debounce(fn, delay) {
     let timer = null;
-    return function() {
+    return function () {
         if (timer) clearTimeout(timer);
         timer = setTimeout(() => fn.apply(this, arguments), delay);
     }
@@ -374,7 +506,7 @@ setTimeout(() => {
     const mainApp = document.getElementById('app') || document.body;
     observer.observe(mainApp, { childList: true, subtree: true });
     injectQuestionButton();
-    
+
     // 合并后的心跳检测
     setInterval(() => {
         const urlChanged = location.href !== lastUrl;
@@ -387,12 +519,12 @@ setTimeout(() => {
             const toolbar = document.querySelector('.video-toolbar-left-main') ||
                 document.querySelector('.toolbar-left') ||
                 document.querySelector('.video-toolbar-container .left-operations');
-            
+
             if (toolbar && (!btn || !toolbar.contains(btn))) {
                 injectQuestionButton();
             }
         }
-        
+
         // 检查视频事件绑定
         const video = document.querySelector('video');
         if (video && !video.dataset.qmrListen) {
