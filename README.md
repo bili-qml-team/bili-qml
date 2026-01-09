@@ -47,7 +47,7 @@
 - [ ] support-4: 支持油猴脚本，Mac用户可以通过油猴脚本使用插件 [*on work*]
 - [x] support-5: 上架edge应用商店
 
-- [ ] new feature-1: 频繁vote时增加人机验证，感谢B站用户 巧克力棒好好吃啊qwq 的建议
+- [x] new feature-1: 频繁vote时增加人机验证，感谢B站用户 巧克力棒好好吃啊qwq 的建议
 - [ ] new feature-2: 将榜单制作为一个独立的页面，方便用户查看和分享 [*on work*]
 - [ ] new feature-3: 由用户决定是否发送？弹幕
 

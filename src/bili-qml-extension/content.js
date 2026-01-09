@@ -1,6 +1,139 @@
 // content.js
 const API_BASE = 'https://www.bili-qml.top/api';
 
+// 动态加载 Altcha Widget
+let altchaLoaded = false;
+function loadAltchaWidget() {
+    return new Promise((resolve) => {
+        if (altchaLoaded || document.querySelector('script[src*="altcha"]')) {
+            altchaLoaded = true;
+            resolve();
+            return;
+        }
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/altcha@latest/dist/altcha.min.js';
+        script.type = 'module';
+        script.async = true;
+        script.onload = () => {
+            altchaLoaded = true;
+            resolve();
+        };
+        document.head.appendChild(script);
+    });
+}
+
+// 注入 Altcha 弹窗样式
+function injectAltchaStyles() {
+    if (document.getElementById('altcha-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'altcha-styles';
+    style.textContent = `
+        #altcha-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100000;
+            animation: altcha-fade-in 0.2s ease-out;
+        }
+        @keyframes altcha-fade-in {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .altcha-modal {
+            background: #fff;
+            border-radius: 12px;
+            padding: 24px;
+            min-width: 320px;
+            max-width: 90vw;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            animation: altcha-slide-up 0.3s ease-out;
+        }
+        @keyframes altcha-slide-up {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .altcha-header {
+            font-size: 18px;
+            font-weight: 600;
+            color: #18191c;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+        .altcha-content p {
+            color: #61666d;
+            margin-bottom: 16px;
+            text-align: center;
+            font-size: 14px;
+        }
+        .altcha-close {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 24px;
+            height: 24px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 18px;
+            color: #999;
+        }
+        .altcha-close:hover {
+            color: #333;
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+// 显示 Altcha 验证弹窗
+async function showAltchaChallenge() {
+    await loadAltchaWidget();
+    injectAltchaStyles();
+
+    return new Promise((resolve, reject) => {
+        const overlay = document.createElement('div');
+        overlay.id = 'altcha-overlay';
+        overlay.innerHTML = `
+            <div class="altcha-modal" style="position: relative;">
+                <button class="altcha-close" title="关闭">×</button>
+                <div class="altcha-header">🤖 人机验证</div>
+                <div class="altcha-content">
+                    <p>检测到频繁操作，请完成验证后继续</p>
+                    <altcha-widget 
+                        challengeurl="${API_BASE}/altcha/challenge"
+                        hidelogo
+                        hidefooter
+                    ></altcha-widget>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        // 监听验证完成事件
+        const widget = overlay.querySelector('altcha-widget');
+        widget.addEventListener('verified', (e) => {
+            const payload = e.detail.payload;
+            overlay.remove();
+            resolve(payload);
+        });
+
+        // 关闭按钮
+        overlay.querySelector('.altcha-close').addEventListener('click', () => {
+            overlay.remove();
+            reject(new Error('用户取消验证'));
+        });
+
+        // 点击遮罩关闭
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                overlay.remove();
+                reject(new Error('用户取消验证'));
+            }
+        });
+    });
+}
 // 注入 B 站风格的 CSS
 // const style = document.createElement('style');
 // style.innerHTML = `
@@ -103,7 +236,7 @@ function getBvid() {
     // 3. 从 B站原生变量获取 (最准确)
     const bvidFromWindow = window.__INITIAL_STATE__?.bvid || window.p_bvid;
     if (bvidFromWindow) return bvidFromWindow;
-    
+
     return null;
 }
 
@@ -121,24 +254,24 @@ async function syncButtonState() {
     if (!bvid) return;
 
     if (isSyncing) return;
-    
+
     try {
         isSyncing = true;
         const userId = getUserId();
         // 增加 _t 参数防止浏览器缓存 GET 请求
         const statusRes = await fetch(`${API_BASE}/status?bvid=${bvid}&userId=${userId || ''}&_t=${Date.now()}`);
         const statusData = await statusRes.json();
-        
+
         currentBvid = bvid;
         lastSyncedUserId = userId;
-        
+
         const isLoggedIn = !!userId;
         if (statusData.active && isLoggedIn) {
             qBtn.classList.add('voted');
         } else {
             qBtn.classList.remove('voted');
         }
-        
+
         // 更新显示的数量
         const countText = qBtn.querySelector('.qmr-text');
         if (countText) {
@@ -214,7 +347,7 @@ function sendDanmaku(text) {
                     dmSendBtn.click();
                 }
             }, 100);
-        }, 150); 
+        }, 150);
 
     } catch (e) {
         console.error('[B站问号榜] 弹幕瞬发失败:', e);
@@ -231,19 +364,19 @@ async function injectQuestionButton() {
         const shareBtn = document.querySelector('.video-toolbar-left-item.share') ||
             document.querySelector('.video-share') ||
             document.querySelector('.share-info');
-        
+
         if (!toolbarLeft || !shareBtn) return;
 
         let qBtn = document.getElementById('bili-qmr-btn');
-        
+
         // 2. 如果按钮不存在，创建并挂载
         if (!qBtn) {
             if (isInjecting) return;
             isInjecting = true;
-            
+
             qBtn = document.createElement('div');
             qBtn.id = 'bili-qmr-btn';
-             qBtn.className = 'toolbar-left-item-wrap';
+            qBtn.className = 'toolbar-left-item-wrap';
             qBtnInner = document.createElement('div');
             qBtnInner.id = 'bili-qmr-btn-inner';
             qBtnInner.className = 'qmr-icon-wrap video-toolbar-left-item';
@@ -287,7 +420,7 @@ async function injectQuestionButton() {
                     return;
                 }
 
-                const activeBvid = getBvid(); 
+                const activeBvid = getBvid();
                 const title = document.querySelector('.video-title')?.innerText || document.title;
                 if (!activeBvid) return;
 
@@ -300,28 +433,51 @@ async function injectQuestionButton() {
                 try {
                     qBtn.style.pointerEvents = 'none';
                     qBtn.style.opacity = '0.5';
-                    const response = await fetch(`${API_BASE}/vote`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ bvid: activeBvid, title, userId })
-                    });
-                    
-                    const resData = await response.json();
+
+                    // 投票请求函数（支持重试携带验证 payload）
+                    const doVote = async (altchaPayload = null) => {
+                        const voteData = { bvid: activeBvid, title, userId };
+                        if (altchaPayload) {
+                            voteData.altcha = altchaPayload;
+                        }
+
+                        const response = await fetch(`${API_BASE}/vote`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(voteData)
+                        });
+                        return response.json();
+                    };
+
+                    let resData = await doVote();
+
+                    // 检查是否需要人机验证
+                    if (resData.requiresCaptcha) {
+                        try {
+                            const altchaPayload = await showAltchaChallenge();
+                            // 验证成功，携带 payload 重新投票
+                            resData = await doVote(altchaPayload);
+                        } catch (captchaError) {
+                            console.log('[B站问号榜] 用户取消验证');
+                            return; // 用户取消，直接返回
+                        }
+                    }
+
                     if (resData.success) {
                         syncButtonState();
                         // 只有当点亮（active 为 true）时才发弹幕
                         if (resData.active) {
                             sendDanmaku('？');
                         }
-                    } else {
-                        alert('投票失败: ' + (resData.error || '未知错误'));
+                    } else if (!resData.requiresCaptcha) {
+                        alert('投票失败: ' + (resData.error || resData.message || '未知错误'));
                     }
                 } catch (err) {
                     console.error('[B站问号榜] 投票请求异常:', err);
-                } finally { 
-                    qBtn.style.pointerEvents = 'auto'; 
+                } finally {
+                    qBtn.style.pointerEvents = 'auto';
                     qBtn.style.opacity = '1';
                 }
             };
@@ -345,7 +501,7 @@ window.addEventListener('resize', injectQuestionButton, { passive: true });
 // 防抖函数
 function debounce(fn, delay) {
     let timer = null;
-    return function() {
+    return function () {
         if (timer) clearTimeout(timer);
         timer = setTimeout(() => fn.apply(this, arguments), delay);
     }
@@ -369,7 +525,7 @@ setTimeout(() => {
     const mainApp = document.getElementById('app') || document.body;
     observer.observe(mainApp, { childList: true, subtree: true });
     injectQuestionButton();
-    
+
     // 合并后的心跳检测
     setInterval(() => {
         const urlChanged = location.href !== lastUrl;
@@ -382,12 +538,12 @@ setTimeout(() => {
             const toolbar = document.querySelector('.video-toolbar-left-main') ||
                 document.querySelector('.toolbar-left') ||
                 document.querySelector('.video-toolbar-container .left-operations');
-            
+
             if (toolbar && (!btn || !toolbar.contains(btn))) {
                 injectQuestionButton();
             }
         }
-        
+
         // 检查视频事件绑定
         const video = document.querySelector('video');
         if (video && !video.dataset.qmrListen) {

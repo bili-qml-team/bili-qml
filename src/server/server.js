@@ -10,6 +10,45 @@ const PORT = process.env.PORT || 3000;
 const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 
+// Altcha 配置
+const { createChallenge, verifySolution } = require('altcha-lib');
+const ALTCHA_HMAC_KEY = process.env.ALTCHA_HMAC_KEY || 'bili-qml-default-dev-key-change-in-production';
+
+// 频率限制配置 (Serverless 兼容，基于 Redis)
+const VOTE_LIMIT = { max: 5, windowSec: 60 };         // 每分钟5次投票
+const LEADERBOARD_LIMIT = { max: 10, windowSec: 60 }; // 每分钟10次排行榜
+
+// 基于 Redis 的频率限制检查
+async function checkRateLimit(key, limit) {
+    const redisKey = `ratelimit:${key}`;
+    try {
+        // INCR 原子操作增加计数
+        const countRes = await fetch(`${REDIS_URL}/incr/${redisKey}`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${REDIS_TOKEN}` }
+        });
+        const countData = await countRes.json();
+        const count = countData.result || 1;
+
+        // 首次请求时设置过期时间
+        if (count === 1) {
+            await fetch(`${REDIS_URL}/expire/${redisKey}/${limit.windowSec}`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${REDIS_TOKEN}` }
+            });
+        }
+
+        return {
+            exceeded: count > limit.max,
+            remaining: Math.max(0, limit.max - count),
+            count
+        };
+    } catch (e) {
+        console.error('Rate limit check failed:', e);
+        return { exceeded: false, remaining: limit.max }; // 失败时放行
+    }
+}
+
 // 辅助函数：与 Redis 交互
 async function getDB() {
     try {
@@ -18,7 +57,7 @@ async function getDB() {
         });
         const data = await res.json();
         if (!data.result) return {};
-        
+
         let parsed = JSON.parse(data.result);
         // 如果解析出来还是字符串（双重序列化），再解析一次
         if (typeof parsed === 'string') {
@@ -76,7 +115,7 @@ const securityCheck = (req, res, next) => {
                 req.body.title = String(title).substring(0, 50).trim();
             }
         }
-        
+
         // 校验 BVID 格式（简单正则）
         if (bvid && !/^BV[a-zA-Z0-9]{10}$/.test(bvid)) {
             return res.status(400).json({ success: false, error: 'Invalid ID' });
@@ -126,17 +165,63 @@ app.use((req, res, next) => {
     next();
 });
 
+// Altcha 挑战生成端点
+app.get(['/api/altcha/challenge', '/altcha/challenge'], async (req, res) => {
+    try {
+        const challenge = await createChallenge({
+            hmacKey: ALTCHA_HMAC_KEY,
+            maxNumber: 50000, // 中等难度，约需1-3秒解决
+            expires: new Date(Date.now() + 5 * 60 * 1000), // 5分钟过期
+        });
+        res.json(challenge);
+    } catch (error) {
+        console.error('Altcha challenge generation error:', error);
+        res.status(500).json({ error: 'Failed to generate challenge' });
+    }
+});
+
 // 处理投票
 app.post(['/api/vote', '/vote'], async (req, res) => {
     try {
-        const { bvid, title, userId } = req.body;
-        
+        const { bvid, title, userId, altcha } = req.body;
+
         // 1. 基础参数校验
         if (!bvid || !userId) return res.status(400).json({ success: false, error: 'Missing params' });
-        
+
         // 2. BVID 格式强校验
         if (!bvid.startsWith('BV') || bvid.length < 10) {
             return res.status(400).json({ success: false, error: 'Invalid BVID' });
+        }
+
+        // 3. 频率限制检查
+        const rateLimitKey = `vote:${userId}`;
+        const rateLimit = await checkRateLimit(rateLimitKey, VOTE_LIMIT);
+
+        if (rateLimit.exceeded) {
+            // 超过频率限制，检查是否携带 Altcha 验证
+            if (!altcha) {
+                return res.json({
+                    success: false,
+                    requiresCaptcha: true,
+                    message: '检测到频繁操作，请完成人机验证'
+                });
+            }
+
+            // 验证 Altcha payload
+            try {
+                const isValid = await verifySolution(altcha, ALTCHA_HMAC_KEY);
+                if (!isValid) {
+                    return res.status(400).json({ success: false, error: '验证失败，请重试' });
+                }
+                // 验证成功，重置频率计数
+                await fetch(`${REDIS_URL}/del/ratelimit:${rateLimitKey}`, {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${REDIS_TOKEN}` }
+                });
+            } catch (verifyError) {
+                console.error('Altcha verification error:', verifyError);
+                return res.status(400).json({ success: false, error: '验证处理失败' });
+            }
         }
 
         // 3. 标题清洗 (防御重点)
@@ -148,7 +233,7 @@ app.post(['/api/vote', '/vote'], async (req, res) => {
         }
 
         let data = await getDB();
-        
+
         // 确保 data 是对象且包含 bvid 路径
         if (!data || typeof data !== 'object') data = {};
         if (!data[bvid] || typeof data[bvid] !== 'object') {
@@ -193,11 +278,49 @@ app.get(['/api/status', '/status'], async (req, res) => {
 // 获取排行榜
 app.get(['/api/leaderboard', '/leaderboard'], async (req, res) => {
     const range = req.query.range || 'realtime';
+    const altcha = req.query.altcha;
+
+    // 获取客户端 IP 用于频率限制
+    const clientIP = req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+        req.headers['x-real-ip'] ||
+        req.ip ||
+        'unknown';
+
+    // 频率限制检查
+    const rateLimitKey = `leaderboard:${clientIP}`;
+    const rateLimit = await checkRateLimit(rateLimitKey, LEADERBOARD_LIMIT);
+
+    if (rateLimit.exceeded) {
+        if (!altcha) {
+            return res.json({
+                success: false,
+                requiresCaptcha: true,
+                message: '请求过于频繁，请完成人机验证'
+            });
+        }
+
+        // 验证 Altcha payload
+        try {
+            const isValid = await verifySolution(altcha, ALTCHA_HMAC_KEY);
+            if (!isValid) {
+                return res.status(400).json({ success: false, error: '验证失败，请重试' });
+            }
+            // 验证成功，重置频率计数
+            await fetch(`${REDIS_URL}/del/ratelimit:${rateLimitKey}`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${REDIS_TOKEN}` }
+            });
+        } catch (verifyError) {
+            console.error('Altcha verification error:', verifyError);
+            return res.status(400).json({ success: false, error: '验证处理失败' });
+        }
+    }
+
     const data = await getDB();
-    
+
     // 关键修复：强制使用北京时间 (UTC+8)
     const now = () => moment().utcOffset(8);
-    
+
     let startTime = 0;
     let endTime = now().valueOf();
 
@@ -210,7 +333,7 @@ app.get(['/api/leaderboard', '/leaderboard'], async (req, res) => {
         endTime = now().subtract(1, 'days').endOf('day').valueOf();
     } else if (range === 'weekly') {
         // 周榜：本周一零点至今
-        startTime = now().startOf('isoWeek').valueOf(); 
+        startTime = now().startOf('isoWeek').valueOf();
     } else if (range === 'monthly') {
         // 月榜：本月1号零点至今
         startTime = now().startOf('month').valueOf();
