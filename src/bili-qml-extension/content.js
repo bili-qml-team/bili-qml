@@ -1,5 +1,5 @@
 // content.js
-const API_BASE = 'https://www.bili-qml.top/api';
+const API_BASE = 'https://bili-qml.bydfk.com/api';
 // for debug
 //const API_BASE = 'http://localhost:3000/api'
 
@@ -117,12 +117,11 @@ let lastSyncedUserId = null;
 // 同步按钮状态（亮或灭）及计数
 async function syncButtonState() {
     const qBtn = document.getElementById('bili-qmr-btn');
-    if (!qBtn) return;
+    const qBtnInner = document.getElementById('bili-qmr-btn-inner');
+    if (!qBtn || !qBtnInner || isSyncing) return;
 
     const bvid = getBvid();
     if (!bvid) return;
-
-    if (isSyncing) return;
 
     try {
         isSyncing = true;
@@ -137,10 +136,10 @@ async function syncButtonState() {
         const isLoggedIn = !!userId;
         if (statusData.active && isLoggedIn) {
             qBtn.classList.add('voted');
-            document.getElementById('bili-qmr-btn-inner').classList.add('on');
+            qBtnInner.classList.add('on');
         } else {
             qBtn.classList.remove('voted');
-            document.getElementById('bili-qmr-btn-inner').classList.remove('on');
+            qBtnInner.classList.remove('on');
         }
 
         // 更新显示的数量
@@ -275,13 +274,13 @@ async function injectQuestionButton() {
             // document.addEventListener('fullscreenchange', () => setTimeout(syncPos, 200));
 
             // 拦截悬停事件，双重保险
-            ['mouseenter', 'mouseover'].forEach(type => {
-                qBtn.addEventListener(type, (e) => e.stopPropagation());
-            });
+            // ['mouseenter', 'mouseover'].forEach(type => {
+            //     qBtn.addEventListener(type, (e) => e.stopPropagation());
+            // });
 
             qBtn.onclick = async (e) => {
                 e.preventDefault();
-                e.stopPropagation(); // 依然保留，防止点击事件向上冒泡干扰 B 站
+                // e.stopPropagation(); // 依然保留，防止点击事件向上冒泡干扰 B 站
 
                 // 只有登录用户才能投票
                 if (!document.cookie.includes('DedeUserID')) {
@@ -290,7 +289,6 @@ async function injectQuestionButton() {
                 }
 
                 const activeBvid = getBvid();
-                const title = document.querySelector('.video-title')?.innerText || document.title;
                 if (!activeBvid) return;
 
                 const userId = getUserId();
@@ -308,16 +306,16 @@ async function injectQuestionButton() {
                         headers: {
                             'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify({ bvid: activeBvid, title, userId })
+                        body: JSON.stringify({ bvid: activeBvid, userId })
                     });
 
                     const resData = await response.json();
                     if (resData.success) {
-                        syncButtonState();
                         // 只有当点亮（active 为 true）时才发弹幕
                         if (resData.active) {
                             sendDanmaku('？');
                         }
+                        await syncButtonState();                        
                     } else {
                         alert('投票失败: ' + (resData.error || '未知错误'));
                     }
@@ -332,18 +330,11 @@ async function injectQuestionButton() {
         }
 
         // 3. 状态同步检查
-        const currentUserId = getUserId();
-        if (bvid !== currentBvid || currentUserId !== lastSyncedUserId) {
-            syncButtonState();
-        }
+        await syncButtonState();
     } catch (e) {
         isInjecting = false;
     }
 }
-
-// 增加滚动和缩放监听以保持位置同步
-window.addEventListener('scroll', injectQuestionButton, { passive: true });
-window.addEventListener('resize', injectQuestionButton, { passive: true });
 
 // 防抖函数
 function debounce(fn, delay) {
@@ -354,49 +345,56 @@ function debounce(fn, delay) {
     }
 }
 
-function getCachedUserId() {
-    return getUserId();
-}
+// 监听 DOM 变化以注入按钮
+const observer = new MutationObserver(debounce(injectQuestionButton, 500));
+const mainApp = document.getElementById('app');
+observer.observe(mainApp, { childList: true, subtree: true });
+injectQuestionButton();
 
-const debouncedInject = debounce(injectQuestionButton, 500);
-
-// 降低监听频率和范围，保护 B 站顶栏
-const observer = new MutationObserver(debounce(() => {
-    injectQuestionButton();
-}, 1000)); // 进一步放慢频率
 
 let lastUrl = location.href;
+setInterval(() => {
+    const urlChanged = location.href !== lastUrl;
+    const userId = getUserId();
+    const userChanged = userId !== lastSyncedUserId;
+
+    if (urlChanged || userChanged) {
+        lastUrl = location.href;
+        injectQuestionButton();
+    }
+}, 500);
+
 
 // 初始尝试 - 增加延迟，等 B 站顶栏加载完再动
-setTimeout(() => {
-    const mainApp = document.getElementById('app') || document.body;
-    observer.observe(mainApp, { childList: true, subtree: true });
-    injectQuestionButton();
+// setTimeout(() => {
+//     const mainApp = document.getElementById('app') || document.body;
+//     observer.observe(mainApp, { childList: true, subtree: true });
+//     injectQuestionButton();
 
-    // 合并后的心跳检测
-    setInterval(() => {
-        const urlChanged = location.href !== lastUrl;
-        if (urlChanged) {
-            lastUrl = location.href;
-            injectQuestionButton();
-        } else {
-            // 心跳检测：强制检查
-            const btn = document.getElementById('bili-qmr-btn');
-            const toolbar = document.querySelector('.video-toolbar-left-main') ||
-                document.querySelector('.toolbar-left') ||
-                document.querySelector('.video-toolbar-container .left-operations');
+// 合并后的心跳检测
+// setInterval(() => {
+//     const urlChanged = location.href !== lastUrl;
+//     if (urlChanged) {
+//         lastUrl = location.href;
+//         injectQuestionButton();
+//     } else {
+//         // 心跳检测：强制检查
+//         const btn = document.getElementById('bili-qmr-btn');
+//         const toolbar = document.querySelector('.video-toolbar-left-main') ||
+//             document.querySelector('.toolbar-left') ||
+//             document.querySelector('.video-toolbar-container .left-operations');
 
-            if (toolbar && (!btn || !toolbar.contains(btn))) {
-                injectQuestionButton();
-            }
-        }
+//         if (toolbar && (!btn || !toolbar.contains(btn))) {
+//             injectQuestionButton();
+//         }
+//     }
 
-        // 检查视频事件绑定
-        const video = document.querySelector('video');
-        if (video && !video.dataset.qmrListen) {
-            video.dataset.qmrListen = 'true';
-            video.addEventListener('play', () => setTimeout(injectQuestionButton, 500));
-            video.addEventListener('pause', () => setTimeout(injectQuestionButton, 500));
-        }
-    }, 2000); // 心跳频率也降低
-}, 2500); // 延迟 2.5 秒启动，避开顶栏渲染高峰期
+//     // 检查视频事件绑定
+//     const video = document.querySelector('video');
+//     if (video && !video.dataset.qmrListen) {
+//         video.dataset.qmrListen = 'true';
+//         video.addEventListener('play', () => setTimeout(injectQuestionButton, 500));
+//         video.addEventListener('pause', () => setTimeout(injectQuestionButton, 500));
+//     }
+// }, 2000); // 心跳频率也降低
+// }, 2500); // 延迟 2.5 秒启动，避开顶栏渲染高峰期

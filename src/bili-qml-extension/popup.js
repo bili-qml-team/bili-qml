@@ -1,5 +1,5 @@
 // popup.js
-const API_BASE = 'https://www.bili-qml.top/api';
+const API_BASE = 'https://bili-qml.bydfk.com/api';
 // for debug
 // const API_BASE = 'http://localhost:3000/api'
 
