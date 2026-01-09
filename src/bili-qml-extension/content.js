@@ -284,23 +284,23 @@ function formatCount(num) {
 // 模拟发送弹幕功能
 function sendDanmaku(text) {
     // 1. 寻找弹幕输入框和发送按钮
-    const showNotice = (msg, isError = false) => {
-        if (!isError) return; // 正常情况下不显示提示
-        const notice = document.createElement('div');
-        notice.style.cssText = `
-            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-            padding: 10px 20px; border-radius: 4px; z-index: 100000;
-            background: #ff4d4f; color: white;
-            font-size: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-            transition: opacity 0.5s;
-        `;
-        notice.innerText = `[问号榜提示] ${msg}`;
-        document.body.appendChild(notice);
-        setTimeout(() => {
-            notice.style.opacity = '0';
-            setTimeout(() => notice.remove(), 500);
-        }, 3000);
-    };
+    // const showNotice = (msg, isError = false) => {
+    //     if (!isError) return; // 正常情况下不显示提示
+    //     const notice = document.createElement('div');
+    //     notice.style.cssText = `
+    //         position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    //         padding: 10px 20px; border-radius: 4px; z-index: 100000;
+    //         background: #ff4d4f; color: white;
+    //         font-size: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    //         transition: opacity 0.5s;
+    //     `;
+    //     notice.innerText = `[问号榜提示] ${msg}`;
+    //     document.body.appendChild(notice);
+    //     setTimeout(() => {
+    //         notice.style.opacity = '0';
+    //         setTimeout(() => notice.remove(), 500);
+    //     }, 3000);
+    // };
 
     try {
         const dmInput = document.querySelector('input.bpx-player-dm-input');
@@ -309,7 +309,11 @@ function sendDanmaku(text) {
 
         // 1. 填入内容并让 React 感知
         dmInput.focus();
-        document.execCommand('insertText', false, text);
+        const setter = Object.getOwnPropertyDescriptor(
+            window.HTMLInputElement.prototype,
+            'value'
+        )?.set;
+        setter?.call(dmInput, text);
         dmInput.dispatchEvent(new Event('input', { bubbles: true }));
 
         // 2. 增加一个适中的延时（150ms），避开 B 站的频率检测和 React 渲染冲突
@@ -446,7 +450,7 @@ async function injectQuestionButton() {
                             }
                             // preference === false 时不发送
                         }
-                        await syncButtonState();                        
+                        await syncButtonState();
                     } else {
                         alert('投票失败: ' + (resData.error || '未知错误'));
                     }
@@ -479,7 +483,7 @@ function debounce(fn, delay) {
 
 // 监听 DOM 变化以注入按钮
 const observer = new MutationObserver(debounce(injectQuestionButton, 500));
-const mainApp = document.getElementById('app');
+const mainApp = document.getElementById('app') || document.body;
 observer.observe(mainApp, { childList: true, subtree: true });
 injectQuestionButton();
 
