@@ -42,9 +42,9 @@
 - [x] debug-2: 修改同时唤起转发小窗的问题。感谢B站用户 Logmeinu 指出问题
 
 - [x] support-1: 上架Chrome应用商店
-- [ ] support-2: 支持 Firefox [*on work*]
+- [x] support-2: 支持 Firefox
 - [ ] support-3: 支持Bilibili桌面端
-- [ ] support-4: 支持油猴脚本，Mac用户可以通过油猴脚本使用插件 [*on work*]
+- [x] support-4: 支持油猴脚本，Mac用户可以通过油猴脚本使用插件
 - [x] support-5: 上架edge应用商店
 
 - [ ] new feature-1: 频繁vote时增加人机验证，感谢B站用户 巧克力棒好好吃啊qwq 的建议

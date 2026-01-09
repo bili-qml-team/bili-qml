@@ -1,0 +1,51 @@
+{
+    "manifest_version": 3,
+    "name": "B站问号榜",
+    "version": "1.1",
+    "description": "在B站视频下方增加问号键，统计并展示抽象视频排行榜。",
+    "browser_specific_settings": {
+        "gecko": {
+            "id": "bili-qml@bili-qml.top",
+            "strict_min_version": "109.0"
+        }
+    },
+    "icons": {
+        "16": "icons/icon16.png",
+        "48": "icons/icon48.png",
+        "128": "icons/icon128.png"
+    },
+    "permissions": [
+        "storage"
+    ],
+    "host_permissions": [
+        "https://*.bilibili.com/*",
+        "https://www.bili-qml.top/*"
+    ],
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "icons/button-icon.png"
+            ],
+            "matches": [
+                "https://www.bilibili.com/*"
+            ]
+        }
+    ],
+    "action": {
+        "default_popup": "popup.html"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "https://www.bilibili.com/video/*"
+            ],
+            "js": [
+                "content.js"
+            ],
+            "css": [
+                "content.css"
+            ],
+            "run_at": "document_idle"
+        }
+    ]
+}

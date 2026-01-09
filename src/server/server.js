@@ -62,7 +62,11 @@ async function getLeaderBoard(range){
 // 服务器逻辑区
 
 app.use(cors({
-    origin: ['https://www.bilibili.com', 'chrome-extension://*'],
+    origin: [
+        'https://www.bilibili.com',
+        /^chrome-extension:\/\/.+$/,
+        /^moz-extension:\/\/.+$/
+    ],
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -136,7 +140,7 @@ app.use((req, res, next) => {
 app.post(['/api/vote', '/vote'], async (req, res) => {
     try {
         const { bvid, title, userId } = req.body;
-        
+
         // 1. 基础参数校验
         if (!bvid || !userId) return res.status(400).json({ success: false, error: 'Missing params' });
         // 用户投票记录
