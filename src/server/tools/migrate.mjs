@@ -39,7 +39,7 @@ function SetVotesTotal(bvid, targetVotes) {
 }
 
 function argvProcess(){
-    const help="Migrate datebase to new version of server.js\nfor commit:4907b93a3d41042db8c0cb5e9fda180dbc1b81a6\n \n -u,--url [parament]\t Redis Endpoint URL\n -t,--token [parament]\t Redis Token\n -i,o \t\t\t File path(default is ./Redis.json and you may not need to specify)  \n -d,--download \t\t Download orignal Redis data\n -p,--parse\t\t Parse and restore as Redis archive\n";
+    const help="Migrate datebase to new version of server.js\nfor commit:4907b93a3d41042db8c0cb5e9fda180dbc1b81a6\n \n -u,--url [parament]\t Redis Endpoint URL\n -t,--token [parament]\t Redis Token\n -i,o \t\t\t File path(default is ./Redis.json)  \n -d,--download \t\t Download orignal Redis data\n -p,--parse\t\t Parse and restore as Redis archive\n";
     process.argv.forEach((entry,index)=>{
         if(/^-(?!-)/.test(entry)){
             entry=entry.replace(/^-(?!-)/,"")
