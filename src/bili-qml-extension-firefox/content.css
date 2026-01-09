@@ -1,0 +1,40 @@
+/* content.css */
+
+#bili-qmr-btn {
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    margin-right: 20px;
+    color: #61666d;
+    transition: color 0.3s;
+    user-select: none;
+}
+
+#bili-qmr-btn:hover {
+    color: #00aeec;
+}
+
+#bili-qmr-btn.active {
+    color: #00aeec;
+}
+
+.qmr-icon-wrap {
+    display: flex;
+    align-items: center;
+}
+
+.qmr-icon {
+    font-size: 20px;
+    font-weight: bold;
+    margin-right: 4px;
+    width: 28px;
+    height: 28px;
+    line-height: 28px;
+    text-align: center;
+    border: 1.5px solid currentColor;
+    border-radius: 50%;
+}
+
+.qmr-text {
+    font-size: 13px;
+}

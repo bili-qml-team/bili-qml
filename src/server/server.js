@@ -18,7 +18,7 @@ async function getDB() {
         });
         const data = await res.json();
         if (!data.result) return {};
-        
+
         let parsed = JSON.parse(data.result);
         // 如果解析出来还是字符串（双重序列化），再解析一次
         if (typeof parsed === 'string') {
@@ -44,7 +44,11 @@ async function setDB(data) {
 }
 
 app.use(cors({
-    origin: ['https://www.bilibili.com', 'chrome-extension://*'],
+    origin: [
+        'https://www.bilibili.com',
+        /^chrome-extension:\/\/.+$/,
+        /^moz-extension:\/\/.+$/
+    ],
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -76,7 +80,7 @@ const securityCheck = (req, res, next) => {
                 req.body.title = String(title).substring(0, 50).trim();
             }
         }
-        
+
         // 校验 BVID 格式（简单正则）
         if (bvid && !/^BV[a-zA-Z0-9]{10}$/.test(bvid)) {
             return res.status(400).json({ success: false, error: 'Invalid ID' });
@@ -130,10 +134,10 @@ app.use((req, res, next) => {
 app.post(['/api/vote', '/vote'], async (req, res) => {
     try {
         const { bvid, title, userId } = req.body;
-        
+
         // 1. 基础参数校验
         if (!bvid || !userId) return res.status(400).json({ success: false, error: 'Missing params' });
-        
+
         // 2. BVID 格式强校验
         if (!bvid.startsWith('BV') || bvid.length < 10) {
             return res.status(400).json({ success: false, error: 'Invalid BVID' });
@@ -148,7 +152,7 @@ app.post(['/api/vote', '/vote'], async (req, res) => {
         }
 
         let data = await getDB();
-        
+
         // 确保 data 是对象且包含 bvid 路径
         if (!data || typeof data !== 'object') data = {};
         if (!data[bvid] || typeof data[bvid] !== 'object') {
@@ -194,10 +198,10 @@ app.get(['/api/status', '/status'], async (req, res) => {
 app.get(['/api/leaderboard', '/leaderboard'], async (req, res) => {
     const range = req.query.range || 'realtime';
     const data = await getDB();
-    
+
     // 关键修复：强制使用北京时间 (UTC+8)
     const now = () => moment().utcOffset(8);
-    
+
     let startTime = 0;
     let endTime = now().valueOf();
 
@@ -210,7 +214,7 @@ app.get(['/api/leaderboard', '/leaderboard'], async (req, res) => {
         endTime = now().subtract(1, 'days').endOf('day').valueOf();
     } else if (range === 'weekly') {
         // 周榜：本周一零点至今
-        startTime = now().startOf('isoWeek').valueOf(); 
+        startTime = now().startOf('isoWeek').valueOf();
     } else if (range === 'monthly') {
         // 月榜：本月1号零点至今
         startTime = now().startOf('month').valueOf();
