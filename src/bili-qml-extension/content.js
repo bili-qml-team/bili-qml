@@ -1,5 +1,7 @@
 // content.js
 const API_BASE = 'https://www.bili-qml.top/api';
+// for debug
+//const API_BASE = 'http://localhost:3000/api'
 
 // 注入 B 站风格的 CSS
 // const style = document.createElement('style');
@@ -300,7 +302,8 @@ async function injectQuestionButton() {
                 try {
                     qBtn.style.pointerEvents = 'none';
                     qBtn.style.opacity = '0.5';
-                    const response = await fetch(`${API_BASE}/vote`, {
+                    let endpoint=qBtn.classList.contains("voted")==true?"unvote":"vote";
+                    const response = await fetch(`${API_BASE}/${endpoint}`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'

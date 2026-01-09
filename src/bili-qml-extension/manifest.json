@@ -13,7 +13,8 @@
   ],
   "host_permissions": [
     "https://*.bilibili.com/*",
-    "https://www.bili-qml.top/*"
+    "https://www.bili-qml.top/*",
+    "http://localhost:3000/*"
   ],
   "web_accessible_resources": [
     {
