@@ -951,9 +951,12 @@
                         return;
                     }
 
+                    // 判断是投票还是取消投票
+                    const isVoting = !qBtn.classList.contains("voted");
+
                     // 内部函数：执行投票请求
                     const doVote = async (altchaSolution = null) => {
-                        const endpoint = qBtn.classList.contains("voted") == true ? "unvote" : "vote";
+                        const endpoint = isVoting ? "vote" : "unvote";
                         const requestBody = { bvid: activeBvid, userId };
                         if (altchaSolution) {
                             requestBody.altcha = altchaSolution;
@@ -988,13 +991,19 @@
                         }
 
                         if (resData.success) {
+                            console.log('[B站问号榜] 投票成功, isVoting:', isVoting);
                             syncButtonState();
-                            if (resData.active) {
+                            // 只有当点亮（isVoting 为 true）时才发弹幕
+                            if (isVoting) {
+                                console.log('[B站问号榜] 获取弹幕偏好...');
                                 const preference = getDanmakuPreference();
+                                console.log('[B站问号榜] 弹幕偏好:', preference);
 
                                 if (preference === null) {
+                                    console.log('[B站问号榜] 首次使用，显示确认对话框');
                                     // 首次使用，显示确认对话框
                                     const choice = await showDanmakuConfirmDialog();
+                                    console.log('[B站问号榜] 用户选择:', choice);
                                     if (choice.sendDanmaku) {
                                         sendDanmaku('？');
                                     }
@@ -1003,6 +1012,7 @@
                                     }
                                 } else if (preference === true) {
                                     // 用户选择了总是发送
+                                    console.log('[B站问号榜] 偏好为总是发送，直接发弹幕');
                                     sendDanmaku('？');
                                 }
                                 // preference === false 时不发送
