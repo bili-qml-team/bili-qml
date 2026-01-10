@@ -172,7 +172,7 @@ async function getDanmakuPreference() {
 // 设置弹幕发送偏好
 async function setDanmakuPreference(preference) {
     return browserStorage.sync.set({ [STORAGE_KEY_DANMAKU_PREF]: preference }, () => {
-            resolve();
+        resolve();
     });
 }
 
@@ -646,70 +646,94 @@ async function injectQuestionButton() {
     }
 }
 
-// 防抖函数
-function debounce(fn, delay) {
-    let timer = null;
-    return function () {
-        if (timer) clearTimeout(timer);
-        timer = setTimeout(() => fn.apply(this, arguments), delay);
+
+
+
+function observeDomStabilization(callback, { delay = 1000, maxWait = 10000 } = {}) {
+    let debounceTimeout;
+    let maxWaitTimeout;
+    let disconnected = false;
+
+    const observer = new MutationObserver(() => {
+        clearTimeout(debounceTimeout);
+        if (!disconnected) {
+            debounceTimeout = setTimeout(done, delay);
+        }
+    });
+
+    const done = () => {
+        if (disconnected) return;
+        disconnected = true;
+        observer.disconnect();
+        clearTimeout(maxWaitTimeout);
+        callback();
+    };
+
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: false
+    });
+
+    maxWaitTimeout = setTimeout(() => {
+        console.log('[B站问号榜] 最长等待时间到了，强制注入');
+        done();
+    }, maxWait);
+
+    debounceTimeout = setTimeout(done, delay);
+}
+
+// 核心注入逻辑
+async function tryInject() {
+    // 再次检查 BVID
+    const bvid = getBvid();
+    if (!bvid) return;
+
+    // 避免重复注入
+    if (document.getElementById('bili-qmr-btn')) return;
+
+    // 寻找挂载点
+    const toolbarLeft = document.querySelector('.video-toolbar-left-main') ||
+        document.querySelector('.toolbar-left'); // 兼容旧版
+
+    // 如果找不到工具栏，可能还在加载，或者是不支持的页面
+    if (!toolbarLeft) {
+        // console.log('[B站问号榜] 未找到工具栏，跳过注入');
+        return;
+    }
+
+    try {
+        await injectQuestionButton();
+    } catch (e) {
+        console.error('[B站问号榜] 注入失败:', e);
     }
 }
 
-// 监听 DOM 变化以注入按钮
-const observer = new MutationObserver(debounce(injectQuestionButton, 500));
-const mainApp = document.getElementById('app') || document.body;
-observer.observe(mainApp, { childList: true, subtree: true });
-injectQuestionButton();
-
-
-let lastUrl = location.href;
-setInterval(() => {
-    const urlChanged = location.href !== lastUrl;
-    const userId = getUserId();
-    const userChanged = userId !== lastSyncedUserId;
-
-    if (urlChanged || userChanged) {
-        lastUrl = location.href;
-        injectQuestionButton();
-    }
-}, 500);
-
-// 初始化
+// Main Entry Point
 initApiBase().then(() => {
-    injectQuestionButton();
+    // 初始加载：等待 DOM 稳定
+    observeDomStabilization(() => {
+        tryInject();
+    });
+
+    // 处理 SPA 软导航 (URL 变化)
+    let lastUrl = location.href;
+    setInterval(() => {
+        if (location.href !== lastUrl) {
+            lastUrl = location.href;
+            // URL 变化后，重新等待稳定再注入
+            observeDomStabilization(() => {
+                tryInject();
+            }, { delay: 500 });
+        } else {
+            // 简单的保底检查：如果当前应该是视频页但按钮丢了
+            if (getBvid() && !document.getElementById('bili-qmr-btn')) {
+                // 不使用 observer，直接尝试一下，避免死循环
+                if (document.querySelector('.video-toolbar-left-main')) {
+                    tryInject();
+                }
+            }
+        }
+    }, 1000);
 });
 
-
-// 初始尝试 - 增加延迟，等 B 站顶栏加载完再动
-// setTimeout(() => {
-//     const mainApp = document.getElementById('app') || document.body;
-//     observer.observe(mainApp, { childList: true, subtree: true });
-//     injectQuestionButton();
-
-// 合并后的心跳检测
-// setInterval(() => {
-//     const urlChanged = location.href !== lastUrl;
-//     if (urlChanged) {
-//         lastUrl = location.href;
-//         injectQuestionButton();
-//     } else {
-//         // 心跳检测：强制检查
-//         const btn = document.getElementById('bili-qmr-btn');
-//         const toolbar = document.querySelector('.video-toolbar-left-main') ||
-//             document.querySelector('.toolbar-left') ||
-//             document.querySelector('.video-toolbar-container .left-operations');
-
-//         if (toolbar && (!btn || !toolbar.contains(btn))) {
-//             injectQuestionButton();
-//         }
-//     }
-
-//     // 检查视频事件绑定
-//     const video = document.querySelector('video');
-//     if (video && !video.dataset.qmrListen) {
-//         video.dataset.qmrListen = 'true';
-//         video.addEventListener('play', () => setTimeout(injectQuestionButton, 500));
-//         video.addEventListener('pause', () => setTimeout(injectQuestionButton, 500));
-//     }
-// }, 2000); // 心跳频率也降低
-// }, 2500); // 延迟 2.5 秒启动，避开顶栏渲染高峰期

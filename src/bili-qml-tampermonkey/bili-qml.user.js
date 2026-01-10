@@ -1478,25 +1478,92 @@
         });
     }
 
+    function observeDomStabilization(callback, { delay = 1000, maxWait = 10000 } = {}) {
+        let debounceTimeout;
+        let maxWaitTimeout;
+        let disconnected = false;
+
+        const observer = new MutationObserver(() => {
+            clearTimeout(debounceTimeout);
+            if (!disconnected) {
+                debounceTimeout = setTimeout(done, delay);
+            }
+        });
+
+        const done = () => {
+            if (disconnected) return;
+            disconnected = true;
+            observer.disconnect();
+            clearTimeout(maxWaitTimeout);
+            callback();
+        };
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+            attributes: false
+        });
+
+        maxWaitTimeout = setTimeout(() => {
+            console.log('[B站问号榜] 最长等待时间到了，强制注入');
+            done();
+        }, maxWait);
+
+        debounceTimeout = setTimeout(done, delay);
+    }
+
+    // 核心注入逻辑
+    async function tryInject() {
+        // 再次检查 BVID
+        const bvid = getBvid();
+        if (!bvid) return;
+
+        // 避免重复注入
+        if (document.getElementById('bili-qmr-btn')) return;
+
+        // 寻找挂载点
+        const toolbarLeft = document.querySelector('.video-toolbar-left-main') ||
+            document.querySelector('.toolbar-left'); // 兼容旧版
+
+        // 如果找不到工具栏，可能还在加载，或者是不支持的页面
+        if (!toolbarLeft) {
+            // console.log('[B站问号榜] 未找到工具栏，跳过注入');
+            return;
+        }
+
+        try {
+            await injectQuestionButton();
+        } catch (e) {
+            console.error('[B站问号榜] 注入失败:', e);
+        }
+    }
+
     // ==================== 初始化 ====================
 
-    // DOM 变化监听
-    const observer = new MutationObserver(debounce(injectQuestionButton, 500));
-    const mainApp = document.getElementById('app') || document.body;
-    observer.observe(mainApp, { childList: true, subtree: true });
-    injectQuestionButton();
+    // 初始加载：等待 DOM 稳定
+    observeDomStabilization(() => {
+        tryInject();
+    });
 
+    // 处理 SPA 软导航 (URL 变化)
     let lastUrl = location.href;
     setInterval(() => {
-        const urlChanged = location.href !== lastUrl;
-        const userId = getUserId();
-        const userChanged = userId !== lastSyncedUserId;
-
-        if (urlChanged || userChanged) {
+        if (location.href !== lastUrl) {
             lastUrl = location.href;
-            injectQuestionButton();
+            // URL 变化后，重新等待稳定再注入
+            observeDomStabilization(() => {
+                tryInject();
+            }, { delay: 500 });
+        } else {
+            // 简单的保底检查：如果当前应该是视频页但按钮丢了
+            if (getBvid() && !document.getElementById('bili-qmr-btn')) {
+                // 不使用 observer，直接尝试一下，避免死循环
+                if (document.querySelector('.video-toolbar-left-main')) {
+                    tryInject();
+                }
+            }
         }
-    }, 500);
+    }, 1000);
 
     // 注册油猴菜单命令
     GM_registerMenuCommand('📊 打开问号榜', toggleLeaderboardPanel);
