@@ -5,7 +5,7 @@
 <h1 align="center">B站问号榜 (Bilibili Question-Mark Leaderboard)</h1>
 
 <p align="center">
-  <a href="README.md">中文</a> | <a href="#english-version">English</a>
+  <a href="#-中文介绍">中文介绍</a> | <a href="README_EN.md">English Version</a>
 </p>
 
 <p align="center">
@@ -14,83 +14,89 @@
 
 ---
 
-## 功能概述
+## 📖 中文介绍
 
--   **问号点亮**：在B站视频工具栏增加专属“问号”按钮，如果你觉得这个视频值得你发一个“？”，那么就点亮它。
--   **弹幕联动**：点亮问号时，自动在当前视频发送一条内容为“？”的弹幕。
--   **实时榜单**：点击插件图标，即可查看今日、本周及本月最“抽象”的视频排行。
+### ✨ 核心功能
 
----
+-   **❓ 问号点亮**：在 B 站视频工具栏增加专属“问号”按钮。如果你觉得这个视频很"抽象"（值得发"?"），就点亮它！
+-   **💬 弹幕联动**：
+    -   点亮问号时，自动在当前视频发送一条内容为“？”的弹幕。
+    -   弹幕发送前支持二次确认，防止误触。
+-   **🏆 实时榜单**：
+    -   点击插件图标打开面板，查看 **实时**、**今日**、**本周** 及 **本月** 最“抽象”的视频排行。
+    -   支持查看完整的独立榜单页面，方便分享。
+-   **⚙️ 个性化设置**：
+    -   **弹幕开关**：自由决定点击问号时是否自动发送弹幕。
+    -   **API 自定义**：支持修改后端 API 地址(高级选项，普通用户不建议修改)
 
-## 快速开始
+### 🚀 安装指南
 
-### 方法 1：使用Chrome/Edge插件市场安装 (最简单)
-* [Chrome 插件市场](https://chromewebstore.google.com/detail/b%E7%AB%99%E9%97%AE%E5%8F%B7%E6%A6%9C/kpfomdjnloglfedoamjaflnhojkcjndh?hl=zh-c)
-* [Edge 插件市场](https://microsoftedge.microsoft.com/addons/detail/b%E7%AB%99%E9%97%AE%E5%8F%B7%E6%A6%9C/fnlcdhaoobciclcjlnlopbcncmhjkdog)
+本项目支持 **Chrome / Edge** (扩展程序)、**Firefox** (扩展程序) 和 **油猴脚本 (Tampermonkey)** 三种方式。
 
-如果不会从插件市场安装，可以查看操作步骤：https://www.bilibili.com/video/BV1zJiGBREPB/
+#### 1. Chrome / Edge 浏览器
+**推荐方式：应用商店安装**
+- [Chrome 应用商店](https://chromewebstore.google.com/detail/b%E7%AB%99%E9%97%AE%E5%8F%B7%E6%A6%9C/kpfomdjnloglfedoamjaflnhojkcjndh?hl=zh-c)
+- [Edge 应用商店](https://microsoftedge.microsoft.com/addons/detail/b%E7%AB%99%E9%97%AE%E5%8F%B7%E6%A6%9C/fnlcdhaoobciclcjlnlopbcncmhjkdog)
 
+**开发者模式安装 (最新版)**
+1.  下载本项目源码并解压。
+2.  打开 Chrome/Edge 扩展程序页面 (`chrome://extensions/` 或 `edge://extensions/`)。
+3.  开启右上角的 **开发者模式**。
+4.  点击 **加载已解压的扩展程序**，选择本项目中的 `src/bili-qml-extension` 目录。
 
-### 方法 2：加载已解压的扩展程序
-操作步骤见链接 https://www.bilibili.com/opus/1154715533972602918
+#### 2. Firefox 浏览器
+Firefox暂未上线扩展商店，暂时请使用开发者模式安装  
+方法如下：
+1.  下载本项目源码并解压。
+2.  在 Firefox 地址栏输入 `about:debugging` 并回车。
+3.  点击左侧的 **此 Firefox**。
+4.  点击 **临时载入附加组件...**。
+5.  选择本项目 `src/bili-qml-extension-firefox` 目录下的 `manifest.json` 文件。
 
----
+#### 3. 油猴脚本 (Tampermonkey)
+适用于所有支持油猴脚本的浏览器 (Chrome, Edge, Firefox, Safari 等)。
+1.  确保浏览器已安装 Tampermonkey 扩展。
+2.  点击链接安装：[正式版](https://github.com/bili-qml-team/bili-qml/raw/refs/heads/main/src/bili-qml-tampermonkey/bili-qml.user.js) 或 [测试版](https://github.com/bili-qml-team/bili-qml/raw/refs/heads/dev/src/bili-qml-tampermonkey/bili-qml.user.js)  
 
-## TODO
-
-- [x] debug-1: 修改下滑时图标未合理隐藏的问题
-- [x] debug-2: 修改同时唤起转发小窗的问题。感谢B站用户 Logmeinu 指出问题
-
-- [x] support-1: 上架Chrome应用商店
-- [x] support-2: 支持 Firefox
-- [ ] support-3: 支持Bilibili桌面端
-- [x] support-4: 支持油猴脚本，Mac用户可以通过油猴脚本使用插件
-- [x] support-5: 上架edge应用商店
-
-- [x] new feature-1: 频繁vote时增加人机验证，感谢B站用户 巧克力棒好好吃啊qwq 的建议
-- [x] new feature-2: 将榜单制作为一个独立的页面，方便用户查看和分享
-- [x] new feature-3: 由用户决定是否发送？弹幕
-
-- [ ] need review: 代码冗余过多, 需要优化代码结构
-
----
-
-<a name="english-version"></a>
-
-## 🌟 English Version
-
-### Description
-A browser extension that adds a "Question Mark" button to Bilibili video toolbars. It tracks "abstract" scores and syncs with live Danmaku.
-
-### Features
--   **Interactive Button**: Light up the "?" to vote for a video.
--   **Auto Danmaku**: Automatically sends a "?" Danmaku when you vote.
--   **Leaderboard**: Check the most "abstract" videos of the day/week.
--   **Data Sync**: Bound to your Bilibili UID for permanent record tracking.
-
-### How to Install
-1.  Download and unzip this repository.
-2.  Go to `chrome://extensions/` in your browser.
-3.  Enable **Developer mode** (top right).
-4.  Click **Load unpacked** and select the `src/extension` folder.
+**请注意：油猴脚本的排行榜需要右键点击问号按钮开启。**
 
 ---
 
+### 📅 开发计划 (TODO)
+
+- [x] **已修复 (Fixed)**
+    - 下滑时图标未合理隐藏的问题
+    - 同时唤起转发小窗的问题 (Thanks to bilibili@Logmeinu)
+- [x] **已支持 (Supported)**
+    - 上架 Chrome 应用商店
+    - 上架 Edge 应用商店
+    - 支持 Firefox 浏览器
+    - 支持 油猴脚本 (Tampermonkey)
+- [x] **新特性 (Features)**
+    - **人机验证 (Altcha)**: 防止滥用 (Thanks to bilibili@巧克力棒好好吃啊qwq)
+    - **独立榜单页面**
+    - **设置面板**: 自定义弹幕发送偏好、API 地址
+- [ ] **待办 (Planned)**
+    - 支持 Bilibili 桌面客户端
+    - 代码结构优化与重构
+
+---
 ## 🛠 技术栈
 
 -   **Frontend**: HTML, CSS (Bilibili Style), JavaScript (Chrome Extension API)
 -   **Backend**: Node.js (Express)
 
-## 🤝 贡献与反馈
+---
+
+### 🤝 贡献与反馈
 
 感谢以下大佬对本项目做出的贡献，每一位都是热心而高技术力的contributor，他们的贡献使得本项目变得更加完善和强大🎉
 
-| 贡献者 | 贡献说明 |
+| 贡献者 | 贡献内容 |
 | :---: | :--- |
-| <a href="https://github.com/Radekyspec"><img src="https://github.com/Radekyspec.png?size=80" width="80px;" style="border-radius: 50%;"/><br /><sub><b>Radekyspec</b></sub></a> | 贡献v1.2数据库迁移脚本，eo保护 |
-| <a href="https://github.com/VanceHud"><img src="https://github.com/VanceHud.png?size=80" width="80px;" style="border-radius: 50%;"/><br /><sub><b>VanceHud</b></sub></a> | 贡献Firefox版本、油猴版本、用户自定义是否发送问号功能、人机验证 |
-| <a href="https://github.com/ShiroAzusa64"><img src="https://github.com/ShiroAzusa64.png?size=80" width="80px;" style="border-radius: 50%;"/><br /><sub><b>ShiroAzusa64</b></sub></a> | 贡献v1.2版本后端逻辑 |
-
+| <a href="https://github.com/Radekyspec"><img src="https://github.com/Radekyspec.png?size=50" width="50px;" style="border-radius: 50%;"/><br /><sub><b>Radekyspec</b></sub></a> | 数据库迁移脚本、EO保护逻辑 |
+| <a href="https://github.com/VanceHud"><img src="https://github.com/VanceHud.png?size=50" width="50px;" style="border-radius: 50%;"/><br /><sub><b>VanceHud</b></sub></a> | Firefox版本、油猴版本、设置面板功能、Altcha验证集成 |
+| <a href="https://github.com/ShiroAzusa64"><img src="https://github.com/ShiroAzusa64.png?size=50" width="50px;" style="border-radius: 50%;"/><br /><sub><b>ShiroAzusa64</b></sub></a> | v1.2版本后端核心逻辑 |
 
 参与贡献方式： 欢迎提交 Issues 或 Pull Request！
 
