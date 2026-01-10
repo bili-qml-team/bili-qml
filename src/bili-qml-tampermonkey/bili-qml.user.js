@@ -33,12 +33,12 @@
 
     // 解决 Altcha 挑战 (Proof-of-Work)
     async function solveAltchaChallenge(challenge) {
-        const { algorithm, challenge: challengeHash, salt, maxNumber, signature } = challenge;
+        const { algorithm, challenge: challengeHash, salt, maxnumber, signature } = challenge;
 
         // 使用 Web Crypto API 进行 SHA-256 哈希
         const encoder = new TextEncoder();
 
-        for (let number = 0; number <= maxNumber; number++) {
+        for (let number = 0; number <= maxnumber; number++) {
             const data = encoder.encode(salt + number);
             const hashBuffer = await crypto.subtle.digest('SHA-256', data);
             const hashArray = Array.from(new Uint8Array(hashBuffer));
