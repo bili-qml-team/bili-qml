@@ -12,18 +12,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 切换主题
     const themeToggleBtn = document.getElementById('theme-toggle');
-    const savedTheme = localStorage.getItem('theme');
-
     // 默认浅色模式。如果保存了'dark'，则应用暗色模式。
-    if (savedTheme === 'dark') {
-        document.body.classList.add('dark-mode');
-    }
+    browserStorage.sync.get(['theme'], (result) => {
+        if (result.theme === 'dark') {
+            document.body.classList.add('dark-mode');
+        }
+    });
+
+    // 监听其他标签页/Popup的主题变更
+    browserStorage.onChanged.addListener((changes, areaName) => {
+        if (areaName === 'sync' && changes.theme) {
+            if (changes.theme.newValue === 'dark') {
+                document.body.classList.add('dark-mode');
+            } else {
+                document.body.classList.remove('dark-mode');
+            }
+        }
+    });
 
     if (themeToggleBtn) {
         themeToggleBtn.addEventListener('click', () => {
             document.body.classList.toggle('dark-mode');
             const isDark = document.body.classList.contains('dark-mode');
-            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            browserStorage.sync.set({ theme: isDark ? 'dark' : 'light' });
         });
     }
 

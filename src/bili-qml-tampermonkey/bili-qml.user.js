@@ -246,16 +246,30 @@
         #bili-qmr-panel.qmr-dark .qmr-advanced-toggle,
         #bili-qmr-panel.qmr-dark .qmr-advanced-content,
         #bili-qmr-panel.qmr-dark .qmr-settings {
-            background-color: #2a2b30;
+            background-color: var(--qmr-card-bg);
             border-color: #3f4045;
         }
         
-        #bili-qmr-panel.qmr-dark .qmr-endpoint-input,
-        #bili-qmr-panel.qmr-dark .qmr-reset-btn {
+        #bili-qmr-panel.qmr-dark .qmr-endpoint-input {
             background: #1f2023;
             border-color: #3f4045;
             color: #eee;
         }
+        
+        #bili-qmr-panel.qmr-dark .qmr-reset-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: #3f4045;
+            color: #eee;
+        }
+
+        #bili-qmr-panel.qmr-dark .qmr-reset-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        #bili-qmr-panel.qmr-dark .qmr-tabs {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
 
 
         /* 问号按钮样式 */
@@ -1258,6 +1272,23 @@
             --tab-container-bg: rgba(255, 255, 255, 0.05);
             --tab-hover-bg: rgba(255, 255, 255, 0.05);
         }
+
+        /* 修复 dark mode 下的高级选项和重置按钮 */
+        body.dark-mode .qmr-advanced-section,
+        body.dark-mode .qmr-advanced-toggle {
+            background: var(--card-bg);
+            border-color: var(--card-border);
+        }
+
+        body.dark-mode .qmr-reset-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--card-border);
+            color: var(--text-primary);
+        }
+        body.dark-mode .qmr-reset-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
 
         body {
             margin: 0; padding: 0;

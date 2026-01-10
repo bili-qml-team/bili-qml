@@ -13,10 +13,23 @@ function getExtensionUrl(path) {
 
 document.addEventListener('DOMContentLoaded', () => {
 
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-        document.body.classList.add('dark-mode');
-    }
+
+    browserStorage.sync.get(['theme'], (result) => {
+        if (result.theme === 'dark') {
+            document.body.classList.add('dark-mode');
+        }
+    });
+
+
+    browserStorage.onChanged.addListener((changes, areaName) => {
+        if (areaName === 'sync' && changes.theme) {
+            if (changes.theme.newValue === 'dark') {
+                document.body.classList.add('dark-mode');
+            } else {
+                document.body.classList.remove('dark-mode');
+            }
+        }
+    });
 
     const leaderboard = document.getElementById('leaderboard');
     const settingsPanel = document.getElementById('settings');
@@ -55,7 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
         themeBtn.addEventListener('click', () => {
             document.body.classList.toggle('dark-mode');
             const isDark = document.body.classList.contains('dark-mode');
-            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            browserStorage.sync.set({ theme: isDark ? 'dark' : 'light' });
         });
     }
 
