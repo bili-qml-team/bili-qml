@@ -615,9 +615,12 @@ async function injectQuestionButton() {
                     return;
                 }
 
+                // 判断是投票还是取消投票
+                const isVoting = !qBtn.classList.contains("voted");
+
                 // 内部函数：执行投票请求
                 const doVote = async (altchaSolution = null) => {
-                    const endpoint = qBtn.classList.contains("voted") ? "unvote" : "vote";
+                    const endpoint = isVoting ? "vote" : "unvote";
                     const requestBody = { bvid: activeBvid, userId };
                     if (altchaSolution) {
                         requestBody.altcha = altchaSolution;
@@ -652,9 +655,9 @@ async function injectQuestionButton() {
                     }
 
                     if (resData.success) {
-                        console.log('[B站问号榜] 投票成功');
-                        // 只有投票时才发弹幕
-                        if (endpoint === "vote") {
+                        console.log('[B站问号榜] 投票成功, isVoting:', isVoting);
+                        // 只有当点亮（isVoting 为 true）时才发弹幕
+                        if (isVoting) {
                             console.log('[B站问号榜] 获取弹幕偏好...');
                             const preference = await getDanmakuPreference();
                             console.log('[B站问号榜] 弹幕偏好:', preference);
