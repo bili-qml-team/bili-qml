@@ -33,7 +33,8 @@
       ],
       "js": [
         "platform.js",
-        "content.js"
+        "content.js",
+        "utils.js"
       ],
       "css": [
         "content.css"
