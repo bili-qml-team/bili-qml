@@ -822,7 +822,7 @@ initApiBase().then(() => {
  * https://github.com/the1812/Bilibili-Evolved/issues/1076
  * https://github.com/the1812/Bilibili-Evolved/issues/770
  */
-export const playerReady = async () => {
+const playerReady = async () => {
   const { sq } = await import('../spin-query')
   const { logError } = await import('./log')
   await sq(
@@ -853,15 +853,15 @@ export const playerReady = async () => {
   })
 }
 
-//// export type Executable<ReturnType = void> = () => ReturnType | Promise<ReturnType>
+//// type Executable<ReturnType = void> = () => ReturnType | Promise<ReturnType>
 
 /**
  * 向视频操作按钮区的 "收藏" 右侧添加元素
  * @param getButton 存在按钮区时, 将调用此函数获取要添加的元素
  * @returns 添加成功时返回添加后的元素, 不成功时返回 null
  */
-//// export const addVideoActionButton = async (getButton: Executable<Element>) => {
-export const addVideoActionButton = async (getButton) => {
+//// const addVideoActionButton = async (getButton: Executable<Element>) => {
+const addVideoActionButton = async (getButton) => {
   await playerReady()
   const favoriteButton = dq(
     '.video-toolbar .ops .collect, .video-toolbar-v1 .toolbar-left .collect, .video-toolbar-left-item.video-fav',
@@ -883,7 +883,7 @@ export const addVideoActionButton = async (getButton) => {
 /**
  * 等待视频加载, 可获取到 `cid` 时结束, 返回 `boolean` 值代表是否存在视频
  */
-export const hasVideo = async () => {
+const hasVideo = async () => {
   if (!hasVideoPromiseCache) {
     hasVideoPromiseCache = new Promise(resolve => videoChange(() => resolve(unsafeWindow.cid)))
   }
