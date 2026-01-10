@@ -26,6 +26,11 @@ document.addEventListener('DOMContentLoaded', () => {
         window.open(url, '_blank');
     }
 
+    const pageBtn = document.getElementById('page-btn');
+    if (pageBtn) {
+        pageBtn.addEventListener('click', openPageWithRange);
+    }
+
     // 加载排行榜
     async function fetchLeaderboard(range = 'realtime') {
         leaderboard.innerHTML = '<div class="loading">加载中...</div>';
@@ -157,12 +162,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // 标签页点击事件
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
-            if (tab.dataset.type === 'page') {
-                openPageWithRange();
-                return;
-            }
-            if (tab.dataset.type === 'settings') return;
-
             tabs.forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
 

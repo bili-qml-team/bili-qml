@@ -231,6 +231,25 @@
             transform: rotate(30deg);
         }
 
+        /* 独立页面按钮 */
+        #bili-qmr-panel .qmr-page-btn {
+            cursor: pointer;
+            height: 28px;
+            padding: 0 10px;
+            border: 1px solid #e3e5e7;
+            border-radius: 6px;
+            background: #fff;
+            color: #61666d;
+            font-size: 13px;
+            margin-right: 10px;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+
+        #bili-qmr-panel .qmr-page-btn:hover {
+            background: #f4f5f7;
+            border-color: #d1d4d7;
+        }
+
         /* 设置面板 */
         #bili-qmr-panel .qmr-settings {
             padding: 20px;
@@ -662,6 +681,263 @@
 
     let panelCreated = false;
 
+        function openStandaloneLeaderboardPage(initialRange = 'realtime') {
+                const win = window.open('about:blank', '_blank');
+                if (!win) {
+                        alert('[B站问号榜] 打开新页面失败：可能被浏览器拦截了弹窗');
+                        return;
+                }
+
+                const safeRange = ['realtime', 'daily', 'weekly', 'monthly'].includes(initialRange) ? initialRange : 'realtime';
+                const html = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>B站问号榜</title>
+    <style>
+        body{width:auto;font-family:"PingFang SC","Microsoft YaHei",sans-serif;margin:0;padding:16px;background-color:#f4f5f7;}
+        .container{display:flex;flex-direction:column;max-width:920px;margin:0 auto;}
+        header{text-align:center;border-bottom:1px solid #e3e5e7;padding-bottom:10px;}
+        h1{font-size:18px;color:#18191c;margin:10px 0;}
+        .tabs{display:flex;justify-content:space-around;margin-top:10px;}
+        .tab-btn{border:none;background:none;padding:5px 10px;cursor:pointer;font-size:14px;color:#61666d;border-bottom:2px solid transparent;}
+        .tab-btn.active{color:#00aeec;border-bottom-color:#00aeec;font-weight:bold;}
+        #leaderboard{margin-top:15px;}
+        .loading{text-align:center;padding:20px;color:#9499a0;}
+
+        .item{display:flex;align-items:flex-start;padding:10px;background:#fff;border-radius:8px;margin-bottom:8px;box-shadow:0 1px 2px rgba(0,0,0,0.05);}
+        .rank{font-size:16px;font-weight:bold;color:#9499a0;width:30px;flex:0 0 30px;line-height:1.2;}
+        .item:nth-child(1) .rank{color:#fe2c55;}
+        .item:nth-child(2) .rank{color:#ff9500;}
+        .item:nth-child(3) .rank{color:#ffcc00;}
+
+        .thumb{display:block;width:160px;height:100px;border-radius:8px;overflow:hidden;flex:0 0 160px;background:#f4f5f7;text-decoration:none;}
+        .thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+
+        .info{flex:1;margin-left:10px;overflow:hidden;display:flex;flex-direction:column;min-height:100px;}
+        .title{font-size:14px;color:#18191c;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;text-decoration:none;}
+        .title:hover{color:#00aeec;}
+        .qml{font-size:12px;color:#61666d;margin-top:6px;}
+
+        .bottom{display:flex;flex-direction:column;gap:8px;margin-top:auto;padding-top:10px;font-size:12px;color:#9499a0;}
+        .bottom-row{display:flex;align-items:center;gap:12px;min-width:0;}
+        .bottom-item{display:inline-flex;align-items:center;gap:6px;min-width:0;}
+        .icon{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border:1px solid #e3e5e7;border-radius:4px;color:#61666d;background:#fff;font-size:11px;line-height:1;flex:0 0 20px;}
+        .text{color:#9499a0;line-height:1.2;}
+        .text.up{max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>B站问号榜 ❓</h1>
+            <div class="tabs">
+                <button class="tab-btn" data-range="realtime">实时</button>
+                <button class="tab-btn" data-range="daily">日榜</button>
+                <button class="tab-btn" data-range="weekly">周榜</button>
+                <button class="tab-btn" data-range="monthly">月榜</button>
+            </div>
+        </header>
+        <main id="leaderboard"><div class="loading">加载中...</div></main>
+    </div>
+
+    <script>
+        (function(){
+            const API_BASE = ${JSON.stringify(API_BASE)};
+            const initialRange = ${JSON.stringify(safeRange)};
+            const leaderboard = document.getElementById('leaderboard');
+            const tabs = Array.from(document.querySelectorAll('.tab-btn'));
+            const videoInfoCache = new Map();
+
+            function formatCount(num){
+                const n = Number(num) || 0;
+                if(n >= 100000000){const v=n/100000000;return (v>=10?Math.round(v):v.toFixed(1))+'亿';}
+                if(n >= 10000){const v=n/10000;return (v>=10?Math.round(v):v.toFixed(1))+'万';}
+                return String(n);
+            }
+
+            async function tryFetchJson(url){
+                const resp = await fetch(url, { credentials: 'include' });
+                const json = await resp.json();
+                if(json && json.code === 0 && json.data) return json.data;
+                return null;
+            }
+
+            async function fetchVideoInfo(bvid){
+                // Prefer wbi/view (needs SESSDATA); fallback to view.
+                try{
+                    return (await tryFetchJson('https://api.bilibili.com/x/web-interface/wbi/view?bvid='+encodeURIComponent(bvid)))
+                            || (await tryFetchJson('https://api.bilibili.com/x/web-interface/view?bvid='+encodeURIComponent(bvid)));
+                }catch(e){
+                    return null;
+                }
+            }
+
+            function setActiveTab(range){
+                tabs.forEach(btn => btn.classList.toggle('active', btn.dataset.range === range));
+            }
+
+            function renderList(list){
+                leaderboard.innerHTML = '';
+                list.forEach((item, index) => {
+                    const bvid = item && item.bvid ? item.bvid : '';
+                    const title = item && item.title ? item.title : '未知标题';
+                    const pic = item && item.pic ? item.pic : '';
+                    const ownerName = item && item.ownerName ? item.ownerName : '';
+                    const viewText = item && item.view != null ? formatCount(item.view) : '';
+                    const danmakuText = item && item.danmaku != null ? formatCount(item.danmaku) : '';
+
+                    const root = document.createElement('div');
+                    root.className = 'item';
+
+                    const rank = document.createElement('div');
+                    rank.className = 'rank';
+                    rank.textContent = String(index + 1);
+                    root.appendChild(rank);
+
+                    const thumbLink = document.createElement('a');
+                    thumbLink.className = 'thumb';
+                    thumbLink.href = 'https://www.bilibili.com/video/' + bvid;
+                    thumbLink.target = '_blank';
+                    thumbLink.setAttribute('aria-label', '打开视频');
+                    if(pic){
+                        const img = document.createElement('img');
+                        img.src = pic;
+                        img.alt = title;
+                        img.loading = 'lazy';
+                        thumbLink.appendChild(img);
+                    }
+                    root.appendChild(thumbLink);
+
+                    const info = document.createElement('div');
+                    info.className = 'info';
+
+                    const titleLink = document.createElement('a');
+                    titleLink.className = 'title';
+                    titleLink.href = 'https://www.bilibili.com/video/' + bvid;
+                    titleLink.target = '_blank';
+                    titleLink.title = title;
+                    titleLink.textContent = title;
+                    info.appendChild(titleLink);
+
+                    const qml = document.createElement('div');
+                    qml.className = 'qml';
+                    qml.textContent = '抽象指数：' + (item && item.count != null ? item.count : '');
+                    info.appendChild(qml);
+
+                    const bottom = document.createElement('div');
+                    bottom.className = 'bottom';
+
+                    const row1 = document.createElement('div');
+                    row1.className = 'bottom-row';
+                    if(ownerName){
+                        const wrap = document.createElement('span');
+                        wrap.className = 'bottom-item';
+                        const icon = document.createElement('span');
+                        icon.className = 'icon';
+                        icon.textContent = 'UP';
+                        const text = document.createElement('span');
+                        text.className = 'text up';
+                        text.title = ownerName;
+                        text.textContent = ownerName;
+                        wrap.appendChild(icon);
+                        wrap.appendChild(text);
+                        row1.appendChild(wrap);
+                    }
+                    bottom.appendChild(row1);
+
+                    const row2 = document.createElement('div');
+                    row2.className = 'bottom-row';
+                    if(viewText){
+                        const wrap = document.createElement('span');
+                        wrap.className = 'bottom-item';
+                        const icon = document.createElement('span');
+                        icon.className = 'icon';
+                        icon.textContent = '▶';
+                        const text = document.createElement('span');
+                        text.className = 'text';
+                        text.textContent = viewText;
+                        wrap.appendChild(icon);
+                        wrap.appendChild(text);
+                        row2.appendChild(wrap);
+                    }
+                    if(danmakuText){
+                        const wrap = document.createElement('span');
+                        wrap.className = 'bottom-item';
+                        const icon = document.createElement('span');
+                        icon.className = 'icon';
+                        icon.textContent = '弹';
+                        const text = document.createElement('span');
+                        text.className = 'text';
+                        text.textContent = danmakuText;
+                        wrap.appendChild(icon);
+                        wrap.appendChild(text);
+                        row2.appendChild(wrap);
+                    }
+                    bottom.appendChild(row2);
+
+                    info.appendChild(bottom);
+                    root.appendChild(info);
+                    leaderboard.appendChild(root);
+                });
+            }
+
+            async function fetchLeaderboard(range){
+                leaderboard.innerHTML = '<div class="loading">加载中...</div>';
+                try{
+                    const resp = await fetch(API_BASE + '/leaderboard?range=' + encodeURIComponent(range) + '&_t=' + Date.now());
+                    const data = await resp.json();
+                    if(!data || !data.success || !data.list || data.list.length === 0){
+                        leaderboard.innerHTML = '<div class="loading">暂无数据</div>';
+                        return;
+                    }
+
+                    // Best-effort enrich.
+                    await Promise.all(data.list.map(async (it, idx) => {
+                        const bvid = it && it.bvid;
+                        if(!bvid) return;
+                        try{
+                            if(!videoInfoCache.has(bvid)) videoInfoCache.set(bvid, fetchVideoInfo(bvid));
+                            const info = await videoInfoCache.get(bvid);
+                            if(info){
+                                data.list[idx].title = info.title || data.list[idx].title;
+                                data.list[idx].pic = info.pic;
+                                data.list[idx].ownerName = info.owner && info.owner.name;
+                                data.list[idx].view = info.stat && info.stat.view;
+                                data.list[idx].danmaku = info.stat && info.stat.danmaku;
+                            }
+                        }catch(e){}
+                    }));
+
+                    renderList(data.list);
+                }catch(e){
+                    console.error('[B站问号榜] 独立页面获取排行榜失败:', e);
+                    leaderboard.innerHTML = '<div class="loading">获取失败（可能未登录或接口被拦截）</div>';
+                }
+            }
+
+            tabs.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const r = btn.dataset.range;
+                    if(!r) return;
+                    setActiveTab(r);
+                    fetchLeaderboard(r);
+                });
+            });
+
+            setActiveTab(initialRange);
+            fetchLeaderboard(initialRange);
+        })();
+    </script>
+</body>
+</html>`;
+
+                win.document.open();
+                win.document.write(html);
+                win.document.close();
+        }
+
     function createLeaderboardPanel() {
         if (panelCreated) return;
 
@@ -671,6 +947,7 @@
             <div class="qmr-header">
                 <h2 class="qmr-title">B站问号榜 ❓</h2>
                 <div style="display: flex; align-items: center;">
+                    <button class="qmr-page-btn" title="打开独立页面">页面</button>
                     <span class="qmr-settings-btn" title="设置">⚙️</span>
                     <button class="qmr-close">×</button>
                 </div>
@@ -730,6 +1007,13 @@
                 tabs.style.display = 'none';
                 loadSettingsUI();
             }
+        };
+
+        // 页面按钮：打开独立榜单页
+        panel.querySelector('.qmr-page-btn').onclick = () => {
+            const active = panel.querySelector('.qmr-tab-btn.active');
+            const range = active?.dataset?.range || 'realtime';
+            openStandaloneLeaderboardPage(range);
         };
 
         // 保存按钮
