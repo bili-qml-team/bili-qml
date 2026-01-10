@@ -14,6 +14,71 @@
     --font-stack: "PingFang SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
+body.dark-mode {
+    --bg-color: #0f0f11;
+    --card-bg: #1f2023;
+    --text-main: #ffffff;
+    --text-secondary: #a0a0a0;
+    --border-color: #2f3035;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 8px 16px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-mode header {
+    background: rgba(31, 32, 35, 0.85);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+body.dark-mode .tabs {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+body.dark-mode .tab-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+body.dark-mode .tab-btn.active {
+    background: #2a2b30;
+    color: var(--primary-color);
+}
+
+body.dark-mode .settings-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .item:hover,
+body.dark-mode .settings-section:hover,
+body.dark-mode .advanced-section:hover {
+    border-color: rgba(0, 174, 236, 0.3);
+}
+
+body.dark-mode .count {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+body.dark-mode .advanced-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+body.dark-mode .endpoint-input {
+    background: rgba(0, 0, 0, 0.2);
+    border-color: var(--border-color);
+    color: var(--text-main);
+}
+
+body.dark-mode .endpoint-input:focus {
+    background: rgba(0, 0, 0, 0.4);
+}
+
+body.dark-mode .radio-item {
+    background: #1f2023;
+}
+
+body.dark-mode .radio-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+
 body {
     width: 360px;
     font-family: var(--font-stack);
@@ -47,6 +112,12 @@ header {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 12px;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 h1 {

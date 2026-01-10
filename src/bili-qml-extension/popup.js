@@ -12,6 +12,12 @@ function getExtensionUrl(path) {
 
 
 document.addEventListener('DOMContentLoaded', () => {
+
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+        document.body.classList.add('dark-mode');
+    }
+
     const leaderboard = document.getElementById('leaderboard');
     const settingsPanel = document.getElementById('settings');
     const tabs = document.querySelectorAll('.tab-btn');
@@ -40,6 +46,16 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 window.open(`leaderboard.html?range=${range}`, '_blank');
             }
+        });
+    }
+
+    // 主题切换
+    const themeBtn = document.getElementById('theme-btn');
+    if (themeBtn) {
+        themeBtn.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
         });
     }
 
