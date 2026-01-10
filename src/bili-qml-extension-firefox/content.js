@@ -300,83 +300,82 @@ function showDanmakuConfirmDialog() {
 }
 
 // 注入 B 站风格的 CSS
-// 注入 B 站风格的 CSS
-const style = document.createElement('style');
-style.innerHTML = `
-    /* 问号键样式 */
-    #bili-qmr-btn {
-        position: absolute;
-        display: flex;
-        align-items: center;
-        width: 92px;
-        height: 28px;
-        white-space: nowrap;
-        font-size: 13px;
-        color: #61666d;
-        font-weight: 500;
-        cursor: pointer;
-        user-select: none;
-        transition: color .3s, opacity .3s;
-        z-index: 1000;
-        pointer-events: auto;
-        /* 默认定位：先放在一个安全的位置，后续靠 JS 微调 */
-        left: -9999px; 
-        top: 0;
-    }
-    #bili-qmr-btn .qmr-icon-wrap {
-        display: flex;
-        align-items: center;
-        width: 100%;
-        height: 100%;
-        transition: color .3s;
-    }
-    #bili-qmr-btn .qmr-icon-img {
-        width: 20px;
-        height: 20px;
-        margin-right: 6px;
-        transition: transform 0.3s, filter 0.3s;
-        display: block;
-        object-fit: contain;
-    }
-    /* 未点亮且未悬停时：灰色 */
-    #bili-qmr-btn:not(.voted) .qmr-icon-img {
-        filter: grayscale(1) opacity(0.6);
-    }
-    /* 悬停或已点亮时：变蓝色 */
-    /* 技巧：通过 drop-shadow 创建一个偏移的蓝色投影，并隐藏原图 */
-    #bili-qmr-btn:hover .qmr-icon-img,
-    #bili-qmr-btn.voted .qmr-icon-img {
-        filter: drop-shadow(0 0 0 #00aeec);
-    }
-    #bili-qmr-btn .qmr-text {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        word-break: break-word;
-        white-space: nowrap;
-    }
-    /* 悬停与点亮状态 */
-    #bili-qmr-btn:hover, #bili-qmr-btn.voted {
-        color: #00aeec !important; /* 对应 var(--brand_blue) */
-    }
-    #bili-qmr-btn:hover .qmr-icon-img {
-        transform: scale(0.85);
-    }
-    #bili-qmr-btn:active .qmr-icon-img {
-        transform: scale(0.7);
-    }
-    /* 大屏适配 (min-width: 1681px) */
-    @media (min-width: 1681px) {
-        #bili-qmr-btn {
-            width: 100px;
-            font-size: 14px;
-        }
-        #bili-qmr-btn .qmr-icon-img {
-            width: 24px;
-            height: 24px;
-        }
-    }
-`;
-document.head.appendChild(style);
+// const style = document.createElement('style');
+// style.innerHTML = `
+//     /* 问号键样式 */
+//     #bili-qmr-btn {
+//         position: absolute;
+//         display: flex;
+//         align-items: center;
+//         width: 92px;
+//         height: 28px;
+//         white-space: nowrap;
+//         font-size: 13px;
+//         color: #61666d;
+//         font-weight: 500;
+//         cursor: pointer;
+//         user-select: none;
+//         transition: color .3s, opacity .3s;
+//         z-index: 10;
+//         pointer-events: auto;
+//         /* 默认定位：先放在一个安全的位置，后续靠 JS 微调 */
+//         right: -100px; 
+//         top: 0;
+//     }
+//     #bili-qmr-btn .qmr-icon-wrap {
+//         display: flex;
+//         align-items: center;
+//         width: 100%;
+//         height: 100%;
+//         transition: color .3s;
+//     }
+//     #bili-qmr-btn .qmr-icon-img {
+//         width: 20px;
+//         height: 20px;
+//         margin-right: 6px;
+//         transition: transform 0.3s, filter 0.3s;
+//         display: block;
+//         object-fit: contain;
+//     }
+//     /* 未点亮且未悬停时：灰色 */
+//     #bili-qmr-btn:not(.voted) .qmr-icon-img {
+//         filter: grayscale(1) opacity(0.6);
+//     }
+//     /* 悬停或已点亮时：变蓝色 */
+//     /* 技巧：通过 drop-shadow 创建一个偏移的蓝色投影，并隐藏原图 */
+//     #bili-qmr-btn:hover .qmr-icon-img,
+//     #bili-qmr-btn.voted .qmr-icon-img {
+//         filter: drop-shadow(0 0 0 #00aeec);
+//     }
+//     #bili-qmr-btn .qmr-text {
+//         overflow: hidden;
+//         text-overflow: ellipsis;
+//         word-break: break-word;
+//         white-space: nowrap;
+//     }
+//     /* 悬停与点亮状态 */
+//     #bili-qmr-btn:hover, #bili-qmr-btn.voted {
+//         color: #00aeec !important; /* 对应 var(--brand_blue) */
+//     }
+//     #bili-qmr-btn:hover .qmr-icon-img {
+//         transform: scale(0.85);
+//     }
+//     #bili-qmr-btn:active .qmr-icon-img {
+//         transform: scale(0.7);
+//     }
+//     /* 大屏适配 (min-width: 1681px) */
+//     @media (min-width: 1681px) {
+//         #bili-qmr-btn {
+//             width: 100px;
+//             font-size: 14px;
+//         }
+//         #bili-qmr-btn .qmr-icon-img {
+//             width: 24px;
+//             height: 24px;
+//         }
+//     }
+// `;
+// document.head.appendChild(style);
 
 // 获取用户 ID (直接绑定 B 站 DedeUserID)
 function getUserId() {
@@ -556,43 +555,25 @@ async function injectQuestionButton() {
                     <span class="qmr-text">...</span>`;
             qBtn.appendChild(qBtnInner);
 
+            // 关键：挂载到 toolbarLeft，确保它和分享按钮是“远房亲戚”，互不干扰悬停
+            toolbarLeft.style.position = 'relative'; // 确保父容器有定位基准
+            toolbarLeft.appendChild(qBtn);
 
-            // 关键：挂载到 body，完全脱离 React 组件树
-            // toolbarLeft.style.position = 'relative'; // 不再需要修改父容器
-            document.body.appendChild(qBtn);
+            // // 定位同步函数
+            // const syncPos = () => {
+            //     if (!qBtn || !shareBtn || !toolbarLeft) return;
+            //     const sRect = shareBtn.getBoundingClientRect();
+            //     const pRect = toolbarLeft.getBoundingClientRect();
+            //     // 计算相对于 toolbarLeft 的偏移量
+            //     qBtn.style.left = (sRect.right - pRect.left + 12) + 'px';
+            //     qBtn.style.top = (sRect.top - pRect.top + (sRect.height - 28) / 2) + 'px';
+            // };
 
-            // 定位同步函数
-            const syncPos = () => {
-                const sBtn = document.querySelector('.video-toolbar-left-item.share') ||
-                    document.querySelector('.video-share') ||
-                    document.querySelector('.share-info');
-                if (!qBtn || !sBtn) return;
-
-                const sRect = sBtn.getBoundingClientRect();
-                const scrollX = window.scrollX || window.pageXOffset;
-                const scrollY = window.scrollY || window.pageYOffset;
-
-                // 计算绝对位置：分享按钮右侧 + 12px 间距
-                // 注意：getBoundingClientRect 是相对于视口的，所以要加上 scrollXY 变成文档坐标
-                qBtn.style.left = (sRect.right + 12 + scrollX) + 'px';
-                qBtn.style.top = (sRect.top + (sRect.height - 28) / 2 + scrollY) + 'px';
-            };
-
-            // 立即同步并开启监听
-            syncPos();
-            const posTimer = setInterval(syncPos, 1000); // 兜底同步
-
-            // 使用 requestAnimationFrame 进行高频同步，确保平滑跟随
-            let rafId;
-            const outputLoop = () => {
-                syncPos();
-                rafId = requestAnimationFrame(outputLoop);
-            };
-            outputLoop();
-
-            window.addEventListener('resize', syncPos);
-            document.addEventListener('scroll', syncPos, { passive: true });
-            document.addEventListener('fullscreenchange', () => setTimeout(syncPos, 200));
+            // // 立即同步并开启监听
+            // syncPos();
+            // const posTimer = setInterval(syncPos, 500); // 较低频率的兜底同步
+            // window.addEventListener('resize', syncPos);
+            // document.addEventListener('fullscreenchange', () => setTimeout(syncPos, 200));
 
             // 拦截悬停事件，双重保险
             ['mouseenter', 'mouseover'].forEach(type => {
