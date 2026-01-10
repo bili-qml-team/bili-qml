@@ -25,7 +25,7 @@ var leaderBoardCache = {
     expireTime: 0
 };
 
-const redis = new Redis(`redis://default:${process.env.UPSTASH_REDIS_REST_TOKEN}@${process.env.UPSTASH_REDIS_REST_URL}`);
+const redis = new Redis(`${process.env.UPSTASH_REDIS_PROTO}://default:${process.env.UPSTASH_REDIS_REST_TOKEN}@${process.env.UPSTASH_REDIS_REST_URL}`);
 
 // 频率限制器：检查并增加计数
 async function checkRateLimit(key, maxRequests, windowSeconds) {
