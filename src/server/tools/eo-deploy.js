@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 
 const cwd = process.cwd();
-const src = path.join(cwd, "server.js");
+const src = path.join(cwd, "server-ioredis.js");
 const destDir = path.join(cwd, "node-functions");
 const dest = path.join(destDir, "[[server]].js");
 
