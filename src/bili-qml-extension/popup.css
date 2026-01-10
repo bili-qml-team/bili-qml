@@ -27,6 +27,16 @@ header {
     margin-bottom: 5px;
 }
 
+.header-actions {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
 h1 {
     font-size: 18px;
     color: #18191c;
@@ -34,10 +44,6 @@ h1 {
 }
 
 .settings-btn {
-    position: absolute;
-    right: 5px;
-    top: 50%;
-    transform: translateY(-50%);
     cursor: pointer;
     padding: 5px;
     border-radius: 4px;
@@ -47,7 +53,24 @@ h1 {
 
 .settings-btn:hover {
     background-color: #e3e5e7;
-    transform: translateY(-50%) rotate(30deg);
+    transform: rotate(30deg);
+}
+
+.page-btn {
+    cursor: pointer;
+    height: 28px;
+    padding: 0 10px;
+    border: 1px solid #e3e5e7;
+    border-radius: 6px;
+    background: #fff;
+    color: #61666d;
+    font-size: 13px;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.page-btn:hover {
+    background: #f4f5f7;
+    border-color: #d1d4d7;
 }
 
 .tabs {

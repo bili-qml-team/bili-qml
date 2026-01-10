@@ -9,6 +9,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const settingsPanel = document.getElementById('settings');
     const tabs = document.querySelectorAll('.tab-btn');
 
+    function getExtensionUrl(path) {
+        if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL) {
+            return chrome.runtime.getURL(path);
+        }
+        if (typeof browser !== 'undefined' && browser.runtime && browser.runtime.getURL) {
+            return browser.runtime.getURL(path);
+        }
+        return path;
+    }
+
+    function openPageWithRange() {
+        const activeTab = document.querySelector('.tab-btn.active');
+        const range = activeTab?.dataset?.range || 'realtime';
+        const url = `${getExtensionUrl('page.html')}?range=${encodeURIComponent(range)}`;
+        window.open(url, '_blank');
+    }
+
+    const pageBtn = document.getElementById('page-btn');
+    if (pageBtn) {
+        pageBtn.addEventListener('click', openPageWithRange);
+    }
+
     // 加载排行榜
     async function fetchLeaderboard(range = 'realtime') {
         leaderboard.innerHTML = '<div class="loading">加载中...</div>';
@@ -140,8 +162,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // 标签页点击事件
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
-            if (tab.dataset.type === 'settings') return;
-
             tabs.forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
 
