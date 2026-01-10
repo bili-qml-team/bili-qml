@@ -216,6 +216,98 @@
             padding: 30px;
             color: #9499a0;
         }
+
+        /* 设置按钮 */
+        #bili-qmr-panel .qmr-settings-btn {
+            cursor: pointer;
+            font-size: 18px;
+            margin-right: 12px;
+            transition: transform 0.2s;
+        }
+
+        #bili-qmr-panel .qmr-settings-btn:hover {
+            transform: rotate(30deg);
+        }
+
+        /* 设置面板 */
+        #bili-qmr-panel .qmr-settings {
+            padding: 20px;
+            display: none;
+        }
+
+        #bili-qmr-panel .qmr-settings.show {
+            display: block;
+        }
+
+        #bili-qmr-panel .qmr-settings h3 {
+            font-size: 16px;
+            color: #18191c;
+            margin: 0 0 8px 0;
+        }
+
+        #bili-qmr-panel .qmr-settings-desc {
+            font-size: 13px;
+            color: #9499a0;
+            margin: 0 0 20px 0;
+        }
+
+        #bili-qmr-panel .qmr-radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        #bili-qmr-panel .qmr-radio-item {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 6px;
+            background: #f4f5f7;
+            transition: background-color 0.2s;
+        }
+
+        #bili-qmr-panel .qmr-radio-item:hover {
+            background-color: #e3e5e7;
+        }
+
+        #bili-qmr-panel .qmr-radio-item input[type="radio"] {
+            margin: 0 10px 0 0;
+            cursor: pointer;
+            accent-color: #00aeec;
+        }
+
+        #bili-qmr-panel .qmr-radio-item span {
+            font-size: 14px;
+            color: #18191c;
+            user-select: none;
+        }
+
+        #bili-qmr-panel .qmr-save-btn {
+            width: 100%;
+            padding: 10px;
+            background: #00aeec;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        #bili-qmr-panel .qmr-save-btn:hover {
+            background: #00a1d6;
+        }
+
+        #bili-qmr-panel .qmr-save-status {
+            text-align: center;
+            margin-top: 12px;
+            font-size: 13px;
+            color: #00aeec;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
     `);
 
     // ==================== 工具函数 ====================
@@ -575,7 +667,10 @@
         panel.innerHTML = `
             <div class="qmr-header">
                 <h2 class="qmr-title">B站问号榜 ❓</h2>
-                <button class="qmr-close">×</button>
+                <div style="display: flex; align-items: center;">
+                    <span class="qmr-settings-btn" title="设置">⚙️</span>
+                    <button class="qmr-close">×</button>
+                </div>
             </div>
             <div class="qmr-tabs">
                 <button class="qmr-tab-btn active" data-range="realtime">实时</button>
@@ -586,12 +681,90 @@
             <div class="qmr-leaderboard">
                 <div class="qmr-loading">加载中...</div>
             </div>
+            <div class="qmr-settings">
+                <h3>弹幕发送设置</h3>
+                <p class="qmr-settings-desc">点亮问号后，是否自动发送"?"弹幕</p>
+                <div class="qmr-radio-group">
+                    <label class="qmr-radio-item">
+                        <input type="radio" name="qmr-danmaku-pref" value="ask">
+                        <span>每次询问</span>
+                    </label>
+                    <label class="qmr-radio-item">
+                        <input type="radio" name="qmr-danmaku-pref" value="always">
+                        <span>总是发送</span>
+                    </label>
+                    <label class="qmr-radio-item">
+                        <input type="radio" name="qmr-danmaku-pref" value="never">
+                        <span>总是不发送</span>
+                    </label>
+                </div>
+                <button class="qmr-save-btn">保存设置</button>
+                <div class="qmr-save-status"></div>
+            </div>
         `;
         document.body.appendChild(panel);
 
         // 关闭按钮
         panel.querySelector('.qmr-close').onclick = () => {
             panel.classList.remove('show');
+        };
+
+        // 设置按钮
+        panel.querySelector('.qmr-settings-btn').onclick = () => {
+            const leaderboard = panel.querySelector('.qmr-leaderboard');
+            const settings = panel.querySelector('.qmr-settings');
+            const tabs = panel.querySelector('.qmr-tabs');
+
+            if (settings.classList.contains('show')) {
+                // 返回排行榜
+                settings.classList.remove('show');
+                leaderboard.style.display = 'block';
+                tabs.style.display = 'flex';
+            } else {
+                // 显示设置
+                settings.classList.add('show');
+                leaderboard.style.display = 'none';
+                tabs.style.display = 'none';
+                loadSettingsUI();
+            }
+        };
+
+        // 保存按钮
+        panel.querySelector('.qmr-save-btn').onclick = () => {
+            const selectedRadio = panel.querySelector('input[name="qmr-danmaku-pref"]:checked');
+            if (!selectedRadio) return;
+
+            const value = selectedRadio.value;
+            let preference;
+
+            if (value === 'always') {
+                preference = true;
+            } else if (value === 'never') {
+                preference = false;
+            } else {
+                preference = null;
+            }
+
+            if (preference === null) {
+                GM_setValue(STORAGE_KEY_DANMAKU_PREF, null);
+            } else {
+                setDanmakuPreference(preference);
+            }
+
+            const statusDiv = panel.querySelector('.qmr-save-status');
+            statusDiv.textContent = '设置已保存';
+            statusDiv.style.opacity = '1';
+
+            setTimeout(() => {
+                statusDiv.style.opacity = '0';
+                // 返回排行榜
+                const leaderboard = panel.querySelector('.qmr-leaderboard');
+                const settings = panel.querySelector('.qmr-settings');
+                const tabs = panel.querySelector('.qmr-tabs');
+                settings.classList.remove('show');
+                leaderboard.style.display = 'block';
+                tabs.style.display = 'flex';
+            }, 500);
         };
 
         // Tab 切换
@@ -612,6 +785,26 @@
         });
 
         panelCreated = true;
+    }
+
+    // 加载设置界面
+    function loadSettingsUI() {
+        const panel = document.getElementById('bili-qmr-panel');
+        if (!panel) return;
+
+        const preference = getDanmakuPreference();
+        let value = 'ask';
+
+        if (preference === true) {
+            value = 'always';
+        } else if (preference === false) {
+            value = 'never';
+        }
+
+        const radio = panel.querySelector(`input[name="qmr-danmaku-pref"][value="${value}"]`);
+        if (radio) {
+            radio.checked = true;
+        }
     }
 
     function toggleLeaderboardPanel() {
