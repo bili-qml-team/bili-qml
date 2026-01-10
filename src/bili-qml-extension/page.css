@@ -60,7 +60,7 @@ h1 {
 
 .item {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     padding: 10px;
     background: #fff;
     border-radius: 8px;
@@ -73,6 +73,8 @@ h1 {
     font-weight: bold;
     color: #9499a0;
     width: 30px;
+    flex: 0 0 30px;
+    line-height: 1.2;
 }
 
 .item:nth-child(1) .rank {
@@ -91,14 +93,36 @@ h1 {
     flex: 1;
     margin-left: 10px;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 100px;
+}
+
+.thumb {
+    display: block;
+    width: 160px;
+    height: 100px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex: 0 0 160px;
+    background: #f4f5f7;
+    text-decoration: none;
+}
+
+.thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
 }
 
 .title {
     font-size: 14px;
     color: #18191c;
-    white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
     display: block;
     text-decoration: none;
 }
@@ -107,10 +131,68 @@ h1 {
     color: #00aeec;
 }
 
-.count {
+
+
+.qml {
+    font-size: 12px;
+    color: #61666d;
+    margin-top: 6px;
+}
+
+.bottom {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: auto;
+    padding-top: 10px;
     font-size: 12px;
     color: #9499a0;
-    margin-top: 4px;
+}
+
+.bottom-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+
+.bottom-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border: 1px solid #e3e5e7;
+    border-radius: 4px;
+    color: #61666d;
+    background: #fff;
+    font-size: 11px;
+    line-height: 1;
+    flex: 0 0 20px;
+}
+
+.text {
+    color: #9499a0;
+    line-height: 1.2;
+}
+
+.text.up {
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.stat {
+    white-space: nowrap;
 }
 
 .loading {
