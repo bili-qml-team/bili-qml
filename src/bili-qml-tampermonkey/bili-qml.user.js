@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         B站问号榜
-// @namespace    https://github.com/XmOfficial/bili-qml
+// @namespace    https://github.com/bili-qml-team/bili-qml
 // @version      1.2
 // @description  在B站视频下方增加问号键，统计并展示抽象视频排行榜。油猴脚本版本。
-// @author       vancehuds
+// @author       bili-qml-team
 // @match        https://www.bilibili.com/video/*
 // @icon         https://www.bilibili.com/favicon.ico
 // @grant        GM_addStyle
