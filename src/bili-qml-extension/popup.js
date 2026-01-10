@@ -1,13 +1,13 @@
 // popup.js
 
 function getExtensionUrl(path) {
-        if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL) {
-            return chrome.runtime.getURL(path);
-        }
-        if (typeof browser !== 'undefined' && browser.runtime && browser.runtime.getURL) {
-            return browser.runtime.getURL(path);
-        }
-        return path;
+    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL) {
+        return chrome.runtime.getURL(path);
+    }
+    if (typeof browser !== 'undefined' && browser.runtime && browser.runtime.getURL) {
+        return browser.runtime.getURL(path);
+    }
+    return path;
 }
 
 
@@ -77,30 +77,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 加载设置
     async function loadSettings() {
-        browserStorage.sync.get([STORAGE_KEY_DANMAKU_PREF, STORAGE_KEY_API_ENDPOINT], (result) => {
-            // 弹幕偏好设置
-            const preference = result[STORAGE_KEY_DANMAKU_PREF];
-            let value = 'ask'; // 默认每次询问
+        return new Promise((resolve) => {
+            browserStorage.sync.get([STORAGE_KEY_DANMAKU_PREF, STORAGE_KEY_API_ENDPOINT], (result) => {
+                // 弹幕偏好设置
+                const preference = result[STORAGE_KEY_DANMAKU_PREF];
+                let value = 'ask'; // 默认每次询问
 
-            if (preference === true) {
-                value = 'always';
-            } else if (preference === false) {
-                value = 'never';
-            }
+                if (preference === true) {
+                    value = 'always';
+                } else if (preference === false) {
+                    value = 'never';
+                }
 
-            // 设置选中的单选按钮
-            const radio = document.querySelector(`input[name="danmaku-pref"][value="${value}"]`);
-            if (radio) {
-                radio.checked = true;
-            }
+                // 设置选中的单选按钮
+                const radio = document.querySelector(`input[name="danmaku-pref"][value="${value}"]`);
+                if (radio) {
+                    radio.checked = true;
+                }
 
-            // Endpoint 设置
-            const endpointInput = document.getElementById('endpoint-input');
-            if (endpointInput) {
-                endpointInput.value = result[STORAGE_KEY_API_ENDPOINT] || '';
-            }
+                // Endpoint 设置
+                const endpointInput = document.getElementById('endpoint-input');
+                if (endpointInput) {
+                    endpointInput.value = result[STORAGE_KEY_API_ENDPOINT] || '';
+                }
 
-            resolve();
+                resolve();
+            });
         });
     }
 
