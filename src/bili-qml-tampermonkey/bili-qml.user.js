@@ -186,6 +186,19 @@
 
     // ==================== CSS 样式 ====================
     GM_addStyle(`
+        :root {
+            --qmr-primary: #00aeec;
+            --qmr-primary-hover: #00a1d6;
+            --qmr-bg: rgba(255, 255, 255, 0.95);
+            --qmr-card-bg: #ffffff;
+            --qmr-text-main: #18191c;
+            --qmr-text-sec: #9499a0;
+            --qmr-border: #e3e5e7;
+            --qmr-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+            --qmr-shadow-md: 0 8px 16px rgba(0, 0, 0, 0.08);
+            --qmr-radius: 12px;
+        }
+
         /* 问号按钮样式 */
         #bili-qmr-btn {
             cursor: pointer;
@@ -198,11 +211,12 @@
         }
 
         #bili-qmr-btn:hover {
-            color: #00aeec;
+            color: var(--qmr-primary);
+            transform: translateY(-1px);
         }
 
         #bili-qmr-btn.voted {
-            color: #00aeec;
+            color: var(--qmr-primary);
         }
 
         .qmr-icon-wrap {
@@ -231,48 +245,55 @@
             position: fixed;
             top: 80px;
             right: 20px;
-            width: 350px;
+            width: 360px;
             max-height: calc(100vh - 160px);
-            background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            background: var(--qmr-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
             z-index: 100000;
             font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
             display: none;
             overflow: hidden;
             flex-direction: column;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            animation: qmr-slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         #bili-qmr-panel.show {
             display: flex;
-            animation: qmr-fadeIn 0.2s ease-out;
         }
 
-        @keyframes qmr-fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
+        @keyframes qmr-slideIn {
+            from { opacity: 0; transform: translateY(-10px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
         #bili-qmr-panel .qmr-header {
-            padding: 15px;
-            border-bottom: 1px solid #e3e5e7;
+            padding: 16px;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            background: rgba(255,255,255,0.5);
+            border-radius: 16px 16px 0 0;
         }
 
         #bili-qmr-panel .qmr-title {
             font-size: 18px;
-            font-weight: bold;
-            color: #18191c;
+            font-weight: 700;
+            background: linear-gradient(135deg, #00aeec 0%, #0077aa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
             margin: 0;
         }
 
         #bili-qmr-panel .qmr-close {
             cursor: pointer;
             font-size: 20px;
-            color: #9499a0;
-            transition: color 0.2s;
+            color: var(--qmr-text-sec);
+            transition: all 0.2s;
             border: none;
             background: none;
             padding: 0;
@@ -280,69 +301,88 @@
         }
 
         #bili-qmr-panel .qmr-close:hover {
-            color: #18191c;
+            color: var(--qmr-text-main);
+            transform: rotate(90deg);
         }
 
         #bili-qmr-panel .qmr-tabs {
             display: flex;
             justify-content: space-around;
-            padding: 10px 15px;
-            border-bottom: 1px solid #e3e5e7;
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.3);
+            gap: 8px;
         }
 
         #bili-qmr-panel .qmr-tab-btn {
             border: none;
-            background: none;
-            padding: 8px 16px;
+            background: rgba(0,0,0,0.02);
+            padding: 6px 12px;
             cursor: pointer;
-            font-size: 14px;
-            color: #61666d;
-            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--qmr-text-sec);
+            border-radius: 8px;
             transition: all 0.2s;
+            flex: 1;
         }
 
         #bili-qmr-panel .qmr-tab-btn:hover {
-            background: #f4f5f7;
+            background: rgba(0,0,0,0.05);
+            color: var(--qmr-text-main);
         }
 
         #bili-qmr-panel .qmr-tab-btn.active {
-            color: #fff;
-            background: #00aeec;
-            font-weight: bold;
+            color: var(--qmr-primary);
+            background: #fff;
+            font-weight: 600;
+            box-shadow: var(--qmr-shadow-sm);
         }
 
         #bili-qmr-panel .qmr-leaderboard {
-            padding: 10px 15px;
-            max-height: 350px;
+            padding: 10px 16px;
+            max-height: 400px;
             overflow-y: auto;
+        }
+        
+        #bili-qmr-panel .qmr-leaderboard::-webkit-scrollbar {
+            width: 4px;
+        }
+        #bili-qmr-panel .qmr-leaderboard::-webkit-scrollbar-thumb {
+            background: #ddd; 
+            border-radius: 2px;
         }
 
         #bili-qmr-panel .qmr-item {
             display: flex;
             align-items: center;
             padding: 12px;
-            background: #f4f5f7;
-            border-radius: 8px;
-            margin-bottom: 8px;
-            transition: transform 0.2s, box-shadow 0.2s;
+            background: var(--qmr-card-bg);
+            border-radius: var(--qmr-radius);
+            margin-bottom: 10px;
+            box-shadow: var(--qmr-shadow-sm);
+            transition: all 0.2s ease;
+            cursor: default;
+            border: 1px solid transparent;
         }
 
         #bili-qmr-panel .qmr-item:hover {
-            transform: translateX(5px);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+            box-shadow: var(--qmr-shadow-md);
+            border-color: rgba(0, 174, 236, 0.2);
         }
 
         #bili-qmr-panel .qmr-rank {
             font-size: 18px;
-            font-weight: bold;
-            color: #9499a0;
-            width: 35px;
+            font-weight: 800;
+            color: #d0d0d0;
+            width: 36px;
             text-align: center;
+            font-style: italic;
         }
 
-        #bili-qmr-panel .qmr-item:nth-child(1) .qmr-rank { color: #fe2c55; }
-        #bili-qmr-panel .qmr-item:nth-child(2) .qmr-rank { color: #ff9500; }
-        #bili-qmr-panel .qmr-item:nth-child(3) .qmr-rank { color: #ffcc00; }
+        #bili-qmr-panel .qmr-item:nth-child(1) .qmr-rank { color: #fe2c55; text-shadow: 0 2px 4px rgba(254,44,85,0.2); }
+        #bili-qmr-panel .qmr-item:nth-child(2) .qmr-rank { color: #ff9500; text-shadow: 0 2px 4px rgba(255,149,0,0.2); }
+        #bili-qmr-panel .qmr-item:nth-child(3) .qmr-rank { color: #ffcc00; text-shadow: 0 2px 4px rgba(255,204,0,0.2); }
 
         #bili-qmr-panel .qmr-info {
             flex: 1;
@@ -352,65 +392,74 @@
 
         #bili-qmr-panel .qmr-video-title {
             font-size: 14px;
-            color: #18191c;
+            color: var(--qmr-text-main);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
             display: block;
             text-decoration: none;
+            margin-bottom: 6px;
+            font-weight: 500;
         }
 
         #bili-qmr-panel .qmr-video-title:hover {
-            color: #00aeec;
+            color: var(--qmr-primary);
         }
 
         #bili-qmr-panel .qmr-count {
             font-size: 12px;
-            color: #9499a0;
-            margin-top: 4px;
+            color: var(--qmr-text-sec);
+            background: #f6f7f8;
+            padding: 2px 8px;
+            border-radius: 4px;
+            display: inline-block;
         }
 
-        #bili-qmr-panel .qmr-loading {
+        #bili-qmr-panel .qmr-loading, #bili-qmr-panel .qmr-empty {
             text-align: center;
-            padding: 30px;
-            color: #9499a0;
-        }
-
-        #bili-qmr-panel .qmr-empty {
-            text-align: center;
-            padding: 30px;
-            color: #9499a0;
+            padding: 40px;
+            color: var(--qmr-text-sec);
         }
 
         /* 设置按钮 */
         #bili-qmr-panel .qmr-settings-btn {
             cursor: pointer;
             font-size: 18px;
-            margin-right: 12px;
-            transition: transform 0.2s;
+            margin-right: 8px;
+            transition: all 0.2s;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
         }
 
         #bili-qmr-panel .qmr-settings-btn:hover {
-            transform: rotate(30deg);
+            background: rgba(0,0,0,0.05);
+            transform: rotate(45deg);
         }
 
         /* 独立页面按钮 */
         #bili-qmr-panel .qmr-page-btn {
             cursor: pointer;
-            height: 28px;
-            padding: 0 10px;
-            border: 1px solid #e3e5e7;
-            border-radius: 6px;
-            background: #fff;
-            color: #61666d;
-            font-size: 13px;
-            margin-right: 10px;
-            transition: background-color 0.2s, border-color 0.2s;
+            border: none;
+            background: transparent;
+            font-size: 18px;
+            margin-right: 0;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s;
         }
 
         #bili-qmr-panel .qmr-page-btn:hover {
-            background: #f4f5f7;
-            border-color: #d1d4d7;
+            transform: scale(1.1);
+            background: rgba(0,0,0,0.05);
         }
 
         /* 设置面板 */
@@ -419,6 +468,7 @@
             display: none;
             overflow-y: auto;
             flex: 1;
+            background: #f9f9f9;
         }
 
         #bili-qmr-panel .qmr-settings.show {
@@ -426,21 +476,22 @@
         }
 
         #bili-qmr-panel .qmr-settings h3 {
-            font-size: 16px;
-            color: #18191c;
+            font-size: 15px;
+            color: var(--qmr-text-main);
             margin: 0 0 8px 0;
+            font-weight: 600;
         }
 
         #bili-qmr-panel .qmr-settings-desc {
             font-size: 13px;
-            color: #9499a0;
-            margin: 0 0 20px 0;
+            color: var(--qmr-text-sec);
+            margin: 0 0 16px 0;
         }
 
         #bili-qmr-panel .qmr-radio-group {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 10px;
             margin-bottom: 20px;
         }
 
@@ -448,49 +499,63 @@
             display: flex;
             align-items: center;
             cursor: pointer;
-            padding: 10px;
-            border-radius: 6px;
-            background: #f4f5f7;
-            transition: background-color 0.2s;
+            padding: 12px;
+            border-radius: 8px;
+            background: #fff;
+            border: 1px solid var(--qmr-border);
+            transition: all 0.2s;
         }
 
         #bili-qmr-panel .qmr-radio-item:hover {
-            background-color: #e3e5e7;
+            border-color: var(--qmr-primary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        #bili-qmr-panel .qmr-radio-item:has(input:checked) {
+             border-color: var(--qmr-primary);
+             background: rgba(0, 174, 236, 0.05);
         }
 
         #bili-qmr-panel .qmr-radio-item input[type="radio"] {
-            margin: 0 10px 0 0;
+            margin: 0 12px 0 0;
             cursor: pointer;
-            accent-color: #00aeec;
+            accent-color: var(--qmr-primary);
         }
 
         #bili-qmr-panel .qmr-radio-item span {
             font-size: 14px;
-            color: #18191c;
-            user-select: none;
+            color: var(--qmr-text-main);
         }
 
         #bili-qmr-panel .qmr-save-btn {
             width: 100%;
-            padding: 10px;
-            background: #00aeec;
+            padding: 12px;
+            background: linear-gradient(135deg, #00aeec 0%, #009cd6 100%);
             color: white;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             font-size: 14px;
+            font-weight: 600;
             cursor: pointer;
-            transition: background-color 0.2s;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(0, 174, 236, 0.3);
+            margin-top: 10px;
         }
 
         #bili-qmr-panel .qmr-save-btn:hover {
-            background: #00a1d6;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(0, 174, 236, 0.4);
+        }
+
+        #bili-qmr-panel .qmr-save-btn:active {
+            transform: translateY(1px);
         }
 
         #bili-qmr-panel .qmr-save-status {
             text-align: center;
             margin-top: 12px;
             font-size: 13px;
-            color: #00aeec;
+            color: var(--qmr-primary);
             opacity: 0;
             transition: opacity 0.3s;
         }
@@ -506,17 +571,17 @@
         #bili-qmr-panel .qmr-endpoint-input {
             flex: 1;
             padding: 10px 12px;
-            border: 1px solid #e3e5e7;
-            border-radius: 6px;
+            border: 1px solid var(--qmr-border);
+            border-radius: 8px;
             font-size: 13px;
-            color: #18191c;
-            transition: border-color 0.2s, box-shadow 0.2s;
+            color: var(--qmr-text-main);
+            transition: all 0.2s;
             outline: none;
         }
 
         #bili-qmr-panel .qmr-endpoint-input:focus {
-            border-color: #00aeec;
-            box-shadow: 0 0 0 2px rgba(0, 174, 236, 0.1);
+            border-color: var(--qmr-primary);
+            box-shadow: 0 0 0 3px rgba(0, 174, 236, 0.1);
         }
 
         #bili-qmr-panel .qmr-endpoint-input::placeholder {
@@ -526,23 +591,22 @@
         #bili-qmr-panel .qmr-reset-btn {
             width: 36px;
             height: 36px;
-            border: 1px solid #e3e5e7;
-            border-radius: 6px;
+            border: 1px solid var(--qmr-border);
+            border-radius: 8px;
             background: #fff;
-            color: #61666d;
-            font-size: 18px;
+            color: var(--qmr-text-sec);
+            font-size: 16px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+            transition: all 0.2s;
             flex-shrink: 0;
         }
 
         #bili-qmr-panel .qmr-reset-btn:hover {
-            background: #f4f5f7;
-            border-color: #d1d4d7;
-            color: #18191c;
+            border-color: var(--qmr-text-sec);
+            color: var(--qmr-text-main);
         }
 
         #bili-qmr-panel .qmr-settings-divider {
@@ -554,9 +618,10 @@
         /* 高级选项折叠区域 */
         #bili-qmr-panel .qmr-advanced-section {
             margin-top: 15px;
-            border: 1px solid #e3e5e7;
+            border: 1px solid var(--qmr-border);
             border-radius: 8px;
             overflow: hidden;
+            background: #fff;
         }
 
         #bili-qmr-panel .qmr-advanced-toggle {
@@ -566,7 +631,8 @@
             background: #f4f5f7;
             cursor: pointer;
             font-size: 14px;
-            color: #61666d;
+            font-weight: 500;
+            color: var(--qmr-text-main);
             user-select: none;
             transition: background-color 0.2s, color 0.2s;
             list-style: none;
@@ -1082,93 +1148,256 @@
         }
 
         const safeRange = ['realtime', 'daily', 'weekly', 'monthly'].includes(initialRange) ? initialRange : 'realtime';
+
         const html = `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>B站问号榜</title>
+    <title>B站问号榜 ❓</title>
     <style>
-        body{width:auto;font-family:"PingFang SC","Microsoft YaHei",sans-serif;margin:0;padding:16px;background-color:#f4f5f7;}
-        .container{display:flex;flex-direction:column;max-width:920px;margin:0 auto;}
-        header{text-align:center;border-bottom:1px solid #e3e5e7;padding-bottom:10px;}
-        h1{font-size:18px;color:#18191c;margin:10px 0;}
-        .tabs{display:flex;justify-content:space-around;margin-top:10px;}
-        .tab-btn{border:none;background:none;padding:5px 10px;cursor:pointer;font-size:14px;color:#61666d;border-bottom:2px solid transparent;}
-        .tab-btn.active{color:#00aeec;border-bottom-color:#00aeec;font-weight:bold;}
-        #leaderboard{margin-top:15px;}
-        .loading{text-align:center;padding:20px;color:#9499a0;}
+        :root {
+            /* 默认浅色模式 */
+            --bg-color: #f6f7f8;
+            --card-bg: #ffffff;
+            --card-border: rgba(0, 0, 0, 0.06);
+            --card-hover-bg: #ffffff;
+            --primary-color: #00aeec;
+            --text-primary: #18191c;
+            --text-secondary: #9499a0;
+            --accent-glow: rgba(0, 174, 236, 0.15);
+            --font-family: 'Inter', "PingFang SC", "Microsoft YaHei", sans-serif;
+            --scroll-track: #f6f7f8;
+            --scroll-thumb: #c1c1c1;
+            --scroll-thumb-hover: #a8a8a8;
+            --rank-badge-color: rgba(0, 0, 0, 0.05);
+            --rank-badge-hover: rgba(0, 174, 236, 0.1);
+            --mesh-color-1: rgba(0, 174, 236, 0.05);
+            --mesh-color-2: rgba(255, 102, 153, 0.04);
+            --tab-container-bg: rgba(0, 0, 0, 0.04);
+            --tab-hover-bg: rgba(0, 0, 0, 0.05);
+        }
 
-        .item{display:flex;align-items:flex-start;padding:10px;background:#fff;border-radius:8px;margin-bottom:8px;box-shadow:0 1px 2px rgba(0,0,0,0.05);}
-        .rank{font-size:16px;font-weight:bold;color:#9499a0;width:30px;flex:0 0 30px;line-height:1.2;}
-        .item:nth-child(1) .rank{color:#fe2c55;}
-        .item:nth-child(2) .rank{color:#ff9500;}
-        .item:nth-child(3) .rank{color:#ffcc00;}
+        /* 黑暗模式 */
+        body.dark-mode {
+            --bg-color: #0f0f11;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --card-hover-bg: rgba(255, 255, 255, 0.06);
+            --primary-color: #00aeec;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --accent-glow: rgba(0, 174, 236, 0.3);
+            --scroll-track: #0f0f11;
+            --scroll-thumb: #333;
+            --scroll-thumb-hover: #555;
+            --rank-badge-color: rgba(255, 255, 255, 0.1);
+            --rank-badge-hover: rgba(0, 174, 236, 0.15);
+            --mesh-color-1: rgba(0, 174, 236, 0.08);
+            --mesh-color-2: rgba(255, 102, 153, 0.06);
+            --tab-container-bg: rgba(255, 255, 255, 0.05);
+            --tab-hover-bg: rgba(255, 255, 255, 0.05);
+        }
 
-        .thumb{display:block;width:160px;height:100px;border-radius:8px;overflow:hidden;flex:0 0 160px;background:#f4f5f7;text-decoration:none;}
-        .thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+        body {
+            margin: 0; padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: var(--font-family);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
 
-        .info{flex:1;margin-left:10px;overflow:hidden;display:flex;flex-direction:column;min-height:100px;}
-        .title{font-size:14px;color:#18191c;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;text-decoration:none;}
-        .title:hover{color:#00aeec;}
-        .qml{font-size:12px;color:#61666d;margin-top:6px;}
+        /* 背景网格 */
+        .background-mesh {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1;
+            background: radial-gradient(circle at 10% 20%, var(--mesh-color-1) 0%, transparent 40%),
+                        radial-gradient(circle at 90% 80%, var(--mesh-color-2) 0%, transparent 40%);
+            pointer-events: none;
+        }
 
-        .bottom{display:flex;flex-direction:column;gap:8px;margin-top:auto;padding-top:10px;font-size:12px;color:#9499a0;}
-        .bottom-row{display:flex;align-items:center;gap:12px;min-width:0;}
-        .bottom-item{display:inline-flex;align-items:center;gap:6px;min-width:0;}
-        .icon{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border:1px solid #e3e5e7;border-radius:4px;color:#61666d;background:#fff;font-size:11px;line-height:1;flex:0 0 20px;}
-        .text{color:#9499a0;line-height:1.2;}
-        .text.up{max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+        .container { max-width: 1200px; margin: 0 auto; padding: 40px 20px; }
+
+        header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 60px; flex-wrap: wrap; gap: 20px;
+        }
+        .logo-section { display: flex; align-items: center; gap: 16px; }
+        .logo-icon { font-size: 48px; display: inline-block; animation: float 3s ease-in-out infinite; }
+        .logo-section h1 { font-size: 2rem; font-weight: 700; margin: 0; line-height: 1.2; }
+        .highlight {
+            background: linear-gradient(135deg, #00aeec 0%, #ff6699 100%);
+            -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; opacity: 0.9;
+        }
+        @keyframes float { 0%{transform:translateY(0)} 50%{transform:translateY(-5px)} 100%{transform:translateY(0)} }
+
+        /* 切换按钮 */
+        .theme-toggle-btn {
+            background: transparent; border: none; font-size: 1.5rem; cursor: pointer;
+            padding: 8px; border-radius: 50%; transition: background 0.3s ease;
+            display: flex; align-items: center; justify-content: center; margin-left: 20px;
+        }
+        .theme-toggle-btn:hover { background: var(--tab-hover-bg); }
+
+        /* 选项卡 */
+        .time-range-tabs {
+            display: flex; background: var(--tab-container-bg); padding: 4px; border-radius: 12px;
+            backdrop-filter: blur(10px); border: 1px solid var(--card-border);
+        }
+        .tab-btn {
+            background: transparent; border: none; color: var(--text-secondary);
+            padding: 10px 24px; font-size: 0.95rem; font-weight: 500; cursor: pointer;
+            border-radius: 8px; transition: all 0.3s ease; font-family: var(--font-family);
+        }
+        .tab-btn:hover { color: var(--text-primary); background: var(--tab-hover-bg); }
+        .tab-btn.active { background: var(--primary-color); color: white; box-shadow: 0 4px 12px rgba(0, 174, 236, 0.3); }
+
+        /* 网格布局 */
+        .leaderboard-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px; perspective: 1000px;
+        }
+
+        /* 卡片 */
+        .video-card {
+            background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px;
+            padding: 0; display: flex; flex-direction: column; gap: 0;
+            text-decoration: none; color: var(--text-primary);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative; overflow: hidden; backdrop-filter: blur(20px); cursor: pointer;
+        }
+        .video-card:hover {
+            transform: translateY(-5px) scale(1.02); background: var(--card-hover-bg);
+            border-color: rgba(0, 174, 236, 0.3); box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
+        }
+        .video-card::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px;
+            background: linear-gradient(90deg, #00aeec, #ff6699); opacity: 0; transition: opacity 0.3s ease;
+        }
+        .video-card:hover::before { opacity: 1; }
+
+        .thumb-container {
+            position: relative; width: 100%; padding-top: 56.25%; overflow: hidden;
+            border-radius: 12px; background: rgba(0, 0, 0, 0.2);
+        }
+        .thumb-img {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease;
+        }
+        .video-card:hover .thumb-img { transform: scale(1.05); }
+
+        .card-content { padding: 16px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+        .card-header-overlay { position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; z-index: 2; }
+        .score-tag {
+            background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(4px); color: #fff;
+            padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: 600;
+            display: flex; align-items: center; gap: 4px; border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .qml-icon { color: #4facfe; }
+
+        .rank-badge {
+            position: absolute; top: 4px; left: 8px; right: auto;
+            font-size: 2.5rem; font-weight: 900; color: rgba(255, 255, 255, 0.95);
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); z-index: 3;
+            font-style: italic; font-family: 'Impact', sans-serif; pointer-events: none;
+            display: flex; align-items: center; justify-content: center; width: 3.5rem; height: 3.5rem;
+        }
+        .rank-1, .rank-2, .rank-3 {
+            font-size: 1.8rem; font-style: normal; text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            color: #fff; background-size: cover; background-position: center;
+            border-radius: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.3); border: 2px solid rgba(255,255,255,0.4);
+        }
+        .rank-1 { background: linear-gradient(135deg, #FFD700 0%, #FDB931 100%); font-size: 2rem; }
+        .rank-2 { background: linear-gradient(135deg, #E0E0E0 0%, #BDBDBD 100%); }
+        .rank-3 { background: linear-gradient(135deg, #CD7F32 0%, #A0522D 100%); }
+        .rank-1::after {
+            content: '👑'; position: absolute; top: -16px; left: 30%;
+            transform: translateX(-50%) rotate(-15deg); font-size: 1.5rem; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));
+        }
+
+        .video-title { font-size: 1rem; line-height: 1.4; margin-bottom: 4px; font-weight: 500; }
+        .video-card:hover .video-title { color: var(--primary-color); }
+        .video-info-row {
+            display: flex; align-items: center; justify-content: space-between;
+            font-size: 0.85rem; color: var(--text-secondary); margin-top: auto;
+        }
+        .owner-info { display: flex; align-items: center; gap: 6px; overflow: hidden; }
+        .owner-icon { font-size: 0.8rem; opacity: 0.8; }
+        .owner-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-block; max-width: 100px; }
+        .stat-item { display: flex; align-items: center; gap: 4px; }
+
+        .loading-state {
+            grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 60px 0; color: var(--text-secondary);
+        }
+        .spinner {
+            width: 40px; height: 40px; border: 3px solid rgba(255, 255, 255, 0.1); border-radius: 50%;
+            border-top-color: var(--primary-color); animation: spin 1s ease-in-out infinite; margin-bottom: 20px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
+    <div class="background-mesh"></div>
     <div class="container">
         <header>
-            <h1>B站问号榜 ❓</h1>
-            <div class="tabs">
-                <button class="tab-btn" data-range="realtime">实时</button>
+            <div class="logo-section">
+                <span class="logo-icon">❓</span>
+                <h1>B站 <span class="highlight">问号榜</span></h1>
+                <button id="theme-toggle" class="theme-toggle-btn" title="切换深色/浅色模式">🌓</button>
+            </div>
+            <nav class="time-range-tabs">
+                <button class="tab-btn active" data-range="realtime">实时</button>
                 <button class="tab-btn" data-range="daily">日榜</button>
                 <button class="tab-btn" data-range="weekly">周榜</button>
                 <button class="tab-btn" data-range="monthly">月榜</button>
-            </div>
+            </nav>
         </header>
-        <main id="leaderboard"><div class="loading">加载中...</div></main>
+
+        <main id="leaderboard-grid" class="leaderboard-grid">
+            <div class="loading-state">
+                <div class="spinner"></div>
+                <p>正在获取最新抽象指数...</p>
+            </div>
+        </main>
     </div>
 
     <script>
         (function(){
             const API_BASE = ${JSON.stringify(API_BASE)};
             const initialRange = ${JSON.stringify(safeRange)};
-            const leaderboard = document.getElementById('leaderboard');
-            const tabs = Array.from(document.querySelectorAll('.tab-btn'));
-            const videoInfoCache = new Map();
+            const grid = document.getElementById('leaderboard-grid');
+            const tabs = document.querySelectorAll('.tab-btn');
+            
 
-            function formatCount(num){
+            const themeToggleBtn = document.getElementById('theme-toggle');
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-mode');
+            }
+            if (themeToggleBtn) {
+                themeToggleBtn.addEventListener('click', () => {
+                    document.body.classList.toggle('dark-mode');
+                    const isDark = document.body.classList.contains('dark-mode');
+                    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                });
+            }
+
+            function formatCount(num) {
                 const n = Number(num) || 0;
-                if(n >= 100000000){const v=n/100000000;return (v>=10?Math.round(v):v.toFixed(1))+'亿';}
-                if(n >= 10000){const v=n/10000;return (v>=10?Math.round(v):v.toFixed(1))+'万';}
+                if (n >= 100000000) {
+                    const v = n / 100000000;
+                    return (v >= 10 ? Math.round(v) : v.toFixed(1)) + '亿';
+                }
+                if (n >= 10000) {
+                    const v = n / 10000;
+                    return (v >= 10 ? Math.round(v) : v.toFixed(1)) + '万';
+                }
                 return String(n);
             }
 
-            async function tryFetchJson(url){
-                const resp = await fetch(url, { credentials: 'include' });
-                const json = await resp.json();
-                if(json && json.code === 0 && json.data) return json.data;
-                return null;
-            }
-
-            async function fetchVideoInfo(bvid){
-                // Prefer wbi/view (needs SESSDATA); fallback to view.
-                try{
-                    return (await tryFetchJson('https://api.bilibili.com/x/web-interface/wbi/view?bvid='+encodeURIComponent(bvid)))
-                            || (await tryFetchJson('https://api.bilibili.com/x/web-interface/view?bvid='+encodeURIComponent(bvid)));
-                }catch(e){
-                    return null;
-                }
-            }
-
-            function setActiveTab(range){
-                tabs.forEach(btn => btn.classList.toggle('active', btn.dataset.range === range));
+            function escapeHtml(text) {
+                if (!text) return '';
+                return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
             }
 
             // ==================== CAPTCHA 功能 ====================
@@ -1199,7 +1428,7 @@
                     const overlay = document.createElement('div');
                     overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:999999;display:flex;align-items:center;justify-content:center;';
                     const dialog = document.createElement('div');
-                    dialog.style.cssText = 'background:white;border-radius:12px;padding:24px;width:320px;box-shadow:0 4px 20px rgba(0,0,0,0.3);text-align:center;';
+                    dialog.style.cssText = 'background:white;border-radius:12px;padding:24px;width:320px;box-shadow:0 4px 20px rgba(0,0,0,0.3);text-align:center;font-family:"Microsoft YaHei",sans-serif;';
                     dialog.innerHTML = '<div style="font-size:48px;margin-bottom:16px;">🤖</div><div style="font-size:18px;font-weight:bold;color:#18191c;margin-bottom:12px;">人机验证</div><div id="qmr-status" style="font-size:14px;color:#61666d;margin-bottom:20px;">检测到频繁操作，请完成验证</div><div id="qmr-progress" style="display:none;margin-bottom:20px;"><div style="width:100%;height:6px;background:#e3e5e7;border-radius:3px;overflow:hidden;"><div id="qmr-bar" style="width:0%;height:100%;background:#00aeec;transition:width 0.3s;"></div></div><div style="font-size:12px;color:#9499a0;margin-top:8px;">正在验证中...</div></div><div id="qmr-buttons"><button id="qmr-start" type="button" style="padding:10px 32px;border:none;border-radius:6px;background:#00aeec;color:white;cursor:pointer;font-size:14px;">开始验证</button><button id="qmr-cancel" type="button" style="padding:10px 20px;border:1px solid #e3e5e7;border-radius:6px;background:white;color:#61666d;cursor:pointer;font-size:14px;margin-left:12px;">取消</button></div>';
                     overlay.appendChild(dialog);
                     document.body.appendChild(overlay);
@@ -1208,21 +1437,36 @@
                     const statusDiv = dialog.querySelector('#qmr-status');
                     const progressDiv = dialog.querySelector('#qmr-progress');
                     const buttonsDiv = dialog.querySelector('#qmr-buttons');
+
+                    // Hover effects
+                    startBtn.onmouseenter = () => startBtn.style.backgroundColor = '#00a1d6';
+                    startBtn.onmouseleave = () => startBtn.style.backgroundColor = '#00aeec';
+
                     cancelBtn.onclick = () => { overlay.remove(); reject(new Error('CAPTCHA cancelled')); };
+                    
                     startBtn.onclick = async () => {
                         try{
                             buttonsDiv.style.display = 'none';
                             progressDiv.style.display = 'block';
                             statusDiv.textContent = '正在获取验证挑战...';
+                            
                             const challenge = await fetchAltchaChallenge();
                             statusDiv.textContent = '正在计算验证...';
+                            
                             const progressBar = dialog.querySelector('#qmr-bar');
                             let progress = 0;
-                            const progressInterval = setInterval(() => { progress = Math.min(progress + Math.random() * 15, 95); progressBar.style.width = progress + '%'; }, 200);
+                            // 模拟进度条
+                            const progressInterval = setInterval(() => { 
+                                progress = Math.min(progress + Math.random() * 15, 95); 
+                                progressBar.style.width = progress + '%'; 
+                            }, 200);
+
                             const solution = await solveAltchaChallenge(challenge);
+                            
                             clearInterval(progressInterval);
                             progressBar.style.width = '100%';
                             statusDiv.textContent = '验证成功！';
+                            
                             setTimeout(() => { overlay.remove(); resolve(solution); }, 500);
                         }catch(error){
                             statusDiv.textContent = '验证失败: ' + error.message;
@@ -1231,177 +1475,123 @@
                             progressDiv.style.display = 'none';
                         }
                     };
+
                     document.addEventListener('keydown', function escHandler(e){
-                        if(e.key === 'Escape'){ overlay.remove(); reject(new Error('CAPTCHA cancelled')); document.removeEventListener('keydown', escHandler); }
+                        if(e.key === 'Escape'){ 
+                            overlay.remove(); 
+                            reject(new Error('CAPTCHA cancelled')); 
+                            document.removeEventListener('keydown', escHandler); 
+                        }
                     });
                 });
             }
 
-
-            function renderList(list){
-                leaderboard.innerHTML = '';
-                list.forEach((item, index) => {
-                    const bvid = item && item.bvid ? item.bvid : '';
-                    const title = item && item.title ? item.title : '未知标题';
-                    const pic = item && item.pic ? item.pic : '';
-                    const ownerName = item && item.ownerName ? item.ownerName : '';
-                    const viewText = item && item.view != null ? formatCount(item.view) : '';
-                    const danmakuText = item && item.danmaku != null ? formatCount(item.danmaku) : '';
-
-                    const root = document.createElement('div');
-                    root.className = 'item';
-
-                    const rank = document.createElement('div');
-                    rank.className = 'rank';
-                    rank.textContent = String(index + 1);
-                    root.appendChild(rank);
-
-                    const thumbLink = document.createElement('a');
-                    thumbLink.className = 'thumb';
-                    thumbLink.href = 'https://www.bilibili.com/video/' + bvid;
-                    thumbLink.target = '_blank';
-                    thumbLink.setAttribute('aria-label', '打开视频');
-                    if(pic){
-                        const img = document.createElement('img');
-                        img.src = pic;
-                        img.alt = title;
-                        img.loading = 'lazy';
-                        thumbLink.appendChild(img);
+            async function fetchLeaderboard(range = 'realtime', altchaSolution = null) {
+                grid.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>正在获取排行数据...</p></div>';
+                try {
+                    let url = API_BASE + '/leaderboard?range=' + range + '&type=2&_t=' + Date.now();
+                    if(altchaSolution) {
+                        url += '&altcha=' + encodeURIComponent(altchaSolution);
                     }
-                    root.appendChild(thumbLink);
-
-                    const info = document.createElement('div');
-                    info.className = 'info';
-
-                    const titleLink = document.createElement('a');
-                    titleLink.className = 'title';
-                    titleLink.href = 'https://www.bilibili.com/video/' + bvid;
-                    titleLink.target = '_blank';
-                    titleLink.title = title;
-                    titleLink.textContent = title;
-                    info.appendChild(titleLink);
-
-                    const qml = document.createElement('div');
-                    qml.className = 'qml';
-                    qml.textContent = '抽象指数：' + (item && item.count != null ? item.count : '');
-                    info.appendChild(qml);
-
-                    const bottom = document.createElement('div');
-                    bottom.className = 'bottom';
-
-                    const row1 = document.createElement('div');
-                    row1.className = 'bottom-row';
-                    if(ownerName){
-                        const wrap = document.createElement('span');
-                        wrap.className = 'bottom-item';
-                        const icon = document.createElement('span');
-                        icon.className = 'icon';
-                        icon.textContent = 'UP';
-                        const text = document.createElement('span');
-                        text.className = 'text up';
-                        text.title = ownerName;
-                        text.textContent = ownerName;
-                        wrap.appendChild(icon);
-                        wrap.appendChild(text);
-                        row1.appendChild(wrap);
-                    }
-                    bottom.appendChild(row1);
-
-                    const row2 = document.createElement('div');
-                    row2.className = 'bottom-row';
-                    if(viewText){
-                        const wrap = document.createElement('span');
-                        wrap.className = 'bottom-item';
-                        const icon = document.createElement('span');
-                        icon.className = 'icon';
-                        icon.textContent = '▶';
-                        const text = document.createElement('span');
-                        text.className = 'text';
-                        text.textContent = viewText;
-                        wrap.appendChild(icon);
-                        wrap.appendChild(text);
-                        row2.appendChild(wrap);
-                    }
-                    if(danmakuText){
-                        const wrap = document.createElement('span');
-                        wrap.className = 'bottom-item';
-                        const icon = document.createElement('span');
-                        icon.className = 'icon';
-                        icon.textContent = '弹';
-                        const text = document.createElement('span');
-                        text.className = 'text';
-                        text.textContent = danmakuText;
-                        wrap.appendChild(icon);
-                        wrap.appendChild(text);
-                        row2.appendChild(wrap);
-                    }
-                    bottom.appendChild(row2);
-
-                    info.appendChild(bottom);
-                    root.appendChild(info);
-                    leaderboard.appendChild(root);
-                });
-            }
-
-            async function fetchLeaderboard(range, altchaSolution){
-                leaderboard.innerHTML = '<div class="loading">加载中...</div>';
-                try{
-                    let url = API_BASE + '/leaderboard?range=' + encodeURIComponent(range) + '&_t=' + Date.now();
-                    if(altchaSolution) url += '&altcha=' + encodeURIComponent(altchaSolution);
-                    const resp = await fetch(url);
-                    const data = await resp.json();
                     
-                    // 处理频率限制，需要 CAPTCHA 验证
-                    if(data.requiresCaptcha){
-                        leaderboard.innerHTML = '<div class="loading">需要人机验证...</div>';
-                        try{
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    
+                    if (data.requiresCaptcha) {
+                        grid.innerHTML = '<div class="loading-state"><p>🤖 需要进行人机验证...</p></div>';
+                        try {
                             const solution = await showAltchaCaptchaDialog();
                             return fetchLeaderboard(range, solution);
-                        }catch(captchaError){
-                            leaderboard.innerHTML = '<div class="loading">验证已取消</div>';
+                        } catch (captchaError) {
+                            grid.innerHTML = '<div class="loading-state"><p>🚫 验证已取消</p></div>';
                             return;
                         }
                     }
-                    
-                    if(!data || !data.success || !data.list || data.list.length === 0){
-                        leaderboard.innerHTML = '<div class="loading">暂无数据</div>';
-                        return;
+
+                    if (data.success && data.list && data.list.length > 0) {
+                        await renderList(data.list);
+                    } else {
+                        grid.innerHTML = '<div class="loading-state"><p>📭 暂无数据</p></div>';
                     }
-
-                    // Best-effort enrich.
-                    await Promise.all(data.list.map(async (it, idx) => {
-                        const bvid = it && it.bvid;
-                        if(!bvid) return;
-                        try{
-                            if(!videoInfoCache.has(bvid)) videoInfoCache.set(bvid, fetchVideoInfo(bvid));
-                            const info = await videoInfoCache.get(bvid);
-                            if(info){
-                                data.list[idx].title = info.title || data.list[idx].title;
-                                data.list[idx].pic = info.pic;
-                                data.list[idx].ownerName = info.owner && info.owner.name;
-                                data.list[idx].view = info.stat && info.stat.view;
-                                data.list[idx].danmaku = info.stat && info.stat.danmaku;
-                            }
-                        }catch(e){}
-                    }));
-
-                    renderList(data.list);
-                }catch(e){
-                    console.error('[B站问号榜] 独立页面获取排行榜失败:', e);
-                    leaderboard.innerHTML = '<div class="loading">获取失败（可能未登录或接口被拦截）</div>';
+                } catch (error) {
+                    console.error('Leaderboard Fetch Error:', error);
+                    grid.innerHTML = '<div class="loading-state"><p style="color: #ff4d4f;">⚠️ 获取失败: ' + (error.message || '未知错误') + '</p></div>';
                 }
             }
 
-            tabs.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const r = btn.dataset.range;
-                    if(!r) return;
-                    setActiveTab(r);
-                    fetchLeaderboard(r);
+            async function fetchVideoInfo(bvid) {
+                try {
+                     const resp = await fetch('https://api.bilibili.com/x/web-interface/view?bvid='+encodeURIComponent(bvid));
+                     const json = await resp.json();
+                     if (json && json.code === 0 && json.data) return json.data;
+                } catch (e) {}
+                return null;
+            }
+
+            async function renderList(list) {
+                grid.innerHTML = '';
+                const items = await Promise.all(list.map(async (item, index) => {
+                    let details = { title: '加载中...', pic: '', ownerName: '', view: null, danmaku: null };
+                    try {
+                        const info = await fetchVideoInfo(item.bvid);
+                        if (info) {
+                            details.title = info.title || '未知标题';
+                            details.pic = info.pic;
+                            details.ownerName = info.owner && info.owner.name;
+                            details.view = info.stat && info.stat.view;
+                            details.danmaku = info.stat && info.stat.danmaku;
+                        }
+                    } catch (e) {
+                         details.title = 'Video ' + item.bvid;
+                    }
+
+                    const rank = index + 1;
+                     const rankClass = rank <= 3 ? 'rank-' + rank : '';
+                    const rankDisplay = rank <= 3 ? rank : '#' + rank;
+                    const safeTitle = escapeHtml(details.title);
+                    const picUrl = details.pic ? details.pic.replace('http:', 'https:') : '';
+                    const ownerName = escapeHtml(details.ownerName || '未知UP');
+                    const viewText = details.view != null ? formatCount(details.view) : '-';
+                    const danmakuText = details.danmaku != null ? formatCount(details.danmaku) : '-';
+                    
+                    return \`
+                        <a href="https://www.bilibili.com/video/\${item.bvid}" target="_blank" class="video-card">
+                            <div class="thumb-container">
+                                \${picUrl ? '<img src="' + picUrl + '" alt="' + safeTitle + '" class="thumb-img" loading="lazy" />' : ''}
+                                <span class="rank-badge \${rankClass}">\${rankDisplay}</span>
+                                <div class="card-header-overlay">
+                                    <div class="score-tag">
+                                        <span class="qml-icon">❓</span> \${item.count}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-content">
+                                <h3 class="video-title" title="\${safeTitle}">\${safeTitle}</h3>
+                                <div class="video-info-row">
+                                    <div class="owner-info">
+                                        <span class="owner-icon">UP</span>
+                                        <span class="owner-name" title="\${ownerName}">\${ownerName}</span>
+                                    </div>
+                                </div>
+                                <div class="video-info-row" style="margin-top: 4px;">
+                                    <div class="stat-item" title="播放量"><span>▶</span> \${viewText}</div>
+                                    <div class="stat-item" title="弹幕数"><span>💬</span> \${danmakuText}</div>
+                                </div>
+                            </div>
+                        </a>
+                    \`;
+                }));
+                grid.innerHTML = items.join('');
+            }
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    fetchLeaderboard(tab.dataset.range);
                 });
             });
 
-            setActiveTab(initialRange);
             fetchLeaderboard(initialRange);
         })();
     </script>
@@ -1420,9 +1610,9 @@
         panel.id = 'bili-qmr-panel';
         panel.innerHTML = `
             <div class="qmr-header">
+                <button class="qmr-page-btn" title="打开独立页面">📊</button>
                 <h2 class="qmr-title">B站问号榜 ❓</h2>
                 <div style="display: flex; align-items: center;">
-                    <button class="qmr-page-btn" title="打开独立页面">页面</button>
                     <span class="qmr-settings-btn" title="设置">⚙️</span>
                     <button class="qmr-close">×</button>
                 </div>
