@@ -1,5 +1,123 @@
 // content.js
-const API_BASE = 'https://www.bili-qml.top/api';
+const API_BASE = 'https://bili-qml.bydfk.com/api';
+// for debug
+//const API_BASE = 'http://localhost:3000/api'
+
+// 存储键名
+const STORAGE_KEY_DANMAKU_PREF = 'danmakuPreference';
+
+// 获取弹幕发送偏好
+// 返回: null (未设置), true (总是发送), false (总是不发送)
+async function getDanmakuPreference() {
+    return new Promise((resolve) => {
+        browser.storage.sync.get([STORAGE_KEY_DANMAKU_PREF]).then((result) => {
+            resolve(result[STORAGE_KEY_DANMAKU_PREF] !== undefined ? result[STORAGE_KEY_DANMAKU_PREF] : null);
+        });
+    });
+}
+
+// 设置弹幕发送偏好
+async function setDanmakuPreference(preference) {
+    return new Promise((resolve) => {
+        browser.storage.sync.set({ [STORAGE_KEY_DANMAKU_PREF]: preference }).then(() => {
+            resolve();
+        });
+    });
+}
+
+// 显示弹幕发送确认对话框
+function showDanmakuConfirmDialog() {
+    return new Promise((resolve) => {
+        // 创建遮罩层
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 999999;
+            display: flex; align-items: center; justify-content: center;
+        `;
+
+        // 创建对话框
+        const dialog = document.createElement('div');
+        dialog.style.cssText = `
+            background: white; border-radius: 8px; padding: 24px;
+            width: 360px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+        `;
+
+        dialog.innerHTML = `
+            <div style="font-size: 18px; font-weight: bold; color: #18191c; margin-bottom: 16px;">
+                发送弹幕确认
+            </div>
+            <div style="font-size: 14px; color: #61666d; margin-bottom: 20px;">
+                点亮问号后是否自动发送"?"弹幕？
+            </div>
+            <div style="margin-bottom: 20px;">
+                <label style="display: flex; align-items: center; cursor: pointer; user-select: none;">
+                    <input type="checkbox" id="qmr-dont-ask" style="margin-right: 8px;">
+                    <span style="font-size: 14px; color: #61666d;">不再询问（记住我的选择）</span>
+                </label>
+            </div>
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button id="qmr-btn-no" style="
+                    padding: 8px 20px; border: 1px solid #e3e5e7; border-radius: 4px;
+                    background: white; color: #61666d; cursor: pointer;
+                    font-size: 14px; transition: all 0.2s;
+                ">
+                    不发送
+                </button>
+                <button id="qmr-btn-yes" style="
+                    padding: 8px 20px; border: none; border-radius: 4px;
+                    background: #00aeec; color: white; cursor: pointer;
+                    font-size: 14px; transition: all 0.2s;
+                ">
+                    发送弹幕
+                </button>
+            </div>
+        `;
+
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+
+        // 按钮悬停效果
+        const btnNo = dialog.querySelector('#qmr-btn-no');
+        const btnYes = dialog.querySelector('#qmr-btn-yes');
+
+        btnNo.addEventListener('mouseenter', () => {
+            btnNo.style.background = '#f4f5f7';
+        });
+        btnNo.addEventListener('mouseleave', () => {
+            btnNo.style.background = 'white';
+        });
+
+        btnYes.addEventListener('mouseenter', () => {
+            btnYes.style.background = '#00a1d6';
+        });
+        btnYes.addEventListener('mouseleave', () => {
+            btnYes.style.background = '#00aeec';
+        });
+
+        // 处理选择
+        const handleChoice = (sendDanmaku) => {
+            const dontAsk = dialog.querySelector('#qmr-dont-ask').checked;
+            overlay.remove();
+            resolve({ sendDanmaku, dontAskAgain: dontAsk });
+        };
+
+        btnNo.addEventListener('click', () => handleChoice(false));
+        btnYes.addEventListener('click', () => handleChoice(true));
+
+        // ESC 键关闭
+        const escHandler = (e) => {
+            if (e.key === 'Escape') {
+                overlay.remove();
+                resolve({ sendDanmaku: false, dontAskAgain: false });
+                document.removeEventListener('keydown', escHandler);
+            }
+        };
+        document.addEventListener('keydown', escHandler);
+    });
+}
 
 // 注入 B 站风格的 CSS
 // const style = document.createElement('style');
@@ -103,7 +221,7 @@ function getBvid() {
     // 3. 从 B站原生变量获取 (最准确)
     const bvidFromWindow = window.__INITIAL_STATE__?.bvid || window.p_bvid;
     if (bvidFromWindow) return bvidFromWindow;
-    
+
     return null;
 }
 
@@ -115,32 +233,31 @@ let lastSyncedUserId = null;
 // 同步按钮状态（亮或灭）及计数
 async function syncButtonState() {
     const qBtn = document.getElementById('bili-qmr-btn');
-    if (!qBtn) return;
+    const qBtnInner = document.getElementById('bili-qmr-btn-inner');
+    if (!qBtn || !qBtnInner || isSyncing) return;
 
     const bvid = getBvid();
     if (!bvid) return;
 
-    if (isSyncing) return;
-    
     try {
         isSyncing = true;
         const userId = getUserId();
         // 增加 _t 参数防止浏览器缓存 GET 请求
         const statusRes = await fetch(`${API_BASE}/status?bvid=${bvid}&userId=${userId || ''}&_t=${Date.now()}`);
         const statusData = await statusRes.json();
-        
+
         currentBvid = bvid;
         lastSyncedUserId = userId;
-        
+
         const isLoggedIn = !!userId;
         if (statusData.active && isLoggedIn) {
             qBtn.classList.add('voted');
-            document.getElementById('bili-qmr-btn-inner').classList.add('on');
+            qBtnInner.classList.add('on');
         } else {
             qBtn.classList.remove('voted');
-            document.getElementById('bili-qmr-btn-inner').classList.remove('on');
+            qBtnInner.classList.remove('on');
         }
-        
+
         // 更新显示的数量
         const countText = qBtn.querySelector('.qmr-text');
         if (countText) {
@@ -167,23 +284,23 @@ function formatCount(num) {
 // 模拟发送弹幕功能
 function sendDanmaku(text) {
     // 1. 寻找弹幕输入框和发送按钮
-    const showNotice = (msg, isError = false) => {
-        if (!isError) return; // 正常情况下不显示提示
-        const notice = document.createElement('div');
-        notice.style.cssText = `
-            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-            padding: 10px 20px; border-radius: 4px; z-index: 100000;
-            background: #ff4d4f; color: white;
-            font-size: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-            transition: opacity 0.5s;
-        `;
-        notice.innerText = `[问号榜提示] ${msg}`;
-        document.body.appendChild(notice);
-        setTimeout(() => {
-            notice.style.opacity = '0';
-            setTimeout(() => notice.remove(), 500);
-        }, 3000);
-    };
+    // const showNotice = (msg, isError = false) => {
+    //     if (!isError) return; // 正常情况下不显示提示
+    //     const notice = document.createElement('div');
+    //     notice.style.cssText = `
+    //         position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    //         padding: 10px 20px; border-radius: 4px; z-index: 100000;
+    //         background: #ff4d4f; color: white;
+    //         font-size: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    //         transition: opacity 0.5s;
+    //     `;
+    //     notice.innerText = `[问号榜提示] ${msg}`;
+    //     document.body.appendChild(notice);
+    //     setTimeout(() => {
+    //         notice.style.opacity = '0';
+    //         setTimeout(() => notice.remove(), 500);
+    //     }, 3000);
+    // };
 
     try {
         const dmInput = document.querySelector('input.bpx-player-dm-input');
@@ -192,7 +309,11 @@ function sendDanmaku(text) {
 
         // 1. 填入内容并让 React 感知
         dmInput.focus();
-        document.execCommand('insertText', false, text);
+        const setter = Object.getOwnPropertyDescriptor(
+            window.HTMLInputElement.prototype,
+            'value'
+        )?.set;
+        setter?.call(dmInput, text);
         dmInput.dispatchEvent(new Event('input', { bubbles: true }));
 
         // 2. 增加一个适中的延时（150ms），避开 B 站的频率检测和 React 渲染冲突
@@ -216,7 +337,7 @@ function sendDanmaku(text) {
                     dmSendBtn.click();
                 }
             }, 100);
-        }, 150); 
+        }, 150);
 
     } catch (e) {
         console.error('[B站问号榜] 弹幕瞬发失败:', e);
@@ -233,19 +354,19 @@ async function injectQuestionButton() {
         const shareBtn = document.querySelector('.video-toolbar-left-item.share') ||
             document.querySelector('.video-share') ||
             document.querySelector('.share-info');
-        
+
         if (!toolbarLeft || !shareBtn) return;
 
         let qBtn = document.getElementById('bili-qmr-btn');
-        
+
         // 2. 如果按钮不存在，创建并挂载
         if (!qBtn) {
             if (isInjecting) return;
             isInjecting = true;
-            
+
             qBtn = document.createElement('div');
             qBtn.id = 'bili-qmr-btn';
-             qBtn.className = 'toolbar-left-item-wrap';
+            qBtn.className = 'toolbar-left-item-wrap';
             qBtnInner = document.createElement('div');
             qBtnInner.id = 'bili-qmr-btn-inner';
             qBtnInner.className = 'qmr-icon-wrap video-toolbar-left-item';
@@ -281,7 +402,7 @@ async function injectQuestionButton() {
 
             qBtn.onclick = async (e) => {
                 e.preventDefault();
-                e.stopPropagation(); // 依然保留，防止点击事件向上冒泡干扰 B 站
+                // e.stopPropagation(); // 依然保留，防止点击事件向上冒泡干扰 B 站
 
                 // 只有登录用户才能投票
                 if (!document.cookie.includes('DedeUserID')) {
@@ -289,8 +410,7 @@ async function injectQuestionButton() {
                     return;
                 }
 
-                const activeBvid = getBvid(); 
-                const title = document.querySelector('.video-title')?.innerText || document.title;
+                const activeBvid = getBvid();
                 if (!activeBvid) return;
 
                 const userId = getUserId();
@@ -302,28 +422,44 @@ async function injectQuestionButton() {
                 try {
                     qBtn.style.pointerEvents = 'none';
                     qBtn.style.opacity = '0.5';
-                    const response = await fetch(`${API_BASE}/vote`, {
+                    let endpoint = qBtn.classList.contains("voted") == true ? "unvote" : "vote";
+                    const response = await fetch(`${API_BASE}/${endpoint}`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify({ bvid: activeBvid, title, userId })
+                        body: JSON.stringify({ bvid: activeBvid, userId })
                     });
-                    
+
                     const resData = await response.json();
                     if (resData.success) {
-                        syncButtonState();
                         // 只有当点亮（active 为 true）时才发弹幕
                         if (resData.active) {
-                            sendDanmaku('？');
+                            const preference = await getDanmakuPreference();
+
+                            if (preference === null) {
+                                // 首次使用，显示确认对话框
+                                const choice = await showDanmakuConfirmDialog();
+                                if (choice.sendDanmaku) {
+                                    sendDanmaku('？');
+                                }
+                                if (choice.dontAskAgain) {
+                                    await setDanmakuPreference(choice.sendDanmaku);
+                                }
+                            } else if (preference === true) {
+                                // 用户选择了总是发送
+                                sendDanmaku('？');
+                            }
+                            // preference === false 时不发送
                         }
+                        await syncButtonState();
                     } else {
                         alert('投票失败: ' + (resData.error || '未知错误'));
                     }
                 } catch (err) {
                     console.error('[B站问号榜] 投票请求异常:', err);
-                } finally { 
-                    qBtn.style.pointerEvents = 'auto'; 
+                } finally {
+                    qBtn.style.pointerEvents = 'auto';
                     qBtn.style.opacity = '1';
                 }
             };
@@ -331,71 +467,36 @@ async function injectQuestionButton() {
         }
 
         // 3. 状态同步检查
-        const currentUserId = getUserId();
-        if (bvid !== currentBvid || currentUserId !== lastSyncedUserId) {
-            syncButtonState();
-        }
+        await syncButtonState();
     } catch (e) {
         isInjecting = false;
     }
 }
 
-// 增加滚动和缩放监听以保持位置同步
-window.addEventListener('scroll', injectQuestionButton, { passive: true });
-window.addEventListener('resize', injectQuestionButton, { passive: true });
-
 // 防抖函数
 function debounce(fn, delay) {
     let timer = null;
-    return function() {
+    return function () {
         if (timer) clearTimeout(timer);
         timer = setTimeout(() => fn.apply(this, arguments), delay);
     }
 }
 
-function getCachedUserId() {
-    return getUserId();
-}
+// 监听 DOM 变化以注入按钮
+const observer = new MutationObserver(debounce(injectQuestionButton, 500));
+const mainApp = document.getElementById('app') || document.body;
+observer.observe(mainApp, { childList: true, subtree: true });
+injectQuestionButton();
 
-const debouncedInject = debounce(injectQuestionButton, 500);
-
-// 降低监听频率和范围，保护 B 站顶栏
-const observer = new MutationObserver(debounce(() => {
-    injectQuestionButton();
-}, 1000)); // 进一步放慢频率
 
 let lastUrl = location.href;
+setInterval(() => {
+    const urlChanged = location.href !== lastUrl;
+    const userId = getUserId();
+    const userChanged = userId !== lastSyncedUserId;
 
-// 初始尝试 - 增加延迟，等 B 站顶栏加载完再动
-setTimeout(() => {
-    const mainApp = document.getElementById('app') || document.body;
-    observer.observe(mainApp, { childList: true, subtree: true });
-    injectQuestionButton();
-    
-    // 合并后的心跳检测
-    setInterval(() => {
-        const urlChanged = location.href !== lastUrl;
-        if (urlChanged) {
-            lastUrl = location.href;
-            injectQuestionButton();
-        } else {
-            // 心跳检测：强制检查
-            const btn = document.getElementById('bili-qmr-btn');
-            const toolbar = document.querySelector('.video-toolbar-left-main') ||
-                document.querySelector('.toolbar-left') ||
-                document.querySelector('.video-toolbar-container .left-operations');
-            
-            if (toolbar && (!btn || !toolbar.contains(btn))) {
-                injectQuestionButton();
-            }
-        }
-        
-        // 检查视频事件绑定
-        const video = document.querySelector('video');
-        if (video && !video.dataset.qmrListen) {
-            video.dataset.qmrListen = 'true';
-            video.addEventListener('play', () => setTimeout(injectQuestionButton, 500));
-            video.addEventListener('pause', () => setTimeout(injectQuestionButton, 500));
-        }
-    }, 2000); // 心跳频率也降低
-}, 2500); // 延迟 2.5 秒启动，避开顶栏渲染高峰期
+    if (urlChanged || userChanged) {
+        lastUrl = location.href;
+        injectQuestionButton();
+    }
+}, 500);
