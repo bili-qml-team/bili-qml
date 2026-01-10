@@ -295,3 +295,49 @@ h1 {
     border-color: #d1d4d7;
     color: #18191c;
 }
+
+/* 高级选项折叠区域 */
+.advanced-section {
+    margin-top: 15px;
+    border: 1px solid #e3e5e7;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.advanced-toggle {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    background: #f4f5f7;
+    cursor: pointer;
+    font-size: 14px;
+    color: #61666d;
+    user-select: none;
+    transition: background-color 0.2s, color 0.2s;
+    list-style: none;
+}
+
+.advanced-toggle::-webkit-details-marker {
+    display: none;
+}
+
+.advanced-toggle::before {
+    content: '▶';
+    font-size: 10px;
+    margin-right: 8px;
+    transition: transform 0.2s;
+}
+
+.advanced-section[open] .advanced-toggle::before {
+    transform: rotate(90deg);
+}
+
+.advanced-toggle:hover {
+    background: #e3e5e7;
+    color: #18191c;
+}
+
+.advanced-section .settings-section {
+    padding: 15px;
+    background: #fff;
+}

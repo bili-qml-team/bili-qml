@@ -389,6 +389,52 @@
             border: none;
             border-top: 1px solid #e3e5e7;
         }
+
+        /* 高级选项折叠区域 */
+        #bili-qmr-panel .qmr-advanced-section {
+            margin-top: 15px;
+            border: 1px solid #e3e5e7;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        #bili-qmr-panel .qmr-advanced-toggle {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            background: #f4f5f7;
+            cursor: pointer;
+            font-size: 14px;
+            color: #61666d;
+            user-select: none;
+            transition: background-color 0.2s, color 0.2s;
+            list-style: none;
+        }
+
+        #bili-qmr-panel .qmr-advanced-toggle::-webkit-details-marker {
+            display: none;
+        }
+
+        #bili-qmr-panel .qmr-advanced-toggle::before {
+            content: '▶';
+            font-size: 10px;
+            margin-right: 8px;
+            transition: transform 0.2s;
+        }
+
+        #bili-qmr-panel .qmr-advanced-section[open] .qmr-advanced-toggle::before {
+            transform: rotate(90deg);
+        }
+
+        #bili-qmr-panel .qmr-advanced-toggle:hover {
+            background: #e3e5e7;
+            color: #18191c;
+        }
+
+        #bili-qmr-panel .qmr-advanced-content {
+            padding: 15px;
+            background: #fff;
+        }
     `);
 
     // ==================== 工具函数 ====================
@@ -1038,13 +1084,17 @@
                         <span>总是不发送</span>
                     </label>
                 </div>
-                <hr class="qmr-settings-divider">
-                <h3>API 服务器设置</h3>
-                <p class="qmr-settings-desc">自定义问号榜服务器地址</p>
-                <div class="qmr-endpoint-group">
-                    <input type="text" class="qmr-endpoint-input" placeholder="https://bili-qml.bydfk.com/api">
-                    <button class="qmr-reset-btn" title="恢复默认">↺</button>
-                </div>
+                <details class="qmr-advanced-section">
+                    <summary class="qmr-advanced-toggle">高级选项</summary>
+                    <div class="qmr-advanced-content">
+                        <h3>API 服务器设置</h3>
+                        <p class="qmr-settings-desc">自定义问号榜服务器地址</p>
+                        <div class="qmr-endpoint-group">
+                            <input type="text" class="qmr-endpoint-input" placeholder="https://bili-qml.bydfk.com/api">
+                            <button class="qmr-reset-btn" title="恢复默认">↺</button>
+                        </div>
+                    </div>
+                </details>
                 <button class="qmr-save-btn">保存设置</button>
                 <div class="qmr-save-status"></div>
             </div>
