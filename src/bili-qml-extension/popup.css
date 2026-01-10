@@ -37,6 +37,15 @@ header {
     gap: 6px;
 }
 
+.header-left {
+    position: absolute;
+    left: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+}
+
 h1 {
     font-size: 18px;
     color: #18191c;
@@ -54,6 +63,10 @@ h1 {
 .settings-btn:hover {
     background-color: #e3e5e7;
     transform: rotate(30deg);
+}
+
+#full-leaderboard-btn:hover {
+    transform: rotate(-30deg);
 }
 
 .page-btn {

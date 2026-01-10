@@ -28,6 +28,21 @@ document.addEventListener('DOMContentLoaded', () => {
         pageBtn.addEventListener('click', openPageWithRange);
     }
 
+    const fullLeaderboardBtn = document.getElementById('full-leaderboard-btn');
+    if (fullLeaderboardBtn) {
+        fullLeaderboardBtn.addEventListener('click', () => {
+            const activeTab = document.querySelector('.tab-btn.active');
+            const range = activeTab?.dataset?.range || 'realtime';
+            if (typeof chrome !== 'undefined' && chrome.tabs && chrome.tabs.create) {
+                chrome.tabs.create({ url: `leaderboard.html?range=${range}` });
+            } else if (typeof browser !== 'undefined' && browser.tabs && browser.tabs.create) {
+                browser.tabs.create({ url: `leaderboard.html?range=${range}` });
+            } else {
+                window.open(`leaderboard.html?range=${range}`, '_blank');
+            }
+        });
+    }
+
     // 加载排行榜
     async function fetchLeaderboard(range = 'realtime', altchaSolution = null) {
         leaderboard.innerHTML = '<div class="loading">加载中...</div>';
@@ -62,28 +77,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function renderList(list){
+    async function renderList(list) {
         leaderboard.innerHTML = '';
         await Promise.all(list.map(async (item, index) => {
-                try {
-                    let cache={};
-                    const conn = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${item.bvid}`);
-                    const json = await conn.json();
-                    if (json.code === 0 && json.data?.title) {
-                        cache.title = json.data.title;
-                    } else {
-                        cache.title = '未知标题';
-                    }
-                    cache.bvid=item.bvid;
-                    cache.count=item.count;
-                    renderEntry(cache,index+1)
-                } catch (err) {
-                    console.error(`获取标题失败 ${item.bvid}:`, err);
-                    cache.title = '加载失败';
+            try {
+                let cache = {};
+                const conn = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${item.bvid}`);
+                const json = await conn.json();
+                if (json.code === 0 && json.data?.title) {
+                    cache.title = json.data.title;
+                } else {
+                    cache.title = '未知标题';
                 }
-            }));
+                cache.bvid = item.bvid;
+                cache.count = item.count;
+                renderEntry(cache, index + 1)
+            } catch (err) {
+                console.error(`获取标题失败 ${item.bvid}:`, err);
+                cache.title = '加载失败';
+            }
+        }));
     }
-    function renderEntry(item,index) {
+    function renderEntry(item, index) {
         const div = document.createElement('div');
         div.className = 'item';
         div.innerHTML = `
@@ -102,7 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (nextItem) {
             nextItem.before(div);
         } else {
-        leaderboard.appendChild(div);
+            leaderboard.appendChild(div);
         }
     }
 
