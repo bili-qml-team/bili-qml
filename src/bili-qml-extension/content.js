@@ -870,7 +870,7 @@ export const addVideoActionButton = async (getButton) => {
   if (!favoriteButton) {
     return null
   }
-  const { hasVideo } = await import('@/core/spin-query')
+////  const { hasVideo } = await import('@/core/spin-query')
   await hasVideo()
   const button = await getButton()
   if (favoriteButton.classList.contains('video-fav')) {
@@ -879,4 +879,14 @@ export const addVideoActionButton = async (getButton) => {
     favoriteButton.insertAdjacentElement('afterend', button)
   }
   return button
+}
+/**
+ * 等待视频加载, 可获取到 `cid` 时结束, 返回 `boolean` 值代表是否存在视频
+ */
+export const hasVideo = async () => {
+  if (!hasVideoPromiseCache) {
+    hasVideoPromiseCache = new Promise(resolve => videoChange(() => resolve(unsafeWindow.cid)))
+  }
+  const cid = await hasVideoPromiseCache
+  return Boolean(cid)
 }
