@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>B站问号榜 ❓ - 排行榜</title>
+    <link rel="stylesheet" href="leaderboard.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="background-mesh"></div>
+
+    <div class="container">
+        <header>
+            <div class="logo-section">
+                <img src="icons/icon128.png" class="logo-img" alt="B站问号榜">
+                <h1>B站 <span class="highlight">问号榜</span></h1>
+                <button id="theme-toggle" class="theme-toggle-btn" title="切换深色/浅色模式">🌓</button>
+            </div>
+            <nav class="time-range-tabs">
+                <button class="tab-btn active" data-range="realtime">实时</button>
+                <button class="tab-btn" data-range="daily">日榜</button>
+                <button class="tab-btn" data-range="weekly">周榜</button>
+                <button class="tab-btn" data-range="monthly">月榜</button>
+            </nav>
+        </header>
+
+        <main id="leaderboard-grid" class="leaderboard-grid">
+            <!-- Items will be injected here -->
+            <div class="loading-state">
+                <div class="spinner"></div>
+                <p>正在获取最新抽象榜数据...</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast/Notification container -->
+    <div id="toast-container"></div>
+
+    <script src="platform.js"></script>
+    <script src="leaderboard.js"></script>
+</body>
+
+</html>

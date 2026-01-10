@@ -12,6 +12,25 @@ function getExtensionUrl(path) {
 
 
 document.addEventListener('DOMContentLoaded', () => {
+
+
+    browserStorage.sync.get(['theme'], (result) => {
+        if (result.theme === 'dark') {
+            document.body.classList.add('dark-mode');
+        }
+    });
+
+
+    browserStorage.onChanged.addListener((changes, areaName) => {
+        if (areaName === 'sync' && changes.theme) {
+            if (changes.theme.newValue === 'dark') {
+                document.body.classList.add('dark-mode');
+            } else {
+                document.body.classList.remove('dark-mode');
+            }
+        }
+    });
+
     const leaderboard = document.getElementById('leaderboard');
     const settingsPanel = document.getElementById('settings');
     const tabs = document.querySelectorAll('.tab-btn');
@@ -26,6 +45,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const pageBtn = document.getElementById('page-btn');
     if (pageBtn) {
         pageBtn.addEventListener('click', openPageWithRange);
+    }
+
+    const fullLeaderboardBtn = document.getElementById('full-leaderboard-btn');
+    if (fullLeaderboardBtn) {
+        fullLeaderboardBtn.addEventListener('click', () => {
+            const activeTab = document.querySelector('.tab-btn.active');
+            const range = activeTab?.dataset?.range || 'realtime';
+            if (typeof chrome !== 'undefined' && chrome.tabs && chrome.tabs.create) {
+                chrome.tabs.create({ url: `leaderboard.html?range=${range}` });
+            } else if (typeof browser !== 'undefined' && browser.tabs && browser.tabs.create) {
+                browser.tabs.create({ url: `leaderboard.html?range=${range}` });
+            } else {
+                window.open(`leaderboard.html?range=${range}`, '_blank');
+            }
+        });
+    }
+
+    // 主题切换
+    const themeBtn = document.getElementById('theme-btn');
+    if (themeBtn) {
+        themeBtn.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            browserStorage.sync.set({ theme: isDark ? 'dark' : 'light' });
+        });
     }
 
     // 加载排行榜
@@ -62,28 +106,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function renderList(list){
+    async function renderList(list) {
         leaderboard.innerHTML = '';
         await Promise.all(list.map(async (item, index) => {
-                try {
-                    let cache={};
-                    const conn = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${item.bvid}`);
-                    const json = await conn.json();
-                    if (json.code === 0 && json.data?.title) {
-                        cache.title = json.data.title;
-                    } else {
-                        cache.title = '未知标题';
-                    }
-                    cache.bvid=item.bvid;
-                    cache.count=item.count;
-                    renderEntry(cache,index+1)
-                } catch (err) {
-                    console.error(`获取标题失败 ${item.bvid}:`, err);
-                    cache.title = '加载失败';
+            try {
+                let cache = {};
+                const conn = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${item.bvid}`);
+                const json = await conn.json();
+                if (json.code === 0 && json.data?.title) {
+                    cache.title = json.data.title;
+                } else {
+                    cache.title = '未知标题';
                 }
-            }));
+                cache.bvid = item.bvid;
+                cache.count = item.count;
+                renderEntry(cache, index + 1)
+            } catch (err) {
+                console.error(`获取标题失败 ${item.bvid}:`, err);
+                cache.title = '加载失败';
+            }
+        }));
     }
-    function renderEntry(item,index) {
+    function renderEntry(item, index) {
         const div = document.createElement('div');
         div.className = 'item';
         div.innerHTML = `
@@ -102,7 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (nextItem) {
             nextItem.before(div);
         } else {
-        leaderboard.appendChild(div);
+            leaderboard.appendChild(div);
         }
     }
 
