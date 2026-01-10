@@ -18,10 +18,36 @@ header {
     padding-bottom: 10px;
 }
 
+.header-top {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 40px;
+    margin-bottom: 5px;
+}
+
 h1 {
     font-size: 18px;
     color: #18191c;
-    margin: 10px 0;
+    margin: 0;
+}
+
+.settings-btn {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 4px;
+    font-size: 18px;
+    transition: background-color 0.2s, transform 0.2s;
+}
+
+.settings-btn:hover {
+    background-color: #e3e5e7;
+    transform: translateY(-50%) rotate(30deg);
 }
 
 .tabs {
@@ -59,7 +85,7 @@ h1 {
     background: #fff;
     border-radius: 8px;
     margin-bottom: 8px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .rank {
@@ -69,9 +95,17 @@ h1 {
     width: 30px;
 }
 
-.item:nth-child(1) .rank { color: #fe2c55; }
-.item:nth-child(2) .rank { color: #ff9500; }
-.item:nth-child(3) .rank { color: #ffcc00; }
+.item:nth-child(1) .rank {
+    color: #fe2c55;
+}
+
+.item:nth-child(2) .rank {
+    color: #ff9500;
+}
+
+.item:nth-child(3) .rank {
+    color: #ffcc00;
+}
 
 .info {
     flex: 1;
@@ -103,4 +137,89 @@ h1 {
     text-align: center;
     padding: 20px;
     color: #9499a0;
+}
+
+/* 设置面板样式 */
+.content-panel {
+    margin-top: 15px;
+}
+
+.settings-section {
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.settings-section h3 {
+    font-size: 16px;
+    color: #18191c;
+    margin: 0 0 8px 0;
+}
+
+.settings-desc {
+    font-size: 13px;
+    color: #9499a0;
+    margin: 0 0 20px 0;
+}
+
+.radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.radio-item {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 10px;
+    border-radius: 6px;
+    transition: background-color 0.2s;
+}
+
+.radio-item:hover {
+    background-color: #f4f5f7;
+}
+
+.radio-item input[type="radio"] {
+    margin: 0 10px 0 0;
+    cursor: pointer;
+    accent-color: #00aeec;
+}
+
+.radio-item span {
+    font-size: 14px;
+    color: #18191c;
+    user-select: none;
+}
+
+.save-btn {
+    width: 100%;
+    padding: 10px;
+    background: #00aeec;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.save-btn:hover {
+    background: #00a1d6;
+}
+
+.save-btn:active {
+    background: #0090c0;
+}
+
+.save-status {
+    text-align: center;
+    margin-top: 12px;
+    font-size: 13px;
+    color: #00aeec;
+    opacity: 0;
+    transition: opacity 0.3s;
 }

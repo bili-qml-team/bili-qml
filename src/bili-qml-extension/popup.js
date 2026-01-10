@@ -33,18 +33,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(`${API_BASE}/leaderboard?range=${range}&type=2`);
             const data = await response.json();
             await Promise.all(data.list.map(async (item, index) => {
-            try {
-                const conn = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${item.bvid}`);
-                const json = await conn.json();
-                if (json.code === 0 && json.data?.title) {
-                    data.list[index].title = json.data.title;
-                } else {
-                    data.list[index].title = '未知标题';
+                try {
+                    const conn = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${item.bvid}`);
+                    const json = await conn.json();
+                    if (json.code === 0 && json.data?.title) {
+                        data.list[index].title = json.data.title;
+                    } else {
+                        data.list[index].title = '未知标题';
+                    }
+                } catch (err) {
+                    console.error(`获取标题失败 ${item.bvid}:`, err);
+                    data.list[index].title = '加载失败';
                 }
-            } catch (err) {
-                console.error(`获取标题失败 ${item.bvid}:`, err);
-                data.list[index].title = '加载失败';
-            }
             }));
             if (data.success && data.list.length > 0) {
                 renderList(data.list);
@@ -145,10 +145,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (panelType === 'settings') {
             leaderboard.style.display = 'none';
             settingsPanel.style.display = 'block';
+            document.querySelector('.tabs').style.display = 'none'; // 隐藏排行榜Tab
             loadSettings();
         } else {
             leaderboard.style.display = 'block';
             settingsPanel.style.display = 'none';
+            document.querySelector('.tabs').style.display = 'flex'; // 显示排行榜Tab
         }
     }
 
@@ -162,19 +164,34 @@ document.addEventListener('DOMContentLoaded', () => {
             tabs.forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
 
-            if (tab.dataset.type === 'settings') {
-                switchPanel('settings');
-            } else {
-                switchPanel('leaderboard');
-                fetchLeaderboard(tab.dataset.range);
-            }
+            switchPanel('leaderboard');
+            fetchLeaderboard(tab.dataset.range);
         });
     });
+
+    // 齿轮图标点击事件
+    const settingsBtn = document.getElementById('settings-btn');
+    if (settingsBtn) {
+        settingsBtn.addEventListener('click', () => {
+            // 如果当前在设置页，则返回排行榜（toggle效果）
+            if (settingsPanel.style.display === 'block') {
+                switchPanel('leaderboard');
+            } else {
+                switchPanel('settings');
+            }
+        });
+    }
 
     // 保存设置按钮
     const saveBtn = document.getElementById('save-settings');
     if (saveBtn) {
-        saveBtn.addEventListener('click', saveSettings);
+        saveBtn.addEventListener('click', async () => {
+            await saveSettings();
+            // 保存后自动返回
+            setTimeout(() => {
+                switchPanel('leaderboard');
+            }, 500);
+        });
     }
 
     // 默认加载日榜
