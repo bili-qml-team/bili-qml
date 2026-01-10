@@ -197,7 +197,6 @@
             user-select: none;
         }
 
-
         #bili-qmr-btn:hover {
             color: #00aeec;
         }
@@ -209,15 +208,6 @@
         .qmr-icon-wrap {
             display: flex;
             align-items: center;
-        }
-        
-        /* 绝对定位模式 */
-        #bili-qmr-btn {
-            position: absolute;
-            z-index: 1000;
-            left: -9999px;
-            top: 0;
-            background: transparent; /* 防止遮挡 */
         }
 
         .qmr-icon {
@@ -866,42 +856,8 @@
                     <span class="qmr-text">...</span>`;
                 qBtn.appendChild(qBtnInner);
 
-
-                // 关键：挂载到 body
-                // toolbarLeft.style.position = 'relative';
-                document.body.appendChild(qBtn);
-
-                // 定位同步函数
-                const syncPos = () => {
-                    const sBtn = document.querySelector('.video-toolbar-left-item.share') ||
-                        document.querySelector('.video-share') ||
-                        document.querySelector('.share-info');
-                    if (!qBtn || !sBtn) return;
-
-                    const sRect = sBtn.getBoundingClientRect();
-                    const scrollX = window.scrollX || window.pageXOffset;
-                    const scrollY = window.scrollY || window.pageYOffset;
-
-                    // 计算绝对位置：分享按钮右侧 + 12px 间距
-                    qBtn.style.left = (sRect.right + 12 + scrollX) + 'px';
-                    qBtn.style.top = (sRect.top + (sRect.height - 28) / 2 + scrollY) + 'px';
-                };
-
-                // 立即同步并开启监听
-                syncPos();
-                const posTimer = setInterval(syncPos, 1000); // 兜底同步
-
-                // 使用 requestAnimationFrame 进行高频同步
-                let rafId;
-                const outputLoop = () => {
-                    syncPos();
-                    rafId = requestAnimationFrame(outputLoop);
-                };
-                outputLoop();
-
-                window.addEventListener('resize', syncPos);
-                document.addEventListener('scroll', syncPos, { passive: true });
-                document.addEventListener('fullscreenchange', () => setTimeout(syncPos, 200));
+                toolbarLeft.style.position = 'relative';
+                toolbarLeft.appendChild(qBtn);
 
                 // 阻止悬停事件冒泡
                 ['mouseenter', 'mouseover'].forEach(type => {

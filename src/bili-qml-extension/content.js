@@ -271,83 +271,82 @@ function showDanmakuConfirmDialog() {
 }
 
 // 注入 B 站风格的 CSS
-// 注入 B 站风格的 CSS
-const style = document.createElement('style');
-style.innerHTML = `
-    /* 问号键样式 */
-    #bili-qmr-btn {
-        position: absolute;
-        display: flex;
-        align-items: center;
-        width: 92px;
-        height: 28px;
-        white-space: nowrap;
-        font-size: 13px;
-        color: #61666d;
-        font-weight: 500;
-        cursor: pointer;
-        user-select: none;
-        transition: color .3s, opacity .3s;
-        z-index: 1000;
-        pointer-events: auto;
-        /* 默认定位：先放在一个安全的位置，后续靠 JS 微调 */
-        left: -9999px; 
-        top: 0;
-    }
-    #bili-qmr-btn .qmr-icon-wrap {
-        display: flex;
-        align-items: center;
-        width: 100%;
-        height: 100%;
-        transition: color .3s;
-    }
-    #bili-qmr-btn .qmr-icon-img {
-        width: 20px;
-        height: 20px;
-        margin-right: 6px;
-        transition: transform 0.3s, filter 0.3s;
-        display: block;
-        object-fit: contain;
-    }
-    /* 未点亮且未悬停时：灰色 */
-    #bili-qmr-btn:not(.voted) .qmr-icon-img {
-        filter: grayscale(1) opacity(0.6);
-    }
-    /* 悬停或已点亮时：变蓝色 */
-    /* 技巧：通过 drop-shadow 创建一个偏移的蓝色投影，并隐藏原图 */
-    #bili-qmr-btn:hover .qmr-icon-img,
-    #bili-qmr-btn.voted .qmr-icon-img {
-        filter: drop-shadow(0 0 0 #00aeec);
-    }
-    #bili-qmr-btn .qmr-text {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        word-break: break-word;
-        white-space: nowrap;
-    }
-    /* 悬停与点亮状态 */
-    #bili-qmr-btn:hover, #bili-qmr-btn.voted {
-        color: #00aeec !important; /* 对应 var(--brand_blue) */
-    }
-    #bili-qmr-btn:hover .qmr-icon-img {
-        transform: scale(0.85);
-    }
-    #bili-qmr-btn:active .qmr-icon-img {
-        transform: scale(0.7);
-    }
-    /* 大屏适配 (min-width: 1681px) */
-    @media (min-width: 1681px) {
-        #bili-qmr-btn {
-            width: 100px;
-            font-size: 14px;
-        }
-        #bili-qmr-btn .qmr-icon-img {
-            width: 24px;
-            height: 24px;
-        }
-    }
-`;
-document.head.appendChild(style);
+// const style = document.createElement('style');
+// style.innerHTML = `
+//     /* 问号键样式 */
+//     #bili-qmr-btn {
+//         position: absolute;
+//         display: flex;
+//         align-items: center;
+//         width: 92px;
+//         height: 28px;
+//         white-space: nowrap;
+//         font-size: 13px;
+//         color: #61666d;
+//         font-weight: 500;
+//         cursor: pointer;
+//         user-select: none;
+//         transition: color .3s, opacity .3s;
+//         z-index: 10;
+//         pointer-events: auto;
+//         /* 默认定位：先放在一个安全的位置，后续靠 JS 微调 */
+//         right: -100px; 
+//         top: 0;
+//     }
+//     #bili-qmr-btn .qmr-icon-wrap {
+//         display: flex;
+//         align-items: center;
+//         width: 100%;
+//         height: 100%;
+//         transition: color .3s;
+//     }
+//     #bili-qmr-btn .qmr-icon-img {
+//         width: 20px;
+//         height: 20px;
+//         margin-right: 6px;
+//         transition: transform 0.3s, filter 0.3s;
+//         display: block;
+//         object-fit: contain;
+//     }
+//     /* 未点亮且未悬停时：灰色 */
+//     #bili-qmr-btn:not(.voted) .qmr-icon-img {
+//         filter: grayscale(1) opacity(0.6);
+//     }
+//     /* 悬停或已点亮时：变蓝色 */
+//     /* 技巧：通过 drop-shadow 创建一个偏移的蓝色投影，并隐藏原图 */
+//     #bili-qmr-btn:hover .qmr-icon-img,
+//     #bili-qmr-btn.voted .qmr-icon-img {
+//         filter: drop-shadow(0 0 0 #00aeec);
+//     }
+//     #bili-qmr-btn .qmr-text {
+//         overflow: hidden;
+//         text-overflow: ellipsis;
+//         word-break: break-word;
+//         white-space: nowrap;
+//     }
+//     /* 悬停与点亮状态 */
+//     #bili-qmr-btn:hover, #bili-qmr-btn.voted {
+//         color: #00aeec !important; /* 对应 var(--brand_blue) */
+//     }
+//     #bili-qmr-btn:hover .qmr-icon-img {
+//         transform: scale(0.85);
+//     }
+//     #bili-qmr-btn:active .qmr-icon-img {
+//         transform: scale(0.7);
+//     }
+//     /* 大屏适配 (min-width: 1681px) */
+//     @media (min-width: 1681px) {
+//         #bili-qmr-btn {
+//             width: 100px;
+//             font-size: 14px;
+//         }
+//         #bili-qmr-btn .qmr-icon-img {
+//             width: 24px;
+//             height: 24px;
+//         }
+//     }
+// `;
+// document.head.appendChild(style);
 
 // 获取用户 ID (直接绑定 B 站 DedeUserID)
 function getUserId() {
@@ -525,48 +524,30 @@ async function injectQuestionButton() {
             qBtnInner.innerHTML = `<svg version="1.1" id="Layer_1" class="video-share-icon video-toolbar-item-icon" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="24" height="20" viewBox="0 0 28 28" preserveAspectRatio="xMidYMid meet"> <path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M 5.419 0.414 L 4.888 1.302 L 4.888 2.782 L 5.366 3.611 L 6.588 4.736 L 3.825 4.795 L 2.444 5.209 L 0.85 6.63 L 0 8.584 L 0 23.915 L 0.584 25.632 L 1.275 26.638 L 3.241 27.941 L 24.706 27.941 L 26.353 26.934 L 27.362 25.573 L 27.841 24.152 L 27.841 8.939 L 27.097 6.985 L 25.662 5.505 L 24.175 4.913 L 21.252 4.795 L 22.953 2.723 L 23.006 1.776 L 22.634 0.888 L 21.731 0.118 L 20.615 0 L 19.605 0.651 L 15.408 4.795 L 12.486 4.854 L 7.598 0.178 L 6.004 0 Z M 4.038 9.649 L 4.569 9.057 L 5.154 8.761 L 22.421 8.761 L 23.271 9.057 L 23.962 9.708 L 24.281 10.478 L 24.228 21.666 L 24.015 22.85 L 23.431 23.619 L 22.687 24.034 L 5.419 24.034 L 4.782 23.738 L 4.091 23.027 L 3.772 22.199 L 3.772 10.241 Z M 8.288 11.188 L 7.651 11.425 L 7.173 11.721 L 6.641 12.254 L 6.216 12.964 L 6.163 13.26 L 6.057 13.438 L 6.057 13.793 L 5.951 14.266 L 6.163 14.503 L 7.81 14.503 L 7.917 14.266 L 7.917 13.911 L 8.076 13.497 L 8.554 12.964 L 8.82 12.846 L 9.404 12.846 L 9.723 12.964 L 10.042 13.201 L 10.201 13.438 L 10.361 13.911 L 10.307 14.503 L 9.935 15.095 L 8.979 15.865 L 8.501 16.457 L 8.235 17.108 L 8.182 17.7 L 8.129 17.759 L 8.129 18.351 L 8.235 18.469 L 9.935 18.469 L 9.935 17.937 L 10.201 17.285 L 10.679 16.753 L 11.211 16.338 L 11.795 15.687 L 12.167 15.036 L 12.326 14.148 L 12.22 13.142 L 11.848 12.372 L 11.423 11.899 L 10.732 11.425 L 10.042 11.188 L 9.564 11.188 L 9.51 11.129 Z M 17.958 11.188 L 17.002 11.603 L 16.63 11.899 L 16.205 12.372 L 15.833 13.082 L 15.674 13.615 L 15.62 14.326 L 15.727 14.444 L 15.992 14.503 L 17.427 14.503 L 17.533 14.385 L 17.586 13.793 L 17.746 13.438 L 18.118 13.023 L 18.49 12.846 L 19.074 12.846 L 19.605 13.142 L 19.871 13.497 L 19.977 13.793 L 19.977 14.385 L 19.871 14.681 L 19.446 15.214 L 18.702 15.805 L 18.224 16.338 L 17.905 17.049 L 17.852 17.641 L 17.799 17.7 L 17.799 18.41 L 17.852 18.469 L 19.552 18.469 L 19.605 18.41 L 19.605 17.877 L 19.712 17.522 L 19.924 17.167 L 20.296 16.753 L 21.093 16.101 L 21.465 15.687 L 21.784 15.095 L 21.996 14.148 L 21.89 13.201 L 21.677 12.668 L 21.412 12.254 L 21.093 11.899 L 20.243 11.366 L 19.712 11.188 L 19.233 11.188 L 19.18 11.129 Z M 9.032 19.18 L 8.979 19.239 L 8.767 19.239 L 8.713 19.298 L 8.66 19.298 L 8.607 19.357 L 8.501 19.357 L 8.129 19.772 L 8.129 19.831 L 8.076 19.89 L 8.076 19.949 L 8.023 20.008 L 8.023 20.186 L 7.97 20.245 L 7.97 20.6 L 8.023 20.66 L 8.023 20.837 L 8.076 20.896 L 8.076 20.956 L 8.129 21.015 L 8.129 21.074 L 8.448 21.429 L 8.501 21.429 L 8.554 21.488 L 8.607 21.488 L 8.66 21.548 L 8.82 21.548 L 8.873 21.607 L 9.298 21.607 L 9.351 21.548 L 9.457 21.548 L 9.51 21.488 L 9.564 21.488 L 9.617 21.429 L 9.67 21.429 L 10.042 21.015 L 10.042 20.956 L 10.095 20.896 L 10.095 20.778 L 10.148 20.719 L 10.148 20.186 L 10.095 20.127 L 10.095 19.949 L 10.042 19.89 L 10.042 19.831 L 9.935 19.712 L 9.935 19.653 L 9.723 19.416 L 9.67 19.416 L 9.617 19.357 L 9.564 19.357 L 9.51 19.298 L 9.404 19.298 L 9.351 19.239 L 9.192 19.239 L 9.139 19.18 Z M 18.436 19.239 L 18.383 19.298 L 18.277 19.298 L 18.224 19.357 L 18.171 19.357 L 18.118 19.416 L 18.065 19.416 L 17.852 19.653 L 17.852 19.712 L 17.746 19.831 L 17.746 19.89 L 17.693 19.949 L 17.693 20.008 L 17.639 20.068 L 17.639 20.719 L 17.693 20.778 L 17.693 20.896 L 17.746 20.956 L 17.746 21.015 L 18.118 21.429 L 18.171 21.429 L 18.224 21.488 L 18.277 21.488 L 18.33 21.548 L 18.436 21.548 L 18.49 21.607 L 18.915 21.607 L 18.968 21.548 L 19.074 21.548 L 19.127 21.488 L 19.18 21.488 L 19.233 21.429 L 19.287 21.429 L 19.393 21.311 L 19.446 21.311 L 19.446 21.252 L 19.499 21.192 L 19.552 21.192 L 19.552 21.133 L 19.712 20.956 L 19.712 20.837 L 19.765 20.778 L 19.765 20.719 L 19.818 20.66 L 19.818 20.186 L 19.765 20.127 L 19.765 20.008 L 19.712 19.949 L 19.712 19.89 L 19.658 19.831 L 19.658 19.772 L 19.34 19.416 L 19.287 19.416 L 19.18 19.298 L 19.074 19.298 L 19.021 19.239 Z"/></svg><span class="qmr-text">...</span>`;
             qBtn.appendChild(qBtnInner);
 
+            // 关键：挂载到 toolbarLeft，确保它和分享按钮是“远房亲戚”，互不干扰悬停
+            toolbarLeft.style.position = 'relative'; // 确保父容器有定位基准
+            toolbarLeft.appendChild(qBtn);
 
-            // 关键：挂载到 body，完全脱离 React 组件树
-            // toolbarLeft.style.position = 'relative'; // 不再需要修改父容器
-            document.body.appendChild(qBtn);
+            // // 定位同步函数
+            // const syncPos = () => {
+            //     if (!qBtn || !shareBtn || !toolbarLeft) return;
+            //     const sRect = shareBtn.getBoundingClientRect();
+            //     const pRect = toolbarLeft.getBoundingClientRect();
+            //     // 计算相对于 toolbarLeft 的偏移量
+            //     qBtn.style.left = (sRect.right - pRect.left + 12) + 'px';
+            //     qBtn.style.top = (sRect.top - pRect.top + (sRect.height - 28) / 2) + 'px';
+            // };
 
-            // 定位同步函数
-            const syncPos = () => {
-                const sBtn = document.querySelector('.video-toolbar-left-item.share') ||
-                    document.querySelector('.video-share') ||
-                    document.querySelector('.share-info');
-                if (!qBtn || !sBtn) return;
-
-                const sRect = sBtn.getBoundingClientRect();
-                const scrollX = window.scrollX || window.pageXOffset;
-                const scrollY = window.scrollY || window.pageYOffset;
-
-                // 计算绝对位置：分享按钮右侧 + 12px 间距
-                // 注意：getBoundingClientRect 是相对于视口的，所以要加上 scrollXY 变成文档坐标
-                qBtn.style.left = (sRect.right + 12 + scrollX) + 'px';
-                qBtn.style.top = (sRect.top + (sRect.height - 28) / 2 + scrollY) + 'px';
-            };
-
-            // 立即同步并开启监听
-            syncPos();
-            const posTimer = setInterval(syncPos, 1000); // 兜底同步
-
-            // 使用 requestAnimationFrame 进行高频同步，确保平滑跟随
-            let rafId;
-            const outputLoop = () => {
-                syncPos();
-                rafId = requestAnimationFrame(outputLoop);
-            };
-            outputLoop();
-
-            window.addEventListener('resize', syncPos);
-            document.addEventListener('scroll', syncPos, { passive: true });
-            document.addEventListener('fullscreenchange', () => setTimeout(syncPos, 200));
+            // // 立即同步并开启监听
+            // syncPos();
+            // const posTimer = setInterval(syncPos, 500); // 较低频率的兜底同步
+            // window.addEventListener('resize', syncPos);
+            // document.addEventListener('fullscreenchange', () => setTimeout(syncPos, 200));
 
             // 拦截悬停事件，双重保险
-            ['mouseenter', 'mouseover'].forEach(type => {
-                qBtn.addEventListener(type, (e) => e.stopPropagation());
-            });
+            // ['mouseenter', 'mouseover'].forEach(type => {
+            //     qBtn.addEventListener(type, (e) => e.stopPropagation());
+            // });
 
             qBtn.onclick = async (e) => {
                 e.preventDefault();
