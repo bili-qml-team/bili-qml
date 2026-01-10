@@ -789,13 +789,53 @@ async function tryInject() {
         console.error('[B站问号榜] 注入失败:', e);
     }
 }
+function waitForVueMount(callback) {
+  if (window.Vue || document.querySelector('#app')?.__vue__) {
+    callback();
+  } else {
+    setTimeout(() => waitForVueMount(callback), 100);
+  }
+}
+function waitFor(selector, ms = undefined) {
+    return new Promise((resolve, reject) => {
+        const target = document.querySelector(selector);
+        if (target) {
+            resolve(target);
+            return;
+        }
 
+        const observer = new MutationObserver(() => {
+            const element = document.querySelector(selector);
+            if (element) {
+                observer.disconnect();
+                resolve(element);
+            }
+        });
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+
+        if (ms) {
+            const timeoutId = setTimeout(() => {
+                observer.disconnect();
+                reject(new Error(`Element not found: "${selector}" within ${ms}ms`));
+            }, ms);
+
+            // 清理：如果元素提前找到了，清除定时器
+            const originalResolve = resolve;
+            resolve = (value) => {
+                clearTimeout(timeoutId);
+                originalResolve(value);
+            };
+        }
+    });
+}
 // Main Entry Point
 initApiBase().then(() => {
     // 初始加载：等待 DOM 稳定
-    observeDomStabilization(() => {
-        tryInject();
-    });
+    waitFor('svg[xmlns="http://www.w3.org/2000/svg"].view-icon').then(()=>{setTimeout(()=>{tryInject();},50);});
 
     // 处理 SPA 软导航 (URL 变化)
     let lastUrl = location.href;
