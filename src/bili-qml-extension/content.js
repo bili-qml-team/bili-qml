@@ -727,43 +727,6 @@ async function injectQuestionButton() {
     }
 }
 
-
-
-
-function observeDomStabilization(callback, { delay = 1500, maxWait = 20000 } = {}) {
-    let debounceTimeout;
-    let maxWaitTimeout;
-    let disconnected = false;
-
-    const observer = new MutationObserver(() => {
-        clearTimeout(debounceTimeout);
-        if (!disconnected) {
-            debounceTimeout = setTimeout(done, delay);
-        }
-    });
-
-    const done = () => {
-        if (disconnected) return;
-        disconnected = true;
-        observer.disconnect();
-        clearTimeout(maxWaitTimeout);
-        callback();
-    };
-
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true,
-        attributes: false
-    });
-
-    maxWaitTimeout = setTimeout(() => {
-        console.log('[B站问号榜] 最长等待时间到了，强制注入');
-        done();
-    }, maxWait);
-
-    debounceTimeout = setTimeout(done, delay);
-}
-
 // 核心注入逻辑
 async function tryInject() {
     // 再次检查 BVID
@@ -788,13 +751,6 @@ async function tryInject() {
     } catch (e) {
         console.error('[B站问号榜] 注入失败:', e);
     }
-}
-function waitForVueMount(callback) {
-  if (window.Vue || document.querySelector('#app')?.__vue__) {
-    callback();
-  } else {
-    setTimeout(() => waitForVueMount(callback), 100);
-  }
 }
 function waitFor(selector, ms = undefined) {
     return new Promise((resolve, reject) => {
@@ -835,7 +791,7 @@ function waitFor(selector, ms = undefined) {
 // Main Entry Point
 initApiBase().then(() => {
     // 初始加载：等待 DOM 稳定
-    waitFor('svg[xmlns="http://www.w3.org/2000/svg"].view-icon').then(()=>{setTimeout(()=>{tryInject();},50);});
+    waitFor('svg[xmlns="http://www.w3.org/2000/svg"].view-icon').then(()=>{setTimeout(()=>{tryInject();},100);});
 
     // 处理 SPA 软导航 (URL 变化)
     let lastUrl = location.href;
@@ -843,9 +799,7 @@ initApiBase().then(() => {
         if (location.href !== lastUrl) {
             lastUrl = location.href;
             // URL 变化后，重新等待稳定再注入
-            observeDomStabilization(() => {
-                tryInject();
-            }, { delay: 500 });
+            syncButtonState();
         } else {
             // 简单的保底检查：如果当前应该是视频页但按钮丢了
             if (getBvid() && !document.getElementById('bili-qmr-btn')) {
