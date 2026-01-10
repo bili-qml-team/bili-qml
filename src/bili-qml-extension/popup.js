@@ -1,5 +1,7 @@
 // popup.js
-const API_BASE = 'https://www.bili-qml.top/api';
+const API_BASE = 'https://bili-qml.bydfk.com/api';
+// for debug
+// const API_BASE = 'http://localhost:3000/api'
 const STORAGE_KEY_DANMAKU_PREF = 'danmakuPreference';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -11,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchLeaderboard(range = 'realtime') {
         leaderboard.innerHTML = '<div class="loading">加载中...</div>';
         try {
-            const response = await fetch(`${API_BASE}/leaderboard?range=${range}`);
+            const response = await fetch(`${API_BASE}/leaderboard?range=${range}&type=2`);
             const data = await response.json();
             await Promise.all(data.list.map(async (item, index) => {
             try {
