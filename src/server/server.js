@@ -6,7 +6,7 @@ const { createChallenge, verifySolution } = require('altcha-lib');
 
 const app = express();
 
-const TIMESTAMP_EXPIRE_MS = Number(process.env.TIMESTAMP_EXPIRE_MS) || 30 * 24 * 3600 * 1000; //排行榜总数据过期时间
+const TIMESTAMP_EXPIRE_MS = Number(process.env.TIMESTAMP_EXPIRE_MS) || 180 * 24 * 3600 * 1000; //排行榜总数据过期时间
 const CACHE_EXPIRE_MS = Number(process.env.CACHE_EXPIRE_MS) || 300 * 1000; // 排行榜cache过期时间
 const leaderboardTimeInterval = [12 * 3600 * 1000, 24 * 3600 * 1000, 7 * 24 * 3600 * 1000, 30 * 24 * 3600 * 1000]; //排行榜相差时间
 
@@ -44,9 +44,11 @@ async function resetRateLimit(key) {
 async function getLeaderBoardFromTime(periodMs = 24 * 3600 * 1000, limit = 30) {
     const now = Date.now();
     const minTime = now - periodMs;
-    await redis.zremrangebyscore('votes:recent', '-inf', now - TIMESTAMP_EXPIRE_MS - 1);
-    const recentVotes = await redis.zrangebyscore('votes:recent', minTime, now, "LIMIT", 0, limit);
     const counts = {};
+    const [_, recentVotes] = await Promise.all([
+        redis.zremrangebyscore('votes:recent', '-inf', now - TIMESTAMP_EXPIRE_MS - 1),
+        redis.zrangebyscore('votes:recent', minTime, now, "LIMIT", 0, limit)
+    ]);
     for (const member of recentVotes) {
         const bvid = member.split(':')[0];  // 从 `${bvid}:${userId}` 提取
         counts[bvid] = (counts[bvid] || 0) + 1;
@@ -172,7 +174,7 @@ app.get(['/api/altcha/challenge', '/altcha/challenge'], async (req, res) => {
 // 处理投票
 app.post(['/api/vote', '/vote'], async (req, res) => {
     try {
-        const { bvid, title, userId, altcha } = req.body;
+        const { bvid, userId, altcha } = req.body;
 
         // 1. 基础参数校验
         if (!bvid || !userId) return res.status(400).json({ success: false, error: 'Missing params' });
@@ -200,10 +202,13 @@ app.post(['/api/vote', '/vote'], async (req, res) => {
         const voted = await redis.sadd(`voted:${bvid}`, userId);
         if (voted === 0) return res.status(400).json({ success: false, error: 'Already Voted' });
         // 总票统计
-        await redis.hincrby(`video:${bvid}`, 'votesTotal', 1);
+        
         // 排行榜时间戳记录
         const now = Date.now();
-        await redis.zadd('votes:recent', now, `${bvid}:${userId}`);
+        await Promise.all([
+            redis.hincrby(`video:${bvid}`, 'votesTotal', 1),
+            redis.zadd('votes:recent', now, `${bvid}:${userId}`)
+        ]);
         res.json({ success: true, active: true });
     } catch (error) {
         console.error('Vote Error:', error);
@@ -237,9 +242,11 @@ app.post(['/api/unvote', '/unvote'], async (req, res) => {
         const isMember = await redis.sismember(`voted:${bvid}`, userId);
         if (!isMember) return res.status(400).json({ error: 'Not voted yet' });
         // 总票处理
-        await redis.srem(`voted:${bvid}`, userId);           // 删除投票记录
-        await redis.zrem('votes:recent', `${bvid}:${userId}`); // 删除排行榜记录
-        await redis.hincrby(`video:${bvid}`, 'votesTotal', -1);
+        await Promise.all([
+            redis.srem(`voted:${bvid}`, userId),           // 删除投票记录
+            redis.zrem('votes:recent', `${bvid}:${userId}`), // 删除排行榜记录
+            redis.hincrby(`video:${bvid}`, 'votesTotal', -1)
+        ]);
         res.json({ success: true, active: false });
     } catch (error) {
         console.error('Vote Error:', error);
@@ -251,8 +258,10 @@ app.post(['/api/unvote', '/unvote'], async (req, res) => {
 app.get(['/api/status', '/status'], async (req, res) => {
     const { bvid, userId } = req.query;
     try {
-        const isVoted = (await redis.sismember(`voted:${bvid}`, userId)) === 1 ? true : false;
-        const totalCount = await redis.hget(`video:${bvid}`, 'votesTotal');
+        const [isVoted, totalCount] = await Promise.all([
+            redis.sismember(`voted:${bvid}`, userId),
+            redis.hget(`video:${bvid}`, 'votesTotal')
+        ]);
         res.json({ success: true, active: !!isVoted, count: totalCount });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
