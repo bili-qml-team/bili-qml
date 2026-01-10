@@ -1,25 +1,29 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="UTF-8">
-    <link rel="stylesheet" href="popup.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>B站问号榜</title>
+    <link rel="stylesheet" href="page.css">
 </head>
+
 <body>
     <div class="container">
         <header>
             <h1>B站问号榜 ❓</h1>
             <div class="tabs">
-                <button class="tab-btn active" data-range="realtime">实时</button>
+                <button class="tab-btn" data-range="realtime">实时</button>
                 <button class="tab-btn" data-range="daily">日榜</button>
                 <button class="tab-btn" data-range="weekly">周榜</button>
                 <button class="tab-btn" data-range="monthly">月榜</button>
-                <button class="tab-btn" data-type="page">页面</button>
             </div>
         </header>
         <main id="leaderboard">
             <div class="loading">加载中...</div>
         </main>
     </div>
-    <script src="popup.js"></script>
+    <script src="page.js"></script>
 </body>
+
 </html>

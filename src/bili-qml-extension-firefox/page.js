@@ -1,33 +1,29 @@
-// popup.js
+// page.js
 const API_BASE = 'https://www.bili-qml.top/api';
+
+function getQueryRange() {
+    try {
+        const params = new URLSearchParams(location.search);
+        const range = params.get('range');
+        if (range === 'realtime' || range === 'daily' || range === 'weekly' || range === 'monthly') {
+            return range;
+        }
+    } catch {
+        // ignore
+    }
+    return 'realtime';
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     const leaderboard = document.getElementById('leaderboard');
     const tabs = document.querySelectorAll('.tab-btn');
-
-    function getExtensionUrl(path) {
-        if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL) {
-            return chrome.runtime.getURL(path);
-        }
-        if (typeof browser !== 'undefined' && browser.runtime && browser.runtime.getURL) {
-            return browser.runtime.getURL(path);
-        }
-        return path;
-    }
-
-    function openPageWithRange() {
-        const activeTab = document.querySelector('.tab-btn.active');
-        const range = activeTab?.dataset?.range || 'realtime';
-        const url = `${getExtensionUrl('page.html')}?range=${encodeURIComponent(range)}`;
-        window.open(url, '_blank');
-    }
 
     async function fetchLeaderboard(range = 'realtime') {
         leaderboard.innerHTML = '<div class="loading">加载中...</div>';
         try {
             const response = await fetch(`${API_BASE}/leaderboard?range=${range}`);
             const data = await response.json();
-            
+
             if (data.success && data.list.length > 0) {
                 renderList(data.list);
             } else {
@@ -55,18 +51,26 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    tabs.forEach(tab => {
+    function setActiveTab(range) {
+        tabs.forEach((tab) => {
+            tab.classList.toggle('active', tab.dataset.range === range);
+        });
+    }
+
+    tabs.forEach((tab) => {
         tab.addEventListener('click', () => {
-            if (tab.dataset.type === 'page') {
-                openPageWithRange();
-                return;
-            }
-            tabs.forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            fetchLeaderboard(tab.dataset.range);
+            const range = tab.dataset.range;
+            if (!range) return;
+            setActiveTab(range);
+            fetchLeaderboard(range);
+
+            const url = new URL(location.href);
+            url.searchParams.set('range', range);
+            history.replaceState(null, '', url.toString());
         });
     });
 
-    // 默认加载日榜
-    fetchLeaderboard();
+    const initialRange = getQueryRange();
+    setActiveTab(initialRange);
+    fetchLeaderboard(initialRange);
 });
