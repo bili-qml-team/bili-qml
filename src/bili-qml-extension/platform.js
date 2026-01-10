@@ -23,7 +23,6 @@ async function initApiBase() {
         if (result[STORAGE_KEY_API_ENDPOINT]) {
             API_BASE = result[STORAGE_KEY_API_ENDPOINT];
         }
-        resolve();
     });
 }
 
@@ -33,3 +32,4 @@ browserStorage.onChanged.addListener((changes, areaName) => {
         API_BASE = changes[STORAGE_KEY_API_ENDPOINT].newValue || DEFAULT_API_BASE;
     }
 });
+

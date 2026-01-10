@@ -1,11 +1,6 @@
 // popup.js
 
-document.addEventListener('DOMContentLoaded', () => {
-    const leaderboard = document.getElementById('leaderboard');
-    const settingsPanel = document.getElementById('settings');
-    const tabs = document.querySelectorAll('.tab-btn');
-
-    function getExtensionUrl(path) {
+function getExtensionUrl(path) {
         if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL) {
             return chrome.runtime.getURL(path);
         }
@@ -13,7 +8,13 @@ document.addEventListener('DOMContentLoaded', () => {
             return browser.runtime.getURL(path);
         }
         return path;
-    }
+}
+
+
+document.addEventListener('DOMContentLoaded', () => {
+    const leaderboard = document.getElementById('leaderboard');
+    const settingsPanel = document.getElementById('settings');
+    const tabs = document.querySelectorAll('.tab-btn');
 
     function openPageWithRange() {
         const activeTab = document.querySelector('.tab-btn.active');
@@ -143,7 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // 执行存储操作
             const doSave = () => {
                 if (Object.keys(updates).length > 0) {
-                    await browserStorage.sync.set(updates, () => {
+                    browserStorage.sync.set(updates, () => {
                         showSaveStatus('设置已保存');
                         resolve();
                     });
@@ -154,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             if (removals.length > 0) {
-                await browserStorage.sync.remove(removals, doSave);
+                browserStorage.sync.remove(removals, doSave);
             } else {
                 doSave();
             }
