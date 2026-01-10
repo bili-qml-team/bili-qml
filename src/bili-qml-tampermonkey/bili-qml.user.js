@@ -1556,7 +1556,7 @@
         });
     }
 
-    function observeDomStabilization(callback, { delay = 1500, maxWait = 20000 } = {}) {
+    function observeDomStabilization(callback, { delay = 2000, maxWait = 20000 } = {}) {
         let debounceTimeout;
         let maxWaitTimeout;
         let disconnected = false;
