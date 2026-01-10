@@ -228,7 +228,7 @@
             top: 80px;
             right: 20px;
             width: 350px;
-            max-height: 500px;
+            max-height: calc(100vh - 160px);
             background: #fff;
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
@@ -236,10 +236,12 @@
             font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
             display: none;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
 
         #bili-qmr-panel.show {
-            display: block;
+            display: flex;
             animation: qmr-fadeIn 0.2s ease-out;
         }
 
@@ -412,6 +414,8 @@
         #bili-qmr-panel .qmr-settings {
             padding: 20px;
             display: none;
+            overflow-y: auto;
+            flex: 1;
         }
 
         #bili-qmr-panel .qmr-settings.show {
