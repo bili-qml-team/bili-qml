@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const { Redis } = require('@upstash/redis');
+const { Redis } = require('ioredis');
 const { createChallenge, verifySolution } = require('altcha-lib');
 
 const app = express();
@@ -25,7 +25,7 @@ var leaderBoardCache = {
     expireTime: 0
 };
 
-const redis = Redis.fromEnv();
+const redis = new Redis(`redis://default:${process.env.UPSTASH_REDIS_REST_TOKEN}@${process.env.UPSTASH_REDIS_REST_URL}`);
 
 // 频率限制器：检查并增加计数
 async function checkRateLimit(key, maxRequests, windowSeconds) {
@@ -45,7 +45,7 @@ async function getLeaderBoardFromTime(periodMs = 24 * 3600 * 1000, limit = 50) {
     const now = Date.now();
     const minTime = now - periodMs;
     await redis.zremrangebyscore('votes:recent', '-inf', now - TIMESTAMP_EXPIRE_MS - 1);
-    const recentVotes = await redis.zrange('votes:recent', minTime, now, { byScore: true });
+    const recentVotes = await redis.zrangebyscore('votes:recent', minTime, now);
     const counts = {};
     for (const member of recentVotes) {
         const bvid = member.split(':')[0];  // 从 `${bvid}:${userId}` 提取
@@ -203,7 +203,7 @@ app.post(['/api/vote', '/vote'], async (req, res) => {
         await redis.hincrby(`video:${bvid}`, 'votesTotal', 1);
         // 排行榜时间戳记录
         const now = Date.now();
-        await redis.zadd('votes:recent', { score: now, member: `${bvid}:${userId}` });
+        await redis.zadd('votes:recent', now, `${bvid}:${userId}`);
         res.json({ success: true, active: true });
     } catch (error) {
         console.error('Vote Error:', error);

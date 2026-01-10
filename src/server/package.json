@@ -14,7 +14,7 @@
     "moment": "^2.29.4"
   },
   "scripts": {
-    "eo-deploy": "node tools/eo-deploy.js server-ioredis.js",
+    "eo-deploy": "node tools/eo-deploy.js server.js",
     "eo-dev": "node tools/eo-deploy.js server.js",
     "start": "node server.js"
   }

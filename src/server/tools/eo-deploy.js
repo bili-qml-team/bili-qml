@@ -3,8 +3,8 @@ const fs = require("fs");
 const path = require("path");
 
 const cwd = process.cwd();
-// Allow passing source filename as the first CLI argument (defaults to server-ioredis.js)
-const srcFile = process.argv[2] || "server-ioredis.js";
+// Allow passing source filename as the first CLI argument (defaults to server.js)
+const srcFile = process.argv[2] || "server.js";
 const src = path.join(cwd, srcFile);
 const destDir = path.join(cwd, "node-functions");
 const dest = path.join(destDir, "[[server]].js");
