@@ -240,7 +240,6 @@
             font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
             display: none;
             overflow: hidden;
-            display: flex;
             flex-direction: column;
         }
 
