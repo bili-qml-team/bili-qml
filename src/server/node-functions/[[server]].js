@@ -1,7 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const { Redis } = require('ioredis');
+const { Redis } = require('@upstash/redis');
+const { createChallenge, verifySolution } = require('altcha-lib');
 
 const app = express();
 
@@ -9,18 +10,42 @@ const TIMESTAMP_EXPIRE_MS = Number(process.env.TIMESTAMP_EXPIRE_MS) || 30 * 24 *
 const CACHE_EXPIRE_MS = Number(process.env.CACHE_EXPIRE_MS) || 300 * 1000; // 排行榜cache过期时间
 const leaderboardTimeInterval = [12 * 3600 * 1000, 24 * 3600 * 1000, 7 * 24 * 3600 * 1000, 30 * 24 * 3600 * 1000]; //排行榜相差时间
 
+// Altcha 配置
+const ALTCHA_HMAC_KEY = process.env.ALTCHA_HMAC_KEY || 'bili-qml-default-hmac-key-change-in-production';
+const ALTCHA_COMPLEXITY = Number(process.env.ALTCHA_COMPLEXITY) || 50000; // PoW 难度
+
+// 频率限制配置
+const RATE_LIMIT_VOTE_MAX = Number(process.env.RATE_LIMIT_VOTE_MAX) || 10; // 投票最大次数
+const RATE_LIMIT_VOTE_WINDOW = Number(process.env.RATE_LIMIT_VOTE_WINDOW) || 300; // 投票窗口（秒）
+const RATE_LIMIT_LEADERBOARD_MAX = Number(process.env.RATE_LIMIT_LEADERBOARD_MAX) || 20; // 排行榜最大次数
+const RATE_LIMIT_LEADERBOARD_WINDOW = Number(process.env.RATE_LIMIT_LEADERBOARD_WINDOW) || 300; // 排行榜窗口（秒）
+
 var leaderBoardCache = {
     caches: [],
     expireTime: 0
 };
 
-const redis = new Redis(`redis://default:${process.env.UPSTASH_REDIS_REST_TOKEN}@${process.env.UPSTASH_REDIS_REST_URL}`);
+const redis = Redis.fromEnv();
+
+// 频率限制器：检查并增加计数
+async function checkRateLimit(key, maxRequests, windowSeconds) {
+    const current = await redis.incr(key);
+    if (current === 1) {
+        await redis.expire(key, windowSeconds);
+    }
+    return current > maxRequests;
+}
+
+// 重置频率限制（CAPTCHA 验证通过后）
+async function resetRateLimit(key) {
+    await redis.del(key);
+}
 
 async function getLeaderBoardFromTime(periodMs = 24 * 3600 * 1000, limit = 50) {
     const now = Date.now();
     const minTime = now - periodMs;
     await redis.zremrangebyscore('votes:recent', '-inf', now - TIMESTAMP_EXPIRE_MS - 1);
-    const recentVotes = await redis.zrangebyscore('votes:recent', minTime, now);
+    const recentVotes = await redis.zrange('votes:recent', minTime, now, { byScore: true });
     const counts = {};
     for (const member of recentVotes) {
         const bvid = member.split(':')[0];  // 从 `${bvid}:${userId}` 提取
@@ -129,22 +154,57 @@ app.use((req, res, next) => {
     next();
 });
 
+// Altcha 挑战端点
+app.get(['/api/altcha/challenge', '/altcha/challenge'], async (req, res) => {
+    try {
+        const challenge = await createChallenge({
+            hmacKey: ALTCHA_HMAC_KEY,
+            maxNumber: ALTCHA_COMPLEXITY,
+            algorithm: 'SHA-256',
+        });
+        res.json(challenge);
+    } catch (error) {
+        console.error('Altcha Challenge Error:', error);
+        res.status(500).json({ success: false, error: 'Failed to create challenge' });
+    }
+});
+
 // 处理投票
 app.post(['/api/vote', '/vote'], async (req, res) => {
     try {
-        const { bvid, title, userId } = req.body;
+        const { bvid, title, userId, altcha } = req.body;
 
         // 1. 基础参数校验
         if (!bvid || !userId) return res.status(400).json({ success: false, error: 'Missing params' });
-        // 用户投票记录
+
+        const rateLimitKey = `ratelimit:vote:${userId}`;
+        const isRateLimited = await checkRateLimit(rateLimitKey, RATE_LIMIT_VOTE_MAX, RATE_LIMIT_VOTE_WINDOW);
+
+        // 2. 检查频率限制
+        if (isRateLimited) {
+            // 如果有 Altcha 解决方案，验证它
+            if (altcha) {
+                const isValid = await verifySolution(altcha, ALTCHA_HMAC_KEY);
+                if (!isValid) {
+                    return res.status(400).json({ success: false, error: 'Invalid CAPTCHA', requiresCaptcha: true });
+                }
+                // CAPTCHA 验证通过，重置频率限制
+                await resetRateLimit(rateLimitKey);
+            } else {
+                // 没有 CAPTCHA，要求客户端完成验证
+                return res.status(429).json({ success: false, error: 'Rate limit exceeded', requiresCaptcha: true });
+            }
+        }
+
+        // 3. 用户投票记录
         const voted = await redis.sadd(`voted:${bvid}`, userId);
         if (voted === 0) return res.status(400).json({ success: false, error: 'Already Voted' });
         // 总票统计
         await redis.hincrby(`video:${bvid}`, 'votesTotal', 1);
         // 排行榜时间戳记录
         const now = Date.now();
-        await redis.zadd('votes:recent', now, `${bvid}:${userId}`);
-        res.json({ success: true });
+        await redis.zadd('votes:recent', { score: now, member: `${bvid}:${userId}` });
+        res.json({ success: true, active: true });
     } catch (error) {
         console.error('Vote Error:', error);
         res.status(500).json({ success: false, error: error.message });
@@ -153,10 +213,26 @@ app.post(['/api/vote', '/vote'], async (req, res) => {
 
 app.post(['/api/unvote', '/unvote'], async (req, res) => {
     try {
-        const { bvid, userId } = req.body;
+        const { bvid, userId, altcha } = req.body;
 
         // 1. 基础参数校验
         if (!bvid || !userId) return res.status(400).json({ success: false, error: 'Missing params' });
+
+        const rateLimitKey = `ratelimit:vote:${userId}`;
+        const isRateLimited = await checkRateLimit(rateLimitKey, RATE_LIMIT_VOTE_MAX, RATE_LIMIT_VOTE_WINDOW);
+
+        // 2. 检查频率限制
+        if (isRateLimited) {
+            if (altcha) {
+                const isValid = await verifySolution(altcha, ALTCHA_HMAC_KEY);
+                if (!isValid) {
+                    return res.status(400).json({ success: false, error: 'Invalid CAPTCHA', requiresCaptcha: true });
+                }
+                await resetRateLimit(rateLimitKey);
+            } else {
+                return res.status(429).json({ success: false, error: 'Rate limit exceeded', requiresCaptcha: true });
+            }
+        }
 
         const isMember = await redis.sismember(`voted:${bvid}`, userId);
         if (!isMember) return res.status(400).json({ error: 'Not voted yet' });
@@ -164,7 +240,7 @@ app.post(['/api/unvote', '/unvote'], async (req, res) => {
         await redis.srem(`voted:${bvid}`, userId);           // 删除投票记录
         await redis.zrem('votes:recent', `${bvid}:${userId}`); // 删除排行榜记录
         await redis.hincrby(`video:${bvid}`, 'votesTotal', -1);
-        res.json({ success: true });
+        res.json({ success: true, active: false });
     } catch (error) {
         console.error('Vote Error:', error);
         res.status(500).json({ success: false, error: error.message });
@@ -185,9 +261,27 @@ app.get(['/api/status', '/status'], async (req, res) => {
 
 // 获取排行榜
 app.get(['/api/leaderboard', '/leaderboard'], async (req, res) => {
-    const { range = 'realtime', type } = req.query;
+    const { range = 'realtime', type, altcha } = req.query;
     let proc_type = parseInt(type);
+
     try {
+        // 使用 IP 作为频率限制标识（排行榜是公开的，不需要 userId）
+        const clientIP = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || 'unknown';
+        const rateLimitKey = `ratelimit:leaderboard:${clientIP}`;
+        const isRateLimited = await checkRateLimit(rateLimitKey, RATE_LIMIT_LEADERBOARD_MAX, RATE_LIMIT_LEADERBOARD_WINDOW);
+
+        if (isRateLimited) {
+            if (altcha) {
+                const isValid = await verifySolution(altcha, ALTCHA_HMAC_KEY);
+                if (!isValid) {
+                    return res.status(400).json({ success: false, error: 'Invalid CAPTCHA', requiresCaptcha: true });
+                }
+                await resetRateLimit(rateLimitKey);
+            } else {
+                return res.status(429).json({ success: false, error: 'Rate limit exceeded', requiresCaptcha: true });
+            }
+        }
+
         const board = await getLeaderBoard(range);
         let list = board.map((array) => { return { bvid: array[0], count: array[1] } });
         // no type or type != 2: add backward capability
