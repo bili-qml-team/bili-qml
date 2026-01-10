@@ -702,7 +702,7 @@ async function injectQuestionButton() {
 
 
 
-function observeDomStabilization(callback, { delay = 1000, maxWait = 10000 } = {}) {
+function observeDomStabilization(callback, { delay = 1500, maxWait = 20000 } = {}) {
     let debounceTimeout;
     let maxWaitTimeout;
     let disconnected = false;
