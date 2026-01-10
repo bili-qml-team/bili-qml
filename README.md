@@ -24,7 +24,7 @@
 
 ## 快速开始
 
-### 方法 1：使用chrome/edge插件市场安装 (最简单)
+### 方法 1：使用Chrome/Edge插件市场安装 (最简单)
 * [Chrome 插件市场](https://chromewebstore.google.com/detail/b%E7%AB%99%E9%97%AE%E5%8F%B7%E6%A6%9C/kpfomdjnloglfedoamjaflnhojkcjndh?hl=zh-c)
 * [Edge 插件市场](https://microsoftedge.microsoft.com/addons/detail/b%E7%AB%99%E9%97%AE%E5%8F%B7%E6%A6%9C/fnlcdhaoobciclcjlnlopbcncmhjkdog)
 
@@ -47,7 +47,7 @@
 - [x] support-4: 支持油猴脚本，Mac用户可以通过油猴脚本使用插件
 - [x] support-5: 上架edge应用商店
 
-- [ ] new feature-1: 频繁vote时增加人机验证，感谢B站用户 巧克力棒好好吃啊qwq 的建议
+- [x] new feature-1: 频繁vote时增加人机验证，感谢B站用户 巧克力棒好好吃啊qwq 的建议
 - [x] new feature-2: 将榜单制作为一个独立的页面，方便用户查看和分享
 - [x] new feature-3: 由用户决定是否发送？弹幕
 
@@ -88,7 +88,7 @@ A browser extension that adds a "Question Mark" button to Bilibili video toolbar
 | 贡献者 | 贡献说明 |
 | :---: | :--- |
 | <a href="https://github.com/Radekyspec"><img src="https://github.com/Radekyspec.png?size=80" width="80px;" style="border-radius: 50%;"/><br /><sub><b>Radekyspec</b></sub></a> | 贡献v1.2数据库迁移脚本，eo保护 |
-| <a href="https://github.com/VanceHud"><img src="https://github.com/VanceHud.png?size=80" width="80px;" style="border-radius: 50%;"/><br /><sub><b>VanceHud</b></sub></a> | 贡献firefox版本、油猴版本、用户自定义是否发送问号功能、人机验证 |
+| <a href="https://github.com/VanceHud"><img src="https://github.com/VanceHud.png?size=80" width="80px;" style="border-radius: 50%;"/><br /><sub><b>VanceHud</b></sub></a> | 贡献Firefox版本、油猴版本、用户自定义是否发送问号功能、人机验证 |
 | <a href="https://github.com/ShiroAzusa64"><img src="https://github.com/ShiroAzusa64.png?size=80" width="80px;" style="border-radius: 50%;"/><br /><sub><b>ShiroAzusa64</b></sub></a> | 贡献v1.2版本后端逻辑 |
 
 
