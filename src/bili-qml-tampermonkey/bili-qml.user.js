@@ -1,16 +1,18 @@
 // ==UserScript==
 // @name         B站问号榜
 // @namespace    https://github.com/XmOfficial/bili-qml
-// @version      1.1
+// @version      1.2
 // @description  在B站视频下方增加问号键，统计并展示抽象视频排行榜。油猴脚本版本。
 // @author       vancehuds
 // @match        https://www.bilibili.com/video/*
 // @icon         https://www.bilibili.com/favicon.ico
 // @grant        GM_addStyle
 // @grant        GM_registerMenuCommand
+// @grant        GM_getValue
+// @grant        GM_setValue
 // @connect      bili-qml.top
 // @run-at       document-idle
-// @license      MIT
+// @license      AGPL-3.0
 // ==/UserScript==
 
 (function () {
@@ -263,6 +265,100 @@
         };
     }
 
+    // ==================== 弹幕确认功能 ====================
+
+    const STORAGE_KEY_DANMAKU_PREF = 'danmakuPreference';
+
+    // 获取弹幕发送偏好
+    function getDanmakuPreference() {
+        return GM_getValue(STORAGE_KEY_DANMAKU_PREF, null);
+    }
+
+    // 设置弹幕发送偏好
+    function setDanmakuPreference(preference) {
+        GM_setValue(STORAGE_KEY_DANMAKU_PREF, preference);
+    }
+
+    // 显示弹幕发送确认对话框
+    function showDanmakuConfirmDialog() {
+        return new Promise((resolve) => {
+            const overlay = document.createElement('div');
+            overlay.style.cssText = `
+                position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(0, 0, 0, 0.6);
+                z-index: 999999;
+                display: flex; align-items: center; justify-content: center;
+            `;
+
+            const dialog = document.createElement('div');
+            dialog.style.cssText = `
+                background: white; border-radius: 8px; padding: 24px;
+                width: 360px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+            `;
+
+            dialog.innerHTML = `
+                <div style="font-size: 18px; font-weight: bold; color: #18191c; margin-bottom: 16px;">
+                    发送弹幕确认
+                </div>
+                <div style="font-size: 14px; color: #61666d; margin-bottom: 20px;">
+                    点亮问号后是否自动发送"?"弹幕？
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label style="display: flex; align-items: center; cursor: pointer; user-select: none;">
+                        <input type="checkbox" id="qmr-dont-ask" style="margin-right: 8px;">
+                        <span style="font-size: 14px; color: #61666d;">不再询问（记住我的选择）</span>
+                    </label>
+                </div>
+                <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                    <button id="qmr-btn-no" style="
+                        padding: 8px 20px; border: 1px solid #e3e5e7; border-radius: 4px;
+                        background: white; color: #61666d; cursor: pointer;
+                        font-size: 14px; transition: all 0.2s;
+                    ">
+                        不发送
+                    </button>
+                    <button id="qmr-btn-yes" style="
+                        padding: 8px 20px; border: none; border-radius: 4px;
+                        background: #00aeec; color: white; cursor: pointer;
+                        font-size: 14px; transition: all 0.2s;
+                    ">
+                        发送弹幕
+                    </button>
+                </div>
+            `;
+
+            overlay.appendChild(dialog);
+            document.body.appendChild(overlay);
+
+            const btnNo = dialog.querySelector('#qmr-btn-no');
+            const btnYes = dialog.querySelector('#qmr-btn-yes');
+
+            btnNo.addEventListener('mouseenter', () => { btnNo.style.background = '#f4f5f7'; });
+            btnNo.addEventListener('mouseleave', () => { btnNo.style.background = 'white'; });
+            btnYes.addEventListener('mouseenter', () => { btnYes.style.background = '#00a1d6'; });
+            btnYes.addEventListener('mouseleave', () => { btnYes.style.background = '#00aeec'; });
+
+            const handleChoice = (sendDanmaku) => {
+                const dontAsk = dialog.querySelector('#qmr-dont-ask').checked;
+                overlay.remove();
+                resolve({ sendDanmaku, dontAskAgain: dontAsk });
+            };
+
+            btnNo.addEventListener('click', () => handleChoice(false));
+            btnYes.addEventListener('click', () => handleChoice(true));
+
+            const escHandler = (e) => {
+                if (e.key === 'Escape') {
+                    overlay.remove();
+                    resolve({ sendDanmaku: false, dontAskAgain: false });
+                    document.removeEventListener('keydown', escHandler);
+                }
+            };
+            document.addEventListener('keydown', escHandler);
+        });
+    }
+
     // ==================== 问号按钮逻辑 ====================
 
     let isInjecting = false;
@@ -419,7 +515,22 @@
                         if (resData.success) {
                             syncButtonState();
                             if (resData.active) {
-                                sendDanmaku('？');
+                                const preference = getDanmakuPreference();
+
+                                if (preference === null) {
+                                    // 首次使用，显示确认对话框
+                                    const choice = await showDanmakuConfirmDialog();
+                                    if (choice.sendDanmaku) {
+                                        sendDanmaku('？');
+                                    }
+                                    if (choice.dontAskAgain) {
+                                        setDanmakuPreference(choice.sendDanmaku);
+                                    }
+                                } else if (preference === true) {
+                                    // 用户选择了总是发送
+                                    sendDanmaku('？');
+                                }
+                                // preference === false 时不发送
                             }
                         } else {
                             alert('投票失败: ' + (resData.error || '未知错误'));
