@@ -34,22 +34,8 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(`${API_BASE}/leaderboard?range=${range}&type=2`);
             const data = await response.json();
-            await Promise.all(data.list.map(async (item, index) => {
-                try {
-                    const conn = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${item.bvid}`);
-                    const json = await conn.json();
-                    if (json.code === 0 && json.data?.title) {
-                        data.list[index].title = json.data.title;
-                    } else {
-                        data.list[index].title = '未知标题';
-                    }
-                } catch (err) {
-                    console.error(`获取标题失败 ${item.bvid}:`, err);
-                    data.list[index].title = '加载失败';
-                }
-            }));
             if (data.success && data.list.length > 0) {
-                renderList(data.list);
+                await renderList(data.list);
             } else {
                 leaderboard.innerHTML = '<div class="loading">暂无数据</div>';
             }
@@ -58,21 +44,48 @@ document.addEventListener('DOMContentLoaded', () => {
             leaderboard.innerHTML = '<div class="loading">获取排行榜失败，请确保服务器已启动。</div>';
         }
     }
-
-    function renderList(list) {
+    async function renderList(list){
         leaderboard.innerHTML = '';
-        list.forEach((item, index) => {
-            const div = document.createElement('div');
-            div.className = 'item';
-            div.innerHTML = `
-                <div class="rank">${index + 1}</div>
-                <div class="info">
-                    <a href="https://www.bilibili.com/video/${item.bvid}" target="_blank" class="title" title="${item.title}">${item.title}</a>
-                    <div class="count">❓ 抽象指数: ${item.count}</div>
-                </div>
-            `;
-            leaderboard.appendChild(div);
+        await Promise.all(list.map(async (item, index) => {
+                try {
+                    let cache={};
+                    const conn = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${item.bvid}`);
+                    const json = await conn.json();
+                    if (json.code === 0 && json.data?.title) {
+                        cache.title = json.data.title;
+                    } else {
+                        cache.title = '未知标题';
+                    }
+                    cache.bvid=item.bvid;
+                    cache.count=item.count;
+                    renderEntry(cache,index+1)
+                } catch (err) {
+                    console.error(`获取标题失败 ${item.bvid}:`, err);
+                    cache.title = '加载失败';
+                }
+            }));
+    }
+    function renderEntry(item,index) {
+        const div = document.createElement('div');
+        div.className = 'item';
+        div.innerHTML = `
+            <div class="rank">${index}</div>
+            <div class="info">
+                <a href="https://www.bilibili.com/video/${item.bvid}" target="_blank" class="title" title="${item.title}">${item.title}</a>
+                <div class="count">❓ 抽象指数: ${item.count}</div>
+            </div>
+        `;
+        leaderboard.appendChild(div);
+        const allItems = Array.from(document.querySelectorAll('.item'));
+        const nextItem = allItems.find(el => {
+            const rank = parseInt(el.querySelector('.rank')?.textContent || '999999');
+            return rank >= index;
         });
+        if (nextItem) {
+            nextItem.before(div);
+        } else {
+        leaderboard.appendChild(div);
+        }
     }
 
     // 加载设置
