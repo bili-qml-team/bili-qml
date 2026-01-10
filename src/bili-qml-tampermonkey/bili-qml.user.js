@@ -788,41 +788,109 @@
         }
     }
 
-    // 模拟发送弹幕
+    // 模拟发送弹幕功能
     function sendDanmaku(text) {
-        try {
-            const dmInput = document.querySelector('input.bpx-player-dm-input');
-            const dmSendBtn = document.querySelector('.bpx-player-dm-btn-send');
-            if (!dmInput || !dmSendBtn) return;
+        console.log('[B站问号榜] 尝试发送弹幕:', text);
 
+        // 1. 寻找弹幕输入框和发送按钮
+        // 尝试多种选择器以增强兼容性
+        const inputSelectors = [
+            'input.bpx-player-dm-input', // 新版
+            '.bilibili-player-video-danmaku-input', // 旧版
+            'textarea.bpx-player-dm-input', // 可能的变体
+            '.video-danmaku-input'
+        ];
+
+        const btnSelectors = [
+            '.bpx-player-dm-btn-send', // 新版
+            '.bilibili-player-video-danmaku-btn-send', // 旧版
+            '.video-danmaku-btn-send'
+        ];
+
+        let dmInput = null;
+        let dmSendBtn = null;
+
+        for (const sel of inputSelectors) {
+            dmInput = document.querySelector(sel);
+            if (dmInput) break;
+        }
+
+        for (const sel of btnSelectors) {
+            dmSendBtn = document.querySelector(sel);
+            if (dmSendBtn) break;
+        }
+
+        if (!dmInput || !dmSendBtn) {
+            console.error('[B站问号榜] 未找到弹幕输入框或发送按钮');
+            return;
+        }
+
+        try {
+            // 2. 聚焦输入框
             dmInput.focus();
+            dmInput.click(); // 确保激活
+
+            // 3. 填入内容并让 React 感知
+            // React 重写了 value setter，必须获取原始 setter
             const setter = Object.getOwnPropertyDescriptor(
                 window.HTMLInputElement.prototype,
                 'value'
+            )?.set || Object.getOwnPropertyDescriptor(
+                window.HTMLTextAreaElement.prototype,
+                'value'
             )?.set;
-            setter?.call(dmInput, text);
+
+            if (setter) {
+                setter.call(dmInput, text);
+            } else {
+                dmInput.value = text;
+            }
+
+            // 4. 模拟完整输入事件链
+            // React often needs 'input' and 'change' bubbles
             dmInput.dispatchEvent(new Event('input', { bubbles: true }));
+            dmInput.dispatchEvent(new Event('change', { bubbles: true }));
 
+            // 模拟中文输入法结束事件（有时对React组件很重要）
+            dmInput.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
+            dmInput.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, data: text }));
+
+            // 5. 稍微延迟后发送，确保状态同步
             setTimeout(() => {
-                const events = ['keydown', 'keyup'];
-                events.forEach(type => {
-                    dmInput.dispatchEvent(new KeyboardEvent(type, {
-                        bubbles: true, cancelable: true, key: 'Enter', keyCode: 13
-                    }));
-                });
+                console.log('[B站问号榜] 触发发送点击');
 
+                // 尝试回车发送
+                const enterEvent = new KeyboardEvent('keydown', {
+                    bubbles: true,
+                    cancelable: true,
+                    key: 'Enter',
+                    code: 'Enter',
+                    keyCode: 13,
+                    which: 13
+                });
+                dmInput.dispatchEvent(enterEvent);
+
+                // 同时也点击发送按钮
+                // 模拟鼠标交互
+                dmSendBtn.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
                 dmSendBtn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
                 dmSendBtn.click();
+                dmSendBtn.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
 
+                // 6. 清理
                 setTimeout(() => {
-                    dmInput.blur();
-                    if (dmInput.value !== '') {
+                    // 再次检查是否发送成功，如果还在里面，可能需要再试一次
+                    if (dmInput.value === text) {
+                        console.log('[B站问号榜] 似乎发送未成功，尝试强制点击');
                         dmSendBtn.click();
                     }
-                }, 100);
-            }, 150);
+                    dmInput.blur();
+                }, 200);
+
+            }, 200);
+
         } catch (e) {
-            console.error('[B站问号榜] 弹幕发送失败:', e);
+            console.error('[B站问号榜] 弹幕发送异常:', e);
         }
     }
 

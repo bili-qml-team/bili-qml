@@ -164,15 +164,19 @@ function showAltchaCaptchaDialog() {
 // 获取弹幕发送偏好
 // 返回: null (未设置), true (总是发送), false (总是不发送)
 async function getDanmakuPreference() {
-    return browserStorage.sync.get([STORAGE_KEY_DANMAKU_PREF], (result) => {
-        resolve(result[STORAGE_KEY_DANMAKU_PREF] !== undefined ? result[STORAGE_KEY_DANMAKU_PREF] : null);
+    return new Promise((resolve) => {
+        browserStorage.sync.get([STORAGE_KEY_DANMAKU_PREF], (result) => {
+            resolve(result[STORAGE_KEY_DANMAKU_PREF] !== undefined ? result[STORAGE_KEY_DANMAKU_PREF] : null);
+        });
     });
 }
 
 // 设置弹幕发送偏好
 async function setDanmakuPreference(preference) {
-    return browserStorage.sync.set({ [STORAGE_KEY_DANMAKU_PREF]: preference }, () => {
-        resolve();
+    return new Promise((resolve) => {
+        browserStorage.sync.set({ [STORAGE_KEY_DANMAKU_PREF]: preference }, () => {
+            resolve();
+        });
     });
 }
 
@@ -434,64 +438,107 @@ function formatCount(num) {
 
 // 模拟发送弹幕功能
 function sendDanmaku(text) {
+    console.log('[B站问号榜] 尝试发送弹幕:', text);
+
     // 1. 寻找弹幕输入框和发送按钮
-    // const showNotice = (msg, isError = false) => {
-    //     if (!isError) return; // 正常情况下不显示提示
-    //     const notice = document.createElement('div');
-    //     notice.style.cssText = `
-    //         position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-    //         padding: 10px 20px; border-radius: 4px; z-index: 100000;
-    //         background: #ff4d4f; color: white;
-    //         font-size: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    //         transition: opacity 0.5s;
-    //     `;
-    //     notice.innerText = `[问号榜提示] ${msg}`;
-    //     document.body.appendChild(notice);
-    //     setTimeout(() => {
-    //         notice.style.opacity = '0';
-    //         setTimeout(() => notice.remove(), 500);
-    //     }, 3000);
-    // };
+    // 尝试多种选择器以增强兼容性
+    const inputSelectors = [
+        'input.bpx-player-dm-input', // 新版
+        '.bilibili-player-video-danmaku-input', // 旧版
+        'textarea.bpx-player-dm-input', // 可能的变体
+        '.video-danmaku-input'
+    ];
+
+    const btnSelectors = [
+        '.bpx-player-dm-btn-send', // 新版
+        '.bilibili-player-video-danmaku-btn-send', // 旧版
+        '.video-danmaku-btn-send'
+    ];
+
+    let dmInput = null;
+    let dmSendBtn = null;
+
+    for (const sel of inputSelectors) {
+        dmInput = document.querySelector(sel);
+        if (dmInput) break;
+    }
+
+    for (const sel of btnSelectors) {
+        dmSendBtn = document.querySelector(sel);
+        if (dmSendBtn) break;
+    }
+
+    if (!dmInput || !dmSendBtn) {
+        console.error('[B站问号榜] 未找到弹幕输入框或发送按钮');
+        return;
+    }
 
     try {
-        const dmInput = document.querySelector('input.bpx-player-dm-input');
-        const dmSendBtn = document.querySelector('.bpx-player-dm-btn-send');
-        if (!dmInput || !dmSendBtn) return;
-
-        // 1. 填入内容并让 React 感知
+        // 2. 聚焦输入框
         dmInput.focus();
+        dmInput.click(); // 确保激活
+
+        // 3. 填入内容并让 React 感知
+        // React 重写了 value setter，必须获取原始 setter
         const setter = Object.getOwnPropertyDescriptor(
             window.HTMLInputElement.prototype,
             'value'
+        )?.set || Object.getOwnPropertyDescriptor(
+            window.HTMLTextAreaElement.prototype,
+            'value'
         )?.set;
-        setter?.call(dmInput, text);
+
+        if (setter) {
+            setter.call(dmInput, text);
+        } else {
+            dmInput.value = text;
+        }
+
+        // 4. 模拟完整输入事件链
+        // React often needs 'input' and 'change' bubbles
         dmInput.dispatchEvent(new Event('input', { bubbles: true }));
+        dmInput.dispatchEvent(new Event('change', { bubbles: true }));
 
-        // 2. 增加一个适中的延时（150ms），避开 B 站的频率检测和 React 渲染冲突
+        // 模拟中文输入法结束事件（有时对React组件很重要）
+        dmInput.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
+        dmInput.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, data: text }));
+
+        // 5. 稍微延迟后发送，确保状态同步
         setTimeout(() => {
-            // 3. 模拟按键和点击
-            const events = ['keydown', 'keyup']; // 移除冗余的 keypress
-            events.forEach(type => {
-                dmInput.dispatchEvent(new KeyboardEvent(type, {
-                    bubbles: true, cancelable: true, key: 'Enter', keyCode: 13
-                }));
-            });
+            console.log('[B站问号榜] 触发发送点击');
 
+            // 尝试回车发送
+            const enterEvent = new KeyboardEvent('keydown', {
+                bubbles: true,
+                cancelable: true,
+                key: 'Enter',
+                code: 'Enter',
+                keyCode: 13,
+                which: 13
+            });
+            dmInput.dispatchEvent(enterEvent);
+
+            // 同时也点击发送按钮
+            // 模拟鼠标交互
+            dmSendBtn.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
             dmSendBtn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
             dmSendBtn.click();
+            dmSendBtn.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
 
-            // 4. 发送后稍微等一下再失焦，确保 B 站逻辑执行完
+            // 6. 清理
             setTimeout(() => {
-                dmInput.blur();
-                // 如果还有残留，最后补一刀
-                if (dmInput.value !== '') {
+                // 再次检查是否发送成功，如果还在里面，可能需要再试一次
+                if (dmInput.value === text) {
+                    console.log('[B站问号榜] 似乎发送未成功，尝试强制点击');
                     dmSendBtn.click();
                 }
-            }, 100);
-        }, 150);
+                dmInput.blur();
+            }, 200);
+
+        }, 200);
 
     } catch (e) {
-        console.error('[B站问号榜] 弹幕瞬发失败:', e);
+        console.error('[B站问号榜] 弹幕发送异常:', e);
     }
 }
 
@@ -518,7 +565,7 @@ async function injectQuestionButton() {
             qBtn = document.createElement('div');
             qBtn.id = 'bili-qmr-btn';
             qBtn.className = 'toolbar-left-item-wrap';
-            qBtnInner = document.createElement('div');
+            const qBtnInner = document.createElement('div');
             qBtnInner.id = 'bili-qmr-btn-inner';
             qBtnInner.className = 'qmr-icon-wrap video-toolbar-left-item';
             qBtnInner.innerHTML = `<svg version="1.1" id="Layer_1" class="video-share-icon video-toolbar-item-icon" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="24" height="20" viewBox="0 0 28 28" preserveAspectRatio="xMidYMid meet"> <path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M 5.419 0.414 L 4.888 1.302 L 4.888 2.782 L 5.366 3.611 L 6.588 4.736 L 3.825 4.795 L 2.444 5.209 L 0.85 6.63 L 0 8.584 L 0 23.915 L 0.584 25.632 L 1.275 26.638 L 3.241 27.941 L 24.706 27.941 L 26.353 26.934 L 27.362 25.573 L 27.841 24.152 L 27.841 8.939 L 27.097 6.985 L 25.662 5.505 L 24.175 4.913 L 21.252 4.795 L 22.953 2.723 L 23.006 1.776 L 22.634 0.888 L 21.731 0.118 L 20.615 0 L 19.605 0.651 L 15.408 4.795 L 12.486 4.854 L 7.598 0.178 L 6.004 0 Z M 4.038 9.649 L 4.569 9.057 L 5.154 8.761 L 22.421 8.761 L 23.271 9.057 L 23.962 9.708 L 24.281 10.478 L 24.228 21.666 L 24.015 22.85 L 23.431 23.619 L 22.687 24.034 L 5.419 24.034 L 4.782 23.738 L 4.091 23.027 L 3.772 22.199 L 3.772 10.241 Z M 8.288 11.188 L 7.651 11.425 L 7.173 11.721 L 6.641 12.254 L 6.216 12.964 L 6.163 13.26 L 6.057 13.438 L 6.057 13.793 L 5.951 14.266 L 6.163 14.503 L 7.81 14.503 L 7.917 14.266 L 7.917 13.911 L 8.076 13.497 L 8.554 12.964 L 8.82 12.846 L 9.404 12.846 L 9.723 12.964 L 10.042 13.201 L 10.201 13.438 L 10.361 13.911 L 10.307 14.503 L 9.935 15.095 L 8.979 15.865 L 8.501 16.457 L 8.235 17.108 L 8.182 17.7 L 8.129 17.759 L 8.129 18.351 L 8.235 18.469 L 9.935 18.469 L 9.935 17.937 L 10.201 17.285 L 10.679 16.753 L 11.211 16.338 L 11.795 15.687 L 12.167 15.036 L 12.326 14.148 L 12.22 13.142 L 11.848 12.372 L 11.423 11.899 L 10.732 11.425 L 10.042 11.188 L 9.564 11.188 L 9.51 11.129 Z M 17.958 11.188 L 17.002 11.603 L 16.63 11.899 L 16.205 12.372 L 15.833 13.082 L 15.674 13.615 L 15.62 14.326 L 15.727 14.444 L 15.992 14.503 L 17.427 14.503 L 17.533 14.385 L 17.586 13.793 L 17.746 13.438 L 18.118 13.023 L 18.49 12.846 L 19.074 12.846 L 19.605 13.142 L 19.871 13.497 L 19.977 13.793 L 19.977 14.385 L 19.871 14.681 L 19.446 15.214 L 18.702 15.805 L 18.224 16.338 L 17.905 17.049 L 17.852 17.641 L 17.799 17.7 L 17.799 18.41 L 17.852 18.469 L 19.552 18.469 L 19.605 18.41 L 19.605 17.877 L 19.712 17.522 L 19.924 17.167 L 20.296 16.753 L 21.093 16.101 L 21.465 15.687 L 21.784 15.095 L 21.996 14.148 L 21.89 13.201 L 21.677 12.668 L 21.412 12.254 L 21.093 11.899 L 20.243 11.366 L 19.712 11.188 L 19.233 11.188 L 19.18 11.129 Z M 9.032 19.18 L 8.979 19.239 L 8.767 19.239 L 8.713 19.298 L 8.66 19.298 L 8.607 19.357 L 8.501 19.357 L 8.129 19.772 L 8.129 19.831 L 8.076 19.89 L 8.076 19.949 L 8.023 20.008 L 8.023 20.186 L 7.97 20.245 L 7.97 20.6 L 8.023 20.66 L 8.023 20.837 L 8.076 20.896 L 8.076 20.956 L 8.129 21.015 L 8.129 21.074 L 8.448 21.429 L 8.501 21.429 L 8.554 21.488 L 8.607 21.488 L 8.66 21.548 L 8.82 21.548 L 8.873 21.607 L 9.298 21.607 L 9.351 21.548 L 9.457 21.548 L 9.51 21.488 L 9.564 21.488 L 9.617 21.429 L 9.67 21.429 L 10.042 21.015 L 10.042 20.956 L 10.095 20.896 L 10.095 20.778 L 10.148 20.719 L 10.148 20.186 L 10.095 20.127 L 10.095 19.949 L 10.042 19.89 L 10.042 19.831 L 9.935 19.712 L 9.935 19.653 L 9.723 19.416 L 9.67 19.416 L 9.617 19.357 L 9.564 19.357 L 9.51 19.298 L 9.404 19.298 L 9.351 19.239 L 9.192 19.239 L 9.139 19.18 Z M 18.436 19.239 L 18.383 19.298 L 18.277 19.298 L 18.224 19.357 L 18.171 19.357 L 18.118 19.416 L 18.065 19.416 L 17.852 19.653 L 17.852 19.712 L 17.746 19.831 L 17.746 19.89 L 17.693 19.949 L 17.693 20.008 L 17.639 20.068 L 17.639 20.719 L 17.693 20.778 L 17.693 20.896 L 17.746 20.956 L 17.746 21.015 L 18.118 21.429 L 18.171 21.429 L 18.224 21.488 L 18.277 21.488 L 18.33 21.548 L 18.436 21.548 L 18.49 21.607 L 18.915 21.607 L 18.968 21.548 L 19.074 21.548 L 19.127 21.488 L 19.18 21.488 L 19.233 21.429 L 19.287 21.429 L 19.393 21.311 L 19.446 21.311 L 19.446 21.252 L 19.499 21.192 L 19.552 21.192 L 19.552 21.133 L 19.712 20.956 L 19.712 20.837 L 19.765 20.778 L 19.765 20.719 L 19.818 20.66 L 19.818 20.186 L 19.765 20.127 L 19.765 20.008 L 19.712 19.949 L 19.712 19.89 L 19.658 19.831 L 19.658 19.772 L 19.34 19.416 L 19.287 19.416 L 19.18 19.298 L 19.074 19.298 L 19.021 19.239 Z"/></svg><span class="qmr-text">...</span>`;
@@ -605,13 +652,18 @@ async function injectQuestionButton() {
                     }
 
                     if (resData.success) {
+                        console.log('[B站问号榜] 投票成功, active:', resData.active);
                         // 只有当点亮（active 为 true）时才发弹幕
                         if (resData.active) {
+                            console.log('[B站问号榜] 获取弹幕偏好...');
                             const preference = await getDanmakuPreference();
+                            console.log('[B站问号榜] 弹幕偏好:', preference);
 
                             if (preference === null) {
+                                console.log('[B站问号榜] 首次使用，显示确认对话框');
                                 // 首次使用，显示确认对话框
                                 const choice = await showDanmakuConfirmDialog();
+                                console.log('[B站问号榜] 用户选择:', choice);
                                 if (choice.sendDanmaku) {
                                     sendDanmaku('？');
                                 }
@@ -620,6 +672,7 @@ async function injectQuestionButton() {
                                 }
                             } else if (preference === true) {
                                 // 用户选择了总是发送
+                                console.log('[B站问号榜] 偏好为总是发送，直接发弹幕');
                                 sendDanmaku('？');
                             }
                             // preference === false 时不发送
