@@ -789,7 +789,7 @@
     }
 
     // 模拟发送弹幕功能
-    function sendDanmaku(text) {
+    async function sendDanmaku(text) {
         console.log('[B站问号榜] 尝试发送弹幕:', text);
 
         // 1. 寻找弹幕输入框和发送按钮
@@ -855,38 +855,63 @@
             dmInput.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
             dmInput.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, data: text }));
 
-            // 5. 稍微延迟后发送，确保状态同步
+            // 辅助等待函数
+            const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+            // 5. 顺序尝试发送方案
+            // 稍微延迟，确保状态同步
+            await wait(100);
+
+            // --- 方案1: 回车键 ---
+            console.log('[B站问号榜] 尝试方案1: 回车发送');
+            const enterEvent = new KeyboardEvent('keydown', {
+                bubbles: true,
+                cancelable: true,
+                key: 'Enter',
+                code: 'Enter',
+                keyCode: 13,
+                which: 13
+            });
+            dmInput.dispatchEvent(enterEvent);
+
+            // 等待观察结果
+            await wait(200);
+
+            // 检查是否发送成功（发送成功通常会清空输入框）
+            // 如果输入框内容变了（比如变空），说明发送成功
+            if (dmInput.value !== text) {
+                console.log('[B站问号榜] 方案1生效，发送成功');
+                dmInput.blur();
+                return;
+            }
+
+            // --- 方案2: 点击发送按钮 ---
+            console.log('[B站问号榜] 方案1未奏效，尝试方案2: 点击按钮');
+            // 模拟鼠标交互
+            dmSendBtn.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+            dmSendBtn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+            dmSendBtn.click();
+            dmSendBtn.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+
+            // 等待观察结果
+            await wait(200);
+
+            if (dmInput.value !== text) {
+                console.log('[B站问号榜] 方案2生效，发送成功');
+                dmInput.blur();
+                return;
+            }
+
+            // --- 方案3: 强制点击 (Fallback) ---
+            console.log('[B站问号榜] 方案2未奏效，尝试方案3: 强制点击');
+            dmSendBtn.click();
+
+            // 6. 清理
             setTimeout(() => {
-                console.log('[B站问号榜] 触发发送点击');
-
-                // 尝试回车发送
-                const enterEvent = new KeyboardEvent('keydown', {
-                    bubbles: true,
-                    cancelable: true,
-                    key: 'Enter',
-                    code: 'Enter',
-                    keyCode: 13,
-                    which: 13
-                });
-                dmInput.dispatchEvent(enterEvent);
-
-                // 同时也点击发送按钮
-                // 模拟鼠标交互
-                dmSendBtn.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
-                dmSendBtn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
-                dmSendBtn.click();
-                dmSendBtn.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-
-                // 6. 清理
-                setTimeout(() => {
-                    // 再次检查是否发送成功，如果还在里面，可能需要再试一次
-                    if (dmInput.value === text) {
-                        console.log('[B站问号榜] 似乎发送未成功，尝试强制点击');
-                        dmSendBtn.click();
-                    }
-                    dmInput.blur();
-                }, 200);
-
+                if (dmInput.value === text) {
+                    console.warn('[B站问号榜] 所有方案尝试完毕，似乎仍未发送成功');
+                }
+                dmInput.blur();
             }, 200);
 
         } catch (e) {
