@@ -51,7 +51,7 @@ Firefox暂未上线扩展商店，暂时请使用开发者模式安装
 2.  在 Firefox 地址栏输入 `about:debugging` 并回车。
 3.  点击左侧的 **此 Firefox**。
 4.  点击 **临时载入附加组件...**。
-5.  选择本项目 `src/bili-qml-extension-firefox` 目录下的 `manifest.json` 文件。
+5.  选择本项目 `src/bili-qml-extension` 目录下的 `manifest.json` 文件。
 
 #### 3. 油猴脚本 (Tampermonkey)
 适用于所有支持油猴脚本的浏览器 (Chrome, Edge, Firefox, Safari 等)。

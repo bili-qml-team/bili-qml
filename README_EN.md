@@ -51,7 +51,7 @@ Method:
 2.  Enter `about:debugging` in the Firefox address bar and press Enter.
 3.  Click **This Firefox** on the left.
 4.  Click **Load Temporary Add-on...**.
-5.  Select the `manifest.json` file in the `src/bili-qml-extension-firefox` directory.
+5.  Select the `manifest.json` file in the `src/bili-qml-extension` directory.
 
 #### 3. Userscript (Tampermonkey)
 Suitable for all browsers that support Tampermonkey (Chrome, Edge, Firefox, Safari, etc.).
