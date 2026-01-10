@@ -29,11 +29,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 加载排行榜
-    async function fetchLeaderboard(range = 'realtime') {
+    async function fetchLeaderboard(range = 'realtime', altchaSolution = null) {
         leaderboard.innerHTML = '<div class="loading">加载中...</div>';
         try {
-            const response = await fetch(`${API_BASE}/leaderboard?range=${range}&type=2`);
+            let url = `${API_BASE}/leaderboard?range=${range}&type=2`;
+            if (altchaSolution) {
+                url += `&altcha=${encodeURIComponent(altchaSolution)}`;
+            }
+            const response = await fetch(url);
             const data = await response.json();
+
+            // 处理频率限制，需要 CAPTCHA 验证
+            if (data.requiresCaptcha) {
+                leaderboard.innerHTML = '<div class="loading">需要人机验证...</div>';
+                try {
+                    const solution = await showAltchaCaptchaDialog();
+                    return fetchLeaderboard(range, solution);
+                } catch (captchaError) {
+                    leaderboard.innerHTML = '<div class="loading">验证已取消</div>';
+                    return;
+                }
+            }
+
             await Promise.all(data.list.map(async (item, index) => {
                 try {
                     const conn = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${item.bvid}`);
@@ -58,6 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
             leaderboard.innerHTML = '<div class="loading">获取排行榜失败，请确保服务器已启动。</div>';
         }
     }
+
 
     function renderList(list) {
         leaderboard.innerHTML = '';
