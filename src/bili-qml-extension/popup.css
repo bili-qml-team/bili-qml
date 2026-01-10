@@ -70,6 +70,22 @@ body.dark-mode .endpoint-input:focus {
     background: rgba(0, 0, 0, 0.4);
 }
 
+body.dark-mode .reset-btn {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: var(--border-color);
+    color: var(--text-main);
+}
+
+body.dark-mode .reset-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .advanced-section,
+body.dark-mode .advanced-toggle {
+    background: var(--card-bg);
+    border-color: var(--border-color);
+}
+
 body.dark-mode .radio-item {
     background: #1f2023;
 }
