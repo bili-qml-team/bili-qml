@@ -1,23 +1,4 @@
 // popup.js
-const DEFAULT_API_BASE = 'https://bili-qml.bydfk.com/api';
-// for debug
-// const DEFAULT_API_BASE = 'http://localhost:3000/api'
-const STORAGE_KEY_DANMAKU_PREF = 'danmakuPreference';
-const STORAGE_KEY_API_ENDPOINT = 'apiEndpoint';
-
-// 获取当前 API_BASE
-let API_BASE = DEFAULT_API_BASE;
-
-async function initApiBase() {
-    return new Promise((resolve) => {
-        chrome.storage.sync.get([STORAGE_KEY_API_ENDPOINT], (result) => {
-            if (result[STORAGE_KEY_API_ENDPOINT]) {
-                API_BASE = result[STORAGE_KEY_API_ENDPOINT];
-            }
-            resolve();
-        });
-    });
-}
 
 document.addEventListener('DOMContentLoaded', () => {
     const leaderboard = document.getElementById('leaderboard');
@@ -95,32 +76,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 加载设置
     async function loadSettings() {
-        return new Promise((resolve) => {
-            chrome.storage.sync.get([STORAGE_KEY_DANMAKU_PREF, STORAGE_KEY_API_ENDPOINT], (result) => {
-                // 弹幕偏好设置
-                const preference = result[STORAGE_KEY_DANMAKU_PREF];
-                let value = 'ask'; // 默认每次询问
+        browserStorage.sync.get([STORAGE_KEY_DANMAKU_PREF, STORAGE_KEY_API_ENDPOINT], (result) => {
+            // 弹幕偏好设置
+            const preference = result[STORAGE_KEY_DANMAKU_PREF];
+            let value = 'ask'; // 默认每次询问
 
-                if (preference === true) {
-                    value = 'always';
-                } else if (preference === false) {
-                    value = 'never';
-                }
+            if (preference === true) {
+                value = 'always';
+            } else if (preference === false) {
+                value = 'never';
+            }
 
-                // 设置选中的单选按钮
-                const radio = document.querySelector(`input[name="danmaku-pref"][value="${value}"]`);
-                if (radio) {
-                    radio.checked = true;
-                }
+            // 设置选中的单选按钮
+            const radio = document.querySelector(`input[name="danmaku-pref"][value="${value}"]`);
+            if (radio) {
+                radio.checked = true;
+            }
 
-                // Endpoint 设置
-                const endpointInput = document.getElementById('endpoint-input');
-                if (endpointInput) {
-                    endpointInput.value = result[STORAGE_KEY_API_ENDPOINT] || '';
-                }
+            // Endpoint 设置
+            const endpointInput = document.getElementById('endpoint-input');
+            if (endpointInput) {
+                endpointInput.value = result[STORAGE_KEY_API_ENDPOINT] || '';
+            }
 
-                resolve();
-            });
+            resolve();
         });
     }
 
@@ -164,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // 执行存储操作
             const doSave = () => {
                 if (Object.keys(updates).length > 0) {
-                    chrome.storage.sync.set(updates, () => {
+                    await browserStorage.sync.set(updates, () => {
                         showSaveStatus('设置已保存');
                         resolve();
                     });
@@ -175,7 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             if (removals.length > 0) {
-                chrome.storage.sync.remove(removals, doSave);
+                await browserStorage.sync.remove(removals, doSave);
             } else {
                 doSave();
             }

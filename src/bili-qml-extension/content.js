@@ -1,7 +1,4 @@
 // content.js
-const DEFAULT_API_BASE = 'https://bili-qml.bydfk.com/api';
-// for debug
-//const DEFAULT_API_BASE = 'http://localhost:3000/api'
 
 // ==================== Altcha CAPTCHA 功能 ====================
 
