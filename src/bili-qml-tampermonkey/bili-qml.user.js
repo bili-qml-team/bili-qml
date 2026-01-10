@@ -18,7 +18,9 @@
 (function () {
     'use strict';
 
-    const API_BASE = 'https://www.bili-qml.top/api';
+    const API_BASE = 'https://bili-qml.bydfk.com/api';
+    // for debug
+    //const API_BASE = 'http://localhost:3000/api'
 
     // ==================== CSS 样式 ====================
     GM_addStyle(`
@@ -508,7 +510,11 @@
             if (!dmInput || !dmSendBtn) return;
 
             dmInput.focus();
-            document.execCommand('insertText', false, text);
+            const setter = Object.getOwnPropertyDescriptor(
+                window.HTMLInputElement.prototype,
+                'value'
+            )?.set;
+            setter?.call(dmInput, text);
             dmInput.dispatchEvent(new Event('input', { bubbles: true }));
 
             setTimeout(() => {
@@ -583,7 +589,6 @@
                     }
 
                     const activeBvid = getBvid();
-                    const title = document.querySelector('.video-title')?.innerText || document.title;
                     if (!activeBvid) return;
 
                     const userId = getUserId();
@@ -595,12 +600,13 @@
                     try {
                         qBtn.style.pointerEvents = 'none';
                         qBtn.style.opacity = '0.5';
-                        const response = await fetch(`${API_BASE}/vote`, {
+                        let endpoint = qBtn.classList.contains("voted") == true ? "unvote" : "vote";
+                        const response = await fetch(`${API_BASE}/${endpoint}`, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json'
                             },
-                            body: JSON.stringify({ bvid: activeBvid, title, userId })
+                            body: JSON.stringify({ bvid: activeBvid, userId })
                         });
 
                         const resData = await response.json();
@@ -646,10 +652,7 @@
             }
 
             // 状态同步检查
-            const currentUserId = getUserId();
-            if (bvid !== currentBvid || currentUserId !== lastSyncedUserId) {
-                syncButtonState();
-            }
+            await syncButtonState();
         } catch (e) {
             isInjecting = false;
         }
@@ -860,51 +863,23 @@
 
     // ==================== 初始化 ====================
 
-    const debouncedInject = debounce(injectQuestionButton, 500);
-
     // DOM 变化监听
-    const observer = new MutationObserver(debounce(() => {
-        injectQuestionButton();
-    }, 1000));
+    const observer = new MutationObserver(debounce(injectQuestionButton, 500));
+    const mainApp = document.getElementById('app') || document.body;
+    observer.observe(mainApp, { childList: true, subtree: true });
+    injectQuestionButton();
 
     let lastUrl = location.href;
+    setInterval(() => {
+        const urlChanged = location.href !== lastUrl;
+        const userId = getUserId();
+        const userChanged = userId !== lastSyncedUserId;
 
-    // 延迟启动
-    setTimeout(() => {
-        const mainApp = document.getElementById('app') || document.body;
-        observer.observe(mainApp, { childList: true, subtree: true });
-        injectQuestionButton();
-
-        // 心跳检测
-        setInterval(() => {
-            const urlChanged = location.href !== lastUrl;
-            if (urlChanged) {
-                lastUrl = location.href;
-                injectQuestionButton();
-            } else {
-                const btn = document.getElementById('bili-qmr-btn');
-                const toolbar = document.querySelector('.video-toolbar-left-main') ||
-                    document.querySelector('.toolbar-left') ||
-                    document.querySelector('.video-toolbar-container .left-operations');
-
-                if (toolbar && (!btn || !toolbar.contains(btn))) {
-                    injectQuestionButton();
-                }
-            }
-
-            // 视频事件绑定
-            const video = document.querySelector('video');
-            if (video && !video.dataset.qmrListen) {
-                video.dataset.qmrListen = 'true';
-                video.addEventListener('play', () => setTimeout(injectQuestionButton, 500));
-                video.addEventListener('pause', () => setTimeout(injectQuestionButton, 500));
-            }
-        }, 2000);
-    }, 2500);
-
-    // 滚动和缩放监听
-    window.addEventListener('scroll', debouncedInject, { passive: true });
-    window.addEventListener('resize', debouncedInject, { passive: true });
+        if (urlChanged || userChanged) {
+            lastUrl = location.href;
+            injectQuestionButton();
+        }
+    }, 500);
 
     // 注册油猴菜单命令
     GM_registerMenuCommand('📊 打开问号榜', toggleLeaderboardPanel);

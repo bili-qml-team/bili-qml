@@ -1,5 +1,7 @@
 // popup.js
-const API_BASE = 'https://www.bili-qml.top/api';
+const API_BASE = 'https://bili-qml.bydfk.com/api';
+// for debug
+// const API_BASE = 'http://localhost:3000/api'
 const STORAGE_KEY_DANMAKU_PREF = 'danmakuPreference';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -11,9 +13,22 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchLeaderboard(range = 'realtime') {
         leaderboard.innerHTML = '<div class="loading">加载中...</div>';
         try {
-            const response = await fetch(`${API_BASE}/leaderboard?range=${range}`);
+            const response = await fetch(`${API_BASE}/leaderboard?range=${range}&type=2`);
             const data = await response.json();
-
+            await Promise.all(data.list.map(async (item, index) => {
+                try {
+                    const conn = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${item.bvid}`);
+                    const json = await conn.json();
+                    if (json.code === 0 && json.data?.title) {
+                        data.list[index].title = json.data.title;
+                    } else {
+                        data.list[index].title = '未知标题';
+                    }
+                } catch (err) {
+                    console.error(`获取标题失败 ${item.bvid}:`, err);
+                    data.list[index].title = '加载失败';
+                }
+            }));
             if (data.success && data.list.length > 0) {
                 renderList(data.list);
             } else {
