@@ -1286,9 +1286,12 @@
         document.body.appendChild(panel);
 
         // 关闭按钮
-        panel.querySelector('.qmr-close').onclick = () => {
+        const closeBtn = panel.querySelector('.qmr-close');
+        closeBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             panel.classList.remove('show');
-        };
+        });
 
         // 设置按钮
         panel.querySelector('.qmr-settings-btn').onclick = () => {
