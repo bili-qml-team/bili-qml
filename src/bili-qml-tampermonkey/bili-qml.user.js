@@ -18,9 +18,13 @@
 (function () {
     'use strict';
 
-    const API_BASE = 'https://bili-qml.bydfk.com/api';
+    const DEFAULT_API_BASE = 'https://bili-qml.bydfk.com/api';
     // for debug
-    //const API_BASE = 'http://localhost:3000/api'
+    //const DEFAULT_API_BASE = 'http://localhost:3000/api'
+
+    // 当前 API_BASE
+    const STORAGE_KEY_API_ENDPOINT = 'apiEndpoint';
+    let API_BASE = GM_getValue(STORAGE_KEY_API_ENDPOINT, null) || DEFAULT_API_BASE;
 
     // ==================== CSS 样式 ====================
     GM_addStyle(`
@@ -328,6 +332,62 @@
             color: #00aeec;
             opacity: 0;
             transition: opacity 0.3s;
+        }
+
+        /* Endpoint 设置样式 */
+        #bili-qmr-panel .qmr-endpoint-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        #bili-qmr-panel .qmr-endpoint-input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid #e3e5e7;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #18191c;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            outline: none;
+        }
+
+        #bili-qmr-panel .qmr-endpoint-input:focus {
+            border-color: #00aeec;
+            box-shadow: 0 0 0 2px rgba(0, 174, 236, 0.1);
+        }
+
+        #bili-qmr-panel .qmr-endpoint-input::placeholder {
+            color: #9499a0;
+        }
+
+        #bili-qmr-panel .qmr-reset-btn {
+            width: 36px;
+            height: 36px;
+            border: 1px solid #e3e5e7;
+            border-radius: 6px;
+            background: #fff;
+            color: #61666d;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+            flex-shrink: 0;
+        }
+
+        #bili-qmr-panel .qmr-reset-btn:hover {
+            background: #f4f5f7;
+            border-color: #d1d4d7;
+            color: #18191c;
+        }
+
+        #bili-qmr-panel .qmr-settings-divider {
+            margin: 20px 0;
+            border: none;
+            border-top: 1px solid #e3e5e7;
         }
     `);
 
@@ -681,15 +741,15 @@
 
     let panelCreated = false;
 
-        function openStandaloneLeaderboardPage(initialRange = 'realtime') {
-                const win = window.open('about:blank', '_blank');
-                if (!win) {
-                        alert('[B站问号榜] 打开新页面失败：可能被浏览器拦截了弹窗');
-                        return;
-                }
+    function openStandaloneLeaderboardPage(initialRange = 'realtime') {
+        const win = window.open('about:blank', '_blank');
+        if (!win) {
+            alert('[B站问号榜] 打开新页面失败：可能被浏览器拦截了弹窗');
+            return;
+        }
 
-                const safeRange = ['realtime', 'daily', 'weekly', 'monthly'].includes(initialRange) ? initialRange : 'realtime';
-                const html = `<!DOCTYPE html>
+        const safeRange = ['realtime', 'daily', 'weekly', 'monthly'].includes(initialRange) ? initialRange : 'realtime';
+        const html = `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8" />
@@ -933,10 +993,10 @@
 </body>
 </html>`;
 
-                win.document.open();
-                win.document.write(html);
-                win.document.close();
-        }
+        win.document.open();
+        win.document.write(html);
+        win.document.close();
+    }
 
     function createLeaderboardPanel() {
         if (panelCreated) return;
@@ -978,6 +1038,13 @@
                         <span>总是不发送</span>
                     </label>
                 </div>
+                <hr class="qmr-settings-divider">
+                <h3>API 服务器设置</h3>
+                <p class="qmr-settings-desc">自定义问号榜服务器地址</p>
+                <div class="qmr-endpoint-group">
+                    <input type="text" class="qmr-endpoint-input" placeholder="https://bili-qml.bydfk.com/api">
+                    <button class="qmr-reset-btn" title="恢复默认">↺</button>
+                </div>
                 <button class="qmr-save-btn">保存设置</button>
                 <div class="qmr-save-status"></div>
             </div>
@@ -1016,26 +1083,47 @@
             openStandaloneLeaderboardPage(range);
         };
 
+        // 重置 Endpoint 按钮
+        panel.querySelector('.qmr-reset-btn').onclick = () => {
+            const endpointInput = panel.querySelector('.qmr-endpoint-input');
+            if (endpointInput) {
+                endpointInput.value = DEFAULT_API_BASE;
+            }
+        };
+
         // 保存按钮
         panel.querySelector('.qmr-save-btn').onclick = () => {
             const selectedRadio = panel.querySelector('input[name="qmr-danmaku-pref"]:checked');
-            if (!selectedRadio) return;
+            const endpointInput = panel.querySelector('.qmr-endpoint-input');
+            const endpointValue = endpointInput ? endpointInput.value.trim() : '';
 
-            const value = selectedRadio.value;
-            let preference;
+            // 弹幕偏好
+            if (selectedRadio) {
+                const value = selectedRadio.value;
+                let preference;
 
-            if (value === 'always') {
-                preference = true;
-            } else if (value === 'never') {
-                preference = false;
-            } else {
-                preference = null;
+                if (value === 'always') {
+                    preference = true;
+                } else if (value === 'never') {
+                    preference = false;
+                } else {
+                    preference = null;
+                }
+
+                if (preference === null) {
+                    GM_setValue(STORAGE_KEY_DANMAKU_PREF, null);
+                } else {
+                    setDanmakuPreference(preference);
+                }
             }
 
-            if (preference === null) {
-                GM_setValue(STORAGE_KEY_DANMAKU_PREF, null);
+            // Endpoint 设置
+            if (endpointValue && endpointValue !== DEFAULT_API_BASE) {
+                GM_setValue(STORAGE_KEY_API_ENDPOINT, endpointValue);
+                API_BASE = endpointValue;
             } else {
-                setDanmakuPreference(preference);
+                GM_setValue(STORAGE_KEY_API_ENDPOINT, null);
+                API_BASE = DEFAULT_API_BASE;
             }
 
             const statusDiv = panel.querySelector('.qmr-save-status');
@@ -1079,6 +1167,7 @@
         const panel = document.getElementById('bili-qmr-panel');
         if (!panel) return;
 
+        // 弹幕偏好
         const preference = getDanmakuPreference();
         let value = 'ask';
 
@@ -1091,6 +1180,13 @@
         const radio = panel.querySelector(`input[name="qmr-danmaku-pref"][value="${value}"]`);
         if (radio) {
             radio.checked = true;
+        }
+
+        // Endpoint 设置
+        const endpointInput = panel.querySelector('.qmr-endpoint-input');
+        if (endpointInput) {
+            const savedEndpoint = GM_getValue(STORAGE_KEY_API_ENDPOINT, null);
+            endpointInput.value = savedEndpoint || '';
         }
     }
 

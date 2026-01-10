@@ -1,8 +1,23 @@
 // popup.js
-const API_BASE = 'https://bili-qml.bydfk.com/api';
+const DEFAULT_API_BASE = 'https://bili-qml.bydfk.com/api';
 // for debug
-// const API_BASE = 'http://localhost:3000/api'
+// const DEFAULT_API_BASE = 'http://localhost:3000/api'
 const STORAGE_KEY_DANMAKU_PREF = 'danmakuPreference';
+const STORAGE_KEY_API_ENDPOINT = 'apiEndpoint';
+
+// 获取当前 API_BASE
+let API_BASE = DEFAULT_API_BASE;
+
+async function initApiBase() {
+    return new Promise((resolve) => {
+        chrome.storage.sync.get([STORAGE_KEY_API_ENDPOINT], (result) => {
+            if (result[STORAGE_KEY_API_ENDPOINT]) {
+                API_BASE = result[STORAGE_KEY_API_ENDPOINT];
+            }
+            resolve();
+        });
+    });
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     const leaderboard = document.getElementById('leaderboard');
@@ -81,7 +96,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 加载设置
     async function loadSettings() {
         return new Promise((resolve) => {
-            chrome.storage.sync.get([STORAGE_KEY_DANMAKU_PREF], (result) => {
+            chrome.storage.sync.get([STORAGE_KEY_DANMAKU_PREF, STORAGE_KEY_API_ENDPOINT], (result) => {
+                // 弹幕偏好设置
                 const preference = result[STORAGE_KEY_DANMAKU_PREF];
                 let value = 'ask'; // 默认每次询问
 
@@ -97,6 +113,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     radio.checked = true;
                 }
 
+                // Endpoint 设置
+                const endpointInput = document.getElementById('endpoint-input');
+                if (endpointInput) {
+                    endpointInput.value = result[STORAGE_KEY_API_ENDPOINT] || '';
+                }
+
                 resolve();
             });
         });
@@ -105,31 +127,57 @@ document.addEventListener('DOMContentLoaded', () => {
     // 保存设置
     async function saveSettings() {
         const selectedRadio = document.querySelector('input[name="danmaku-pref"]:checked');
-        if (!selectedRadio) return;
+        const endpointInput = document.getElementById('endpoint-input');
+        const endpointValue = endpointInput ? endpointInput.value.trim() : '';
 
-        const value = selectedRadio.value;
-        let preference;
-
-        if (value === 'always') {
-            preference = true;
-        } else if (value === 'never') {
-            preference = false;
-        } else {
-            preference = null; // 每次询问
+        // 处理弹幕偏好
+        let preference = null;
+        if (selectedRadio) {
+            const value = selectedRadio.value;
+            if (value === 'always') {
+                preference = true;
+            } else if (value === 'never') {
+                preference = false;
+            }
         }
 
         return new Promise((resolve) => {
+            const updates = {};
+            const removals = [];
+
+            // 弹幕偏好
             if (preference === null) {
-                // 删除存储的偏好，恢复到默认状态
-                chrome.storage.sync.remove([STORAGE_KEY_DANMAKU_PREF], () => {
-                    showSaveStatus('设置已保存');
-                    resolve();
-                });
+                removals.push(STORAGE_KEY_DANMAKU_PREF);
             } else {
-                chrome.storage.sync.set({ [STORAGE_KEY_DANMAKU_PREF]: preference }, () => {
+                updates[STORAGE_KEY_DANMAKU_PREF] = preference;
+            }
+
+            // Endpoint 设置
+            if (endpointValue && endpointValue !== DEFAULT_API_BASE) {
+                updates[STORAGE_KEY_API_ENDPOINT] = endpointValue;
+                API_BASE = endpointValue;
+            } else {
+                removals.push(STORAGE_KEY_API_ENDPOINT);
+                API_BASE = DEFAULT_API_BASE;
+            }
+
+            // 执行存储操作
+            const doSave = () => {
+                if (Object.keys(updates).length > 0) {
+                    chrome.storage.sync.set(updates, () => {
+                        showSaveStatus('设置已保存');
+                        resolve();
+                    });
+                } else {
                     showSaveStatus('设置已保存');
                     resolve();
-                });
+                }
+            };
+
+            if (removals.length > 0) {
+                chrome.storage.sync.remove(removals, doSave);
+            } else {
+                doSave();
             }
         });
     }
@@ -195,6 +243,19 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 默认加载日榜
-    fetchLeaderboard();
+    // 重置 Endpoint 按钮
+    const resetEndpointBtn = document.getElementById('reset-endpoint');
+    if (resetEndpointBtn) {
+        resetEndpointBtn.addEventListener('click', () => {
+            const endpointInput = document.getElementById('endpoint-input');
+            if (endpointInput) {
+                endpointInput.value = DEFAULT_API_BASE;
+            }
+        });
+    }
+
+    // 初始化 API_BASE 后加载排行榜
+    initApiBase().then(() => {
+        fetchLeaderboard();
+    });
 });
