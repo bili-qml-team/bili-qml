@@ -209,7 +209,7 @@ app.post(['/api/vote', '/vote'], async (req, res) => {
             redis.hincrby(`video:${bvid}`, 'votesTotal', 1),
             redis.zadd('votes:recent', now, `${bvid}:${userId}`)
         ]);
-        res.json({ success: true, active: true });
+        res.json({ success: true });
     } catch (error) {
         console.error('Vote Error:', error);
         res.status(500).json({ success: false, error: error.message });
@@ -247,7 +247,7 @@ app.post(['/api/unvote', '/unvote'], async (req, res) => {
             redis.zrem('votes:recent', `${bvid}:${userId}`), // 删除排行榜记录
             redis.hincrby(`video:${bvid}`, 'votesTotal', -1)
         ]);
-        res.json({ success: true, active: false });
+        res.json({ success: true });
     } catch (error) {
         console.error('Vote Error:', error);
         res.status(500).json({ success: false, error: error.message });
