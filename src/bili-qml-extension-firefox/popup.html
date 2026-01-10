@@ -44,6 +44,20 @@
                         <span>总是不发送</span>
                     </label>
                 </div>
+            </div>
+            <details class="advanced-section">
+                <summary class="advanced-toggle">高级选项</summary>
+                <div class="settings-section">
+                    <h3>API 服务器设置</h3>
+                    <p class="settings-desc">自定义问号榜服务器地址</p>
+                    <div class="endpoint-input-group">
+                        <input type="text" id="endpoint-input" class="endpoint-input"
+                            placeholder="https://bili-qml.bydfk.com/api">
+                        <button id="reset-endpoint" class="reset-btn" title="恢复默认">↺</button>
+                    </div>
+                </div>
+            </details>
+            <div class="settings-section" style="margin-top: 15px;">
                 <button id="save-settings" class="save-btn">保存设置</button>
                 <div id="save-status" class="save-status"></div>
             </div>

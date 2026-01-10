@@ -1,7 +1,7 @@
 // content.js
-const API_BASE = 'https://bili-qml.bydfk.com/api';
+const DEFAULT_API_BASE = 'https://bili-qml.bydfk.com/api';
 // for debug
-//const API_BASE = 'http://localhost:3000/api'
+//const DEFAULT_API_BASE = 'http://localhost:3000/api'
 
 // ==================== Altcha CAPTCHA 功能 ====================
 
@@ -165,6 +165,29 @@ function showAltchaCaptchaDialog() {
 
 // 存储键名
 const STORAGE_KEY_DANMAKU_PREF = 'danmakuPreference';
+const STORAGE_KEY_API_ENDPOINT = 'apiEndpoint';
+
+// 当前 API_BASE
+let API_BASE = DEFAULT_API_BASE;
+
+// 初始化 API_BASE
+function initApiBase() {
+    return new Promise((resolve) => {
+        chrome.storage.sync.get([STORAGE_KEY_API_ENDPOINT], (result) => {
+            if (result[STORAGE_KEY_API_ENDPOINT]) {
+                API_BASE = result[STORAGE_KEY_API_ENDPOINT];
+            }
+            resolve();
+        });
+    });
+}
+
+// 监听存储变化
+chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName === 'sync' && changes[STORAGE_KEY_API_ENDPOINT]) {
+        API_BASE = changes[STORAGE_KEY_API_ENDPOINT].newValue || DEFAULT_API_BASE;
+    }
+});
 
 // 获取弹幕发送偏好
 // 返回: null (未设置), true (总是发送), false (总是不发送)
@@ -682,6 +705,11 @@ setInterval(() => {
         injectQuestionButton();
     }
 }, 500);
+
+// 初始化
+initApiBase().then(() => {
+    injectQuestionButton();
+});
 
 
 // 初始尝试 - 增加延迟，等 B 站顶栏加载完再动
