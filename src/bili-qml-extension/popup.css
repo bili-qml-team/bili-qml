@@ -41,22 +41,13 @@ h1 {
     cursor: pointer;
     padding: 5px;
     border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background-color 0.2s;
+    font-size: 18px;
+    transition: background-color 0.2s, transform 0.2s;
 }
 
 .settings-btn:hover {
     background-color: #e3e5e7;
-}
-
-.settings-btn svg path {
-    transition: fill 0.2s;
-}
-
-.settings-btn:hover svg path {
-    fill: #00aeec;
+    transform: translateY(-50%) rotate(30deg);
 }
 
 .tabs {
