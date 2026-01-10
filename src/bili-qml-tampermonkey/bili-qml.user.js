@@ -285,6 +285,7 @@
             font-weight: 700;
             background: linear-gradient(135deg, #00aeec 0%, #0077aa 100%);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
             margin: 0;
         }
