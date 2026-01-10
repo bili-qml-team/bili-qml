@@ -41,11 +41,11 @@ async function resetRateLimit(key) {
     await redis.del(key);
 }
 
-async function getLeaderBoardFromTime(periodMs = 24 * 3600 * 1000, limit = 50) {
+async function getLeaderBoardFromTime(periodMs = 24 * 3600 * 1000, limit = 30) {
     const now = Date.now();
     const minTime = now - periodMs;
     await redis.zremrangebyscore('votes:recent', '-inf', now - TIMESTAMP_EXPIRE_MS - 1);
-    const recentVotes = await redis.zrangebyscore('votes:recent', minTime, now);
+    const recentVotes = await redis.zrangebyscore('votes:recent', minTime, now, "LIMIT", 0, limit);
     const counts = {};
     for (const member of recentVotes) {
         const bvid = member.split(':')[0];  // 从 `${bvid}:${userId}` 提取
