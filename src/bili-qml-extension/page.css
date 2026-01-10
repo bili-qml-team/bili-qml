@@ -1,15 +1,120 @@
-@import "popup.css";
+/* page.css (standalone, does NOT depend on popup.css) */
 
 body {
     width: auto;
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    margin: 0;
     padding: 16px;
+    background-color: #f4f5f7;
 }
 
 .container {
+    display: flex;
+    flex-direction: column;
     max-width: 920px;
     margin: 0 auto;
 }
 
+header {
+    text-align: center;
+    border-bottom: 1px solid #e3e5e7;
+    padding-bottom: 10px;
+}
+
+h1 {
+    font-size: 18px;
+    color: #18191c;
+    margin: 10px 0;
+}
+
+.tabs {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 10px;
+}
+
+.tab-btn {
+    border: none;
+    background: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #61666d;
+    border-bottom: 2px solid transparent;
+}
+
+.tab-btn.active {
+    color: #00aeec;
+    border-bottom-color: #00aeec;
+    font-weight: bold;
+}
+
+.content-panel {
+    margin-top: 15px;
+}
+
 #leaderboard {
+    margin-top: 15px;
     max-height: none;
+}
+
+.item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    background: #fff;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.rank {
+    font-size: 16px;
+    font-weight: bold;
+    color: #9499a0;
+    width: 30px;
+}
+
+.item:nth-child(1) .rank {
+    color: #fe2c55;
+}
+
+.item:nth-child(2) .rank {
+    color: #ff9500;
+}
+
+.item:nth-child(3) .rank {
+    color: #ffcc00;
+}
+
+.info {
+    flex: 1;
+    margin-left: 10px;
+    overflow: hidden;
+}
+
+.title {
+    font-size: 14px;
+    color: #18191c;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    text-decoration: none;
+}
+
+.title:hover {
+    color: #00aeec;
+}
+
+.count {
+    font-size: 12px;
+    color: #9499a0;
+    margin-top: 4px;
+}
+
+.loading {
+    text-align: center;
+    padding: 20px;
+    color: #9499a0;
 }
