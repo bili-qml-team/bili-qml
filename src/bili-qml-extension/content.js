@@ -163,48 +163,19 @@ function showAltchaCaptchaDialog() {
 
 // ==================== 弹幕偏好功能 ====================
 
-// 存储键名
-const STORAGE_KEY_DANMAKU_PREF = 'danmakuPreference';
-const STORAGE_KEY_API_ENDPOINT = 'apiEndpoint';
-
-// 当前 API_BASE
-let API_BASE = DEFAULT_API_BASE;
-
-// 初始化 API_BASE
-function initApiBase() {
-    return new Promise((resolve) => {
-        chrome.storage.sync.get([STORAGE_KEY_API_ENDPOINT], (result) => {
-            if (result[STORAGE_KEY_API_ENDPOINT]) {
-                API_BASE = result[STORAGE_KEY_API_ENDPOINT];
-            }
-            resolve();
-        });
-    });
-}
-
-// 监听存储变化
-chrome.storage.onChanged.addListener((changes, areaName) => {
-    if (areaName === 'sync' && changes[STORAGE_KEY_API_ENDPOINT]) {
-        API_BASE = changes[STORAGE_KEY_API_ENDPOINT].newValue || DEFAULT_API_BASE;
-    }
-});
 
 // 获取弹幕发送偏好
 // 返回: null (未设置), true (总是发送), false (总是不发送)
 async function getDanmakuPreference() {
-    return new Promise((resolve) => {
-        chrome.storage.sync.get([STORAGE_KEY_DANMAKU_PREF], (result) => {
-            resolve(result[STORAGE_KEY_DANMAKU_PREF] !== undefined ? result[STORAGE_KEY_DANMAKU_PREF] : null);
-        });
+    return browserStorage.sync.get([STORAGE_KEY_DANMAKU_PREF], (result) => {
+        resolve(result[STORAGE_KEY_DANMAKU_PREF] !== undefined ? result[STORAGE_KEY_DANMAKU_PREF] : null);
     });
 }
 
 // 设置弹幕发送偏好
 async function setDanmakuPreference(preference) {
-    return new Promise((resolve) => {
-        chrome.storage.sync.set({ [STORAGE_KEY_DANMAKU_PREF]: preference }, () => {
+    return browserStorage.sync.set({ [STORAGE_KEY_DANMAKU_PREF]: preference }, () => {
             resolve();
-        });
     });
 }
 
