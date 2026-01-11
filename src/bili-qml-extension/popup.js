@@ -108,6 +108,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function renderList(list) {
         leaderboard.innerHTML = '';
+        // 获取设置
+        const settings = await browserStorage.sync.get(['rank1Setting']);
+        const rank1Custom = settings.rank1Setting === 'custom';
+
         await Promise.all(list.map(async (item, index) => {
             try {
                 let cache = {};
@@ -120,18 +124,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 cache.bvid = item.bvid;
                 cache.count = item.count;
-                renderEntry(cache, index + 1)
+                renderEntry(cache, index + 1, rank1Custom)
             } catch (err) {
                 console.error(`获取标题失败 ${item.bvid}:`, err);
                 cache.title = '加载失败';
             }
         }));
     }
-    function renderEntry(item, index) {
+    function renderEntry(item, index, rank1Custom) {
         const div = document.createElement('div');
         div.className = 'item';
+
+        let rankDisplay = index;
+        let rankHtmlClass = 'rank';
+        if (index === 1 && rank1Custom) {
+            rankDisplay = '何一位';
+            rankHtmlClass += ' rank-custom';
+        }
+
         div.innerHTML = `
-            <div class="rank">${index}</div>
+            <div class="${rankHtmlClass}">${rankDisplay}</div>
             <div class="info">
                 <a href="https://www.bilibili.com/video/${item.bvid}" target="_blank" class="title" title="${item.title}">${item.title}</a>
                 <div class="count">❓ 抽象指数: ${item.count}</div>
@@ -140,7 +152,11 @@ document.addEventListener('DOMContentLoaded', () => {
         leaderboard.appendChild(div);
         const allItems = Array.from(document.querySelectorAll('.item'));
         const nextItem = allItems.find(el => {
-            const rank = parseInt(el.querySelector('.rank')?.textContent || '999999');
+            // 需要处理 '何一位' 这种非数字的情况，确保排序正确
+            const rankText = el.querySelector('.rank')?.textContent || '999999';
+            let rank = parseInt(rankText);
+            if (rankText === '何一位') rank = 1;
+
             return rank >= index;
         });
         if (nextItem) {
@@ -153,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 加载设置
     async function loadSettings() {
         return new Promise((resolve) => {
-            browserStorage.sync.get([STORAGE_KEY_DANMAKU_PREF, STORAGE_KEY_API_ENDPOINT], (result) => {
+            browserStorage.sync.get([STORAGE_KEY_DANMAKU_PREF, STORAGE_KEY_API_ENDPOINT, 'rank1Setting'], (result) => {
                 // 弹幕偏好设置
                 const preference = result[STORAGE_KEY_DANMAKU_PREF];
                 let value = 'ask'; // 默认每次询问
@@ -170,6 +186,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     radio.checked = true;
                 }
 
+                // First Rank Display Setting
+                const rank1Setting = result.rank1Setting || 'default';
+                const rank1Radio = document.querySelector(`input[name="rank1-pref"][value="${rank1Setting}"]`);
+                if (rank1Radio) {
+                    rank1Radio.checked = true;
+                }
+
                 // Endpoint 设置
                 const endpointInput = document.getElementById('endpoint-input');
                 if (endpointInput) {
@@ -184,6 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 保存设置
     async function saveSettings() {
         const selectedRadio = document.querySelector('input[name="danmaku-pref"]:checked');
+        const rank1Radio = document.querySelector('input[name="rank1-pref"]:checked');
         const endpointInput = document.getElementById('endpoint-input');
         const endpointValue = endpointInput ? endpointInput.value.trim() : '';
 
@@ -198,6 +222,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+        // Handle Rank 1 Setting
+        const rank1Setting = rank1Radio ? rank1Radio.value : 'default';
+
         return new Promise((resolve) => {
             const updates = {};
             const removals = [];
@@ -208,6 +235,8 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 updates[STORAGE_KEY_DANMAKU_PREF] = preference;
             }
+
+            updates['rank1Setting'] = rank1Setting;
 
             // Endpoint 设置
             if (endpointValue && endpointValue !== DEFAULT_API_BASE) {

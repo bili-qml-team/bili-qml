@@ -99,6 +99,10 @@ document.addEventListener('DOMContentLoaded', () => {
     async function renderList(list) {
         grid.innerHTML = '';
 
+        // 获取设置
+        const settings = await new Promise(resolve => browserStorage.sync.get(['rank1Setting'], resolve));
+        const rank1Custom = settings.rank1Setting === 'custom';
+
 
         const renderedItems = await Promise.all(list.map(async (item, index) => {
             let details = {
@@ -123,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 details.title = `Video ${item.bvid}`;
             }
 
-            return createCardHTML(item, index + 1, details);
+            return createCardHTML(item, index + 1, details, rank1Custom);
         }));
 
         grid.innerHTML = renderedItems.join('');
@@ -157,9 +161,15 @@ document.addEventListener('DOMContentLoaded', () => {
         );
     }
 
-    function createCardHTML(item, rank, details) {
-        const rankClass = rank <= 3 ? `rank-${rank}` : '';
-        const rankDisplay = rank <= 3 ? rank : `#${rank}`;
+    function createCardHTML(item, rank, details, rank1Custom) {
+        let rankDisplay = rank <= 3 ? rank : `#${rank}`;
+
+        let rankClass = rank <= 3 ? `rank-${rank}` : '';
+
+        if (rank === 1 && rank1Custom) {
+            rankDisplay = '何一位';
+            rankClass += ' rank-custom-text';
+        }
 
         const safeTitle = escapeHtml(details.title);
         const picUrl = details.pic ? details.pic.replace('http:', 'https:') : '';

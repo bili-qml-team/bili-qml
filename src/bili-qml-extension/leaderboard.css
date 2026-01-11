@@ -339,6 +339,16 @@ header {
     /* Bronze */
 }
 
+.rank-badge.rank-custom-text {
+    font-size: 1rem;
+    line-height: 1.1;
+    letter-spacing: -1px;
+    color: #FF4D4F;
+    /* Red color for custom text */
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+    /* Lighter shadow for contrast against gold */
+}
+
 .rank-1::after {
     content: '👑';
     position: absolute;

@@ -274,6 +274,18 @@ h1 {
     text-shadow: 0 2px 4px rgba(255, 204, 0, 0.2);
 }
 
+.rank.rank-custom {
+    font-size: 18px;
+    font-weight: 900;
+    line-height: normal;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    margin: 0 auto;
+    display: inline-block;
+    letter-spacing: 1px;
+    transform: translateX(-2px);
+}
+
 .info {
     flex: 1;
     margin-left: 12px;
