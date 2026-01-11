@@ -19,8 +19,8 @@
 * `UPSTASH_REDIS_REST_URL`：Redis 服务访问地址
 * `UPSTASH_REDIS_REST_TOKEN`：Redis 服务访问Token
 * `ALTCHA_HMAC_KEY`：Altcha 验证码校验字符串
-* `WORKER_CACHE_URL`：后端Workers缓存服务访问地址，必须支持 HTTPS
-* `REFRESH_TOKEN`：后端Workers缓存服务像服务器请求更新缓存时验证的字符串，相同即为验证通过
+* `WORKER_CACHE_URL`：后端 Workers 缓存服务访问地址，必须支持 HTTPS
+* `REFRESH_TOKEN`：后端 Workers 缓存服务向服务器请求更新缓存时验证的字符串，相同即为验证通过
 
 ### server.js 可选环境变量
 
@@ -35,9 +35,9 @@
 ### worker.js 环境变量，绑定，触发器
 
 * `QML_API`：API服务器访问地址，必须支持 HTTPS
-* `REFRESH_TOKEN`：像服务器请求更新缓存时验证的字符串
+* `REFRESH_TOKEN`：向服务器请求更新缓存时验证的字符串
 * `LEADERBOARD_CACHE`：绑定 `Workers KV` 命名空间，存储了缓存的结果
-* `Cron`：设置为 `*/5 * * * *`，每5分钟像服务器请求更新缓存
+* `Cron`：设置为 `*/5 * * * *`，每5分钟向服务器请求更新缓存
 
 ## 接口列表
 
