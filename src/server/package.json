@@ -11,8 +11,7 @@
     "express": "^4.18.2",
     "ioredis": "^5.9.1",
     "lowdb": "^1.0.0",
-    "moment": "^2.29.4",
-    "node-cron": "^4.2.1"
+    "moment": "^2.29.4"
   },
   "scripts": {
     "eo-deploy": "node tools/eo-deploy.js server.js",

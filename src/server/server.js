@@ -3,7 +3,6 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const { Redis } = require('ioredis');
 const { createChallenge, verifySolution } = require('altcha-lib');
-const cron = require('node-cron');
 
 const app = express();
 
@@ -81,9 +80,6 @@ async function updateLeaderBoardCache() {
     console.log('Leaderboard cache updated.');
 }
 
-cron.schedule('*/5 * * * *', updateLeaderBoardCache); // 每5分钟更新一次排行榜缓存
-
-updateLeaderBoardCache();
 // 服务器逻辑区
 
 app.use(cors({
@@ -159,6 +155,23 @@ app.use((req, res, next) => {
         return res.status(404).end();
     }
     next();
+});
+
+// EdgeOne Pages不支持定时任务自动刷新，提供手动刷新接口，由外部定时任务调用
+app.use(["/api/refresh", "/refresh"], async (req, res) => {
+    const authHeader = req.headers["authorization"];
+    const token = authHeader && authHeader.split(" ")[1];
+    // simple token check
+    if (!token || token !== process.env.REFRESH_TOKEN) {
+        return res.status(403).json({ message: "Token missing" });
+    }
+    try {
+        await updateLeaderBoardCache();
+        return res.json({ success: true });
+    } catch (error) {
+        console.error('Leaderboard Cache Update Error:', error);
+        return res.status(500).json({ success: false, error: 'Failed to refresh cache' });
+    }
 });
 
 // Altcha 挑战端点
@@ -330,3 +343,8 @@ app.get(['/api/leaderboard', '/leaderboard'], async (req, res) => {
 });
 
 export default app;
+// module.exports = app;
+// const PORT = process.env.PORT || 3000;
+// app.listen(PORT, () => {
+//     console.log(`Server is running on port ${PORT}`);
+// });
