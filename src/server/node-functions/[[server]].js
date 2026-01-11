@@ -288,8 +288,7 @@ app.get(['/api/status', '/status'], async (req, res) => {
 
 // 获取排行榜
 app.get(['/api/leaderboard', '/leaderboard'], async (req, res) => {
-    const { range = 'realtime', type, altcha } = req.query;
-    let proc_type = parseInt(type);
+    const { range = 'realtime', altcha } = req.query;
     if (range !== 'realtime' && range !== 'daily' && range !== 'weekly' && range !== 'monthly') {
         return res.status(400).json({ success: false, error: 'Invalid range' });
     }
@@ -314,31 +313,34 @@ app.get(['/api/leaderboard', '/leaderboard'], async (req, res) => {
 
         const [board, expireTime] = await getLeaderBoard(range);
         if (range !== 'realtime') res.set('QML-Cache-Expires', `${expireTime}`);
+        if (!board || board.length === 0) {
+            return res.json({ success: false, list: [] });
+        }
         let list = board.map((array) => { return { bvid: array[0], count: array[1] } });
         // no type or type != 2: add backward capability
-        if (!proc_type || proc_type !== 2) {
-            await Promise.all(list.map(async (item, index) => {
-                try {
-                    const conn = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${item.bvid}`,
-                        {
-                            headers: {
-                                "Origin": "https://www.bilibili.com",
-                                "Referer": `https://www.bilibili.com/video/${item.bvid}/`,
-                                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
-                            }
-                        });
-                    const json = await conn.json();
-                    if (json.code === 0 && json.data?.title) {
-                        list[index].title = json.data.title;
-                    } else {
-                        list[index].title = '未知标题';
-                    }
-                } catch (err) {
-                    console.error(`获取标题失败 ${item.bvid}:`, err);
-                    list[index].title = '加载失败';
-                }
-            }));
-        }
+        // if (!proc_type || proc_type !== 2) {
+            // await Promise.all(list.map(async (item, index) => {
+            //     try {
+            //         const conn = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${item.bvid}`,
+            //             {
+            //                 headers: {
+            //                     "Origin": "https://www.bilibili.com",
+            //                     "Referer": `https://www.bilibili.com/video/${item.bvid}/`,
+            //                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
+            //                 }
+            //             });
+            //         const json = await conn.json();
+            //         if (json.code === 0 && json.data?.title) {
+            //             list[index].title = json.data.title;
+            //         } else {
+            //             list[index].title = '未知标题';
+            //         }
+            //     } catch (err) {
+            //         console.error(`获取标题失败 ${item.bvid}:`, err);
+            //         list[index].title = '加载失败';
+            //     }
+            // }));
+        // }
         res.json({ success: true, list: list });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
