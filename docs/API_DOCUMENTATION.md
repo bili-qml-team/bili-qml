@@ -1,4 +1,4 @@
-# B站问号榜 (Bilibili Q-Mark List) 后端 API 文档
+# B站问号榜 (Bilibili Question-Mark Leaderboard) 后端 API 文档
 
 本文档详细描述了 B站问号榜后端服务的接口规范。
 
