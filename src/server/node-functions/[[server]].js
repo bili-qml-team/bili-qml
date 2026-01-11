@@ -99,7 +99,12 @@ const securityCheck = (req, res, next) => {
 
         // 校验 BVID 格式（简单正则）
         if (bvid && !/^BV[a-zA-Z0-9]{10}$/.test(bvid)) {
-            return res.status(400).json({ success: false, error: 'Invalid ID' });
+            return res.status(400).json({ success: false, error: 'Invalid BVID' });
+        }
+
+        // 校验 userId 格式（数字字符串）
+        if (userId && !/^\d+$/.test(userId)) {
+            return res.status(400).json({ success: false, error: 'Invalid User ID' });
         }
     }
 
@@ -285,6 +290,9 @@ app.get(['/api/status', '/status'], async (req, res) => {
 app.get(['/api/leaderboard', '/leaderboard'], async (req, res) => {
     const { range = 'realtime', type, altcha } = req.query;
     let proc_type = parseInt(type);
+    if (range !== 'realtime' && range !== 'daily' && range !== 'weekly' && range !== 'monthly') {
+        return res.status(400).json({ success: false, error: 'Invalid range' });
+    }
 
     try {
         // 使用 IP 作为频率限制标识（排行榜是公开的，不需要 userId）
