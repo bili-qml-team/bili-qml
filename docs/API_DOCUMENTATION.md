@@ -36,6 +36,9 @@
 
 * `QML_API`：API服务器访问地址，必须支持 HTTPS
 * `REFRESH_TOKEN`：向服务器请求更新缓存时验证的字符串
+* `WORKER_HOST`：Worker 请求绑定的 HOST，用于清除边缘缓存
+* `ZONE_ID`：`WORKER_HOST` 所在的域（zone）id
+* `CACHE_PURGE_TOKEN`：用于清除边缘缓存的 API Token，见 https://developers.cloudflare.com/api/resources/cache/methods/purge/
 * `LEADERBOARD_CACHE`：绑定 `Workers KV` 命名空间，存储了缓存的结果
 * `Cron`：设置为 `*/5 * * * *`，每5分钟向服务器请求更新缓存
 
