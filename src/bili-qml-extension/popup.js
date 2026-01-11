@@ -188,7 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 // First Rank Display Setting
-                const rank1Setting = result.rank1Setting || 'default';
+                const rank1Setting = result.rank1Setting || 'custom';
                 const rank1Radio = document.querySelector(`input[name="rank1-pref"][value="${rank1Setting}"]`);
                 if (rank1Radio) {
                     rank1Radio.checked = true;

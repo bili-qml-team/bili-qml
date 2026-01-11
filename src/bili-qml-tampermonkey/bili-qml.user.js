@@ -1505,7 +1505,7 @@
         (function(){
             const API_BASE = ${JSON.stringify(API_BASE)};
             const initialRange = ${JSON.stringify(safeRange)};
-            const rank1Custom = ${JSON.stringify(GM_getValue('rank1Setting', 'default') === 'custom')};
+            const rank1Custom = ${JSON.stringify(GM_getValue('rank1Setting', 'custom') === 'custom')};
             const grid = document.getElementById('leaderboard-grid');
             const tabs = document.querySelectorAll('.tab-btn');
             
@@ -1796,7 +1796,7 @@
                 <div class="qmr-radio-group">
                     <label class="qmr-radio-item">
                         <input type="radio" name="qmr-rank1-pref" value="default">
-                        <span>默认 (1)</span>
+                        <span>正常 (1)</span>
                     </label>
                     <label class="qmr-radio-item">
                         <input type="radio" name="qmr-rank1-pref" value="custom">
@@ -2046,7 +2046,7 @@
         }
 
         // 第一名显示设置
-        const rank1Setting = GM_getValue('rank1Setting', 'default');
+        const rank1Setting = GM_getValue('rank1Setting', 'custom');
         const rank1Radio = panel.querySelector(`input[name="qmr-rank1-pref"][value="${rank1Setting}"]`);
         if (rank1Radio) {
             rank1Radio.checked = true;
@@ -2112,7 +2112,7 @@
         const leaderboard = document.querySelector('#bili-qmr-panel .qmr-leaderboard');
         if (!leaderboard) return;
 
-        const rank1Custom = GM_getValue('rank1Setting', 'default') === 'custom';
+        const rank1Custom = GM_getValue('rank1Setting', 'custom') === 'custom';
 
         leaderboard.innerHTML = '';
         list.forEach((item, index) => {
