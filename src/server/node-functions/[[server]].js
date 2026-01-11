@@ -12,7 +12,7 @@ const leaderboardTimeInterval = [24 * 3600 * 1000, 7 * 24 * 3600 * 1000, 30 * 24
 
 // Altcha 配置
 const ALTCHA_HMAC_KEY = process.env.ALTCHA_HMAC_KEY || 'bili-qml-default-hmac-key-change-in-production';
-const ALTCHA_COMPLEXITY = Number(process.env.ALTCHA_COMPLEXITY) || 50000; // PoW 难度
+const ALTCHA_COMPLEXITY = Number(process.env.ALTCHA_COMPLEXITY) || 250000; // PoW 难度
 
 // 频率限制配置
 const RATE_LIMIT_VOTE_MAX = Number(process.env.RATE_LIMIT_VOTE_MAX) || 10; // 投票最大次数
@@ -22,7 +22,7 @@ const RATE_LIMIT_LEADERBOARD_WINDOW = Number(process.env.RATE_LIMIT_LEADERBOARD_
 
 // 使用Workers KV作为缓存，见worker.js
 
-const redis = new Redis(`${process.env.UPSTASH_REDIS_PROTO}://default:${process.env.UPSTASH_REDIS_REST_TOKEN}@${process.env.UPSTASH_REDIS_REST_URL}`);
+const redis = new Redis(`${process.env.UPSTASH_REDIS_PROTO || "redis"}://default:${process.env.UPSTASH_REDIS_REST_TOKEN}@${process.env.UPSTASH_REDIS_REST_URL}`);
 
 // 频率限制器：检查并增加计数
 async function checkRateLimit(key, maxRequests, windowSeconds) {
@@ -67,14 +67,6 @@ async function getLeaderBoard(range) {
         return [(await getLeaderBoardFromTime(12 * 3600 * 1000)), 0]; //过去12小时
     }
     return await getCachedLeaderBoard(range);
-}
-
-async function updateLeaderBoardCache() {
-    leaderBoardCache.expireTime = Date.now() + CACHE_EXPIRE_MS;
-    leaderBoardCache.caches = await Promise.all(leaderboardTimeInterval.map((time) => {
-        return getLeaderBoardFromTime(time);
-    }));
-    console.log('Leaderboard cache updated.');
 }
 
 // 服务器逻辑区
@@ -163,7 +155,13 @@ app.use(["/api/refresh", "/refresh"], async (req, res) => {
         return res.status(403).json({ message: "Token missing" });
     }
     try {
-        await updateLeaderBoardCache();
+        const leaderBoardCache = {
+            expireTime: Date.now() + CACHE_EXPIRE_MS,
+            caches: await Promise.all(leaderboardTimeInterval.map((time) => {
+                return getLeaderBoardFromTime(time);
+            }))
+        };
+        console.log('Leaderboard cache updated.');
         return res.json({ success: true, leaderBoardCache });
     } catch (error) {
         console.error('Leaderboard Cache Update Error:', error);

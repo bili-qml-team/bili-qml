@@ -69,14 +69,6 @@ async function getLeaderBoard(range) {
     return await getCachedLeaderBoard(range);
 }
 
-async function updateLeaderBoardCache() {
-    leaderBoardCache.expireTime = Date.now() + CACHE_EXPIRE_MS;
-    leaderBoardCache.caches = await Promise.all(leaderboardTimeInterval.map((time) => {
-        return getLeaderBoardFromTime(time);
-    }));
-    console.log('Leaderboard cache updated.');
-}
-
 // 服务器逻辑区
 
 app.use(cors({
@@ -163,7 +155,13 @@ app.use(["/api/refresh", "/refresh"], async (req, res) => {
         return res.status(403).json({ message: "Token missing" });
     }
     try {
-        await updateLeaderBoardCache();
+        const leaderBoardCache = {
+            expireTime: Date.now() + CACHE_EXPIRE_MS,
+            caches: await Promise.all(leaderboardTimeInterval.map((time) => {
+                return getLeaderBoardFromTime(time);
+            }))
+        };
+        console.log('Leaderboard cache updated.');
         return res.json({ success: true, leaderBoardCache });
     } catch (error) {
         console.error('Leaderboard Cache Update Error:', error);
