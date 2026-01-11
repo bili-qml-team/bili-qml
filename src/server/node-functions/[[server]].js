@@ -3,12 +3,13 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const { Redis } = require('ioredis');
 const { createChallenge, verifySolution } = require('altcha-lib');
+const cron = require('node-cron');
 
 const app = express();
 
 const TIMESTAMP_EXPIRE_MS = Number(process.env.TIMESTAMP_EXPIRE_MS) || 180 * 24 * 3600 * 1000; //排行榜总数据过期时间
 const CACHE_EXPIRE_MS = Number(process.env.CACHE_EXPIRE_MS) || 300 * 1000; // 排行榜cache过期时间
-const leaderboardTimeInterval = [12 * 3600 * 1000, 24 * 3600 * 1000, 7 * 24 * 3600 * 1000, 30 * 24 * 3600 * 1000]; //排行榜相差时间
+const leaderboardTimeInterval = [24 * 3600 * 1000, 7 * 24 * 3600 * 1000, 30 * 24 * 3600 * 1000]; //排行榜相差时间
 
 // Altcha 配置
 const ALTCHA_HMAC_KEY = process.env.ALTCHA_HMAC_KEY || 'bili-qml-default-hmac-key-change-in-production';
@@ -20,7 +21,7 @@ const RATE_LIMIT_VOTE_WINDOW = Number(process.env.RATE_LIMIT_VOTE_WINDOW) || 300
 const RATE_LIMIT_LEADERBOARD_MAX = Number(process.env.RATE_LIMIT_LEADERBOARD_MAX) || 20; // 排行榜最大次数
 const RATE_LIMIT_LEADERBOARD_WINDOW = Number(process.env.RATE_LIMIT_LEADERBOARD_WINDOW) || 300; // 排行榜窗口（秒）
 
-var leaderBoardCache = {
+let leaderBoardCache = {
     caches: [],
     expireTime: 0
 };
@@ -47,7 +48,7 @@ async function getLeaderBoardFromTime(periodMs = 24 * 3600 * 1000, limit = 30) {
     const counts = {};
     const [_, recentVotes] = await Promise.all([
         redis.zremrangebyscore('votes:recent', '-inf', now - TIMESTAMP_EXPIRE_MS - 1),
-        redis.zrangebyscore('votes:recent', minTime, now, "LIMIT", 0, limit)
+        redis.zrangebyscore('votes:recent', minTime, now)
     ]);
     for (const member of recentVotes) {
         const bvid = member.split(':')[0];  // 从 `${bvid}:${userId}` 提取
@@ -60,25 +61,24 @@ async function getLeaderBoardFromTime(periodMs = 24 * 3600 * 1000, limit = 30) {
 }
 
 async function getLeaderBoard(range) {
-    const now = Date.now();
-    if (leaderBoardCache.expireTime < now) {
-        leaderBoardCache.expireTime = Date.now() + CACHE_EXPIRE_MS;
-        leaderBoardCache.caches = await Promise.all(leaderboardTimeInterval.map((time) => {
-            return getLeaderBoardFromTime(time);
-        }));
-    }
     switch (range) { //滑动窗口榜单 以UNIX时间戳计算
         case "realtime":
-            return leaderBoardCache.caches[0];
+            return await getLeaderBoardFromTime(12 * 3600 * 1000); //实时榜单 过去12小时
         case "daily":
-            return leaderBoardCache.caches[1];
+            return leaderBoardCache.caches[0];
         case "weekly":
-            return leaderBoardCache.caches[2];
+            return leaderBoardCache.caches[1];
         case "monthly":
-            return leaderBoardCache.caches[3];
+            return leaderBoardCache.caches[2];
     }
 }
 
+cron.schedule('*/5 * * * *', async () => { // 每5分钟执行一次
+    leaderBoardCache.expireTime = Date.now() + CACHE_EXPIRE_MS;
+    leaderBoardCache.caches = await Promise.all(leaderboardTimeInterval.map((time) => {
+        return getLeaderBoardFromTime(time);
+    }));
+});
 // 服务器逻辑区
 
 app.use(cors({
@@ -202,7 +202,7 @@ app.post(['/api/vote', '/vote'], async (req, res) => {
         const voted = await redis.sadd(`voted:${bvid}`, userId);
         if (voted === 0) return res.status(400).json({ success: false, error: 'Already Voted' });
         // 总票统计
-        
+
         // 排行榜时间戳记录
         const now = Date.now();
         await Promise.all([
@@ -292,6 +292,7 @@ app.get(['/api/leaderboard', '/leaderboard'], async (req, res) => {
         }
 
         const board = await getLeaderBoard(range);
+        if (range !== 'realtime') res.set('QML-Cache-Expires', `${CACHE_EXPIRE_MS / 1000}`);
         let list = board.map((array) => { return { bvid: array[0], count: array[1] } });
         // no type or type != 2: add backward capability
         if (!proc_type || proc_type !== 2) {
