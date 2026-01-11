@@ -147,7 +147,7 @@ app.use((req, res, next) => {
 });
 
 // EdgeOne Pages不支持定时任务自动刷新，提供手动刷新接口，由外部定时任务调用
-app.use(["/api/refresh", "/refresh"], async (req, res) => {
+app.get(["/api/refresh", "/refresh"], async (req, res) => {
     const authHeader = req.headers["authorization"];
     const token = authHeader && authHeader.split(" ")[1];
     // simple token check
