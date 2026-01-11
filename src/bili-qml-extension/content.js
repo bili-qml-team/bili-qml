@@ -523,7 +523,7 @@ async function sendDanmaku(text) {
         dmInput.dispatchEvent(enterEvent);
 
         // 等待观察结果
-        await wait(200);
+        await wait(1000);
 
         // 检查是否发送成功（发送成功通常会清空输入框）
         // 如果输入框内容变了（比如变空），说明发送成功
@@ -542,7 +542,7 @@ async function sendDanmaku(text) {
         dmSendBtn.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
 
         // 等待观察结果
-        await wait(200);
+        await wait(1000);
 
         if (dmInput.value !== text) {
             console.log('[B站问号榜] 方案2生效，发送成功');
@@ -791,13 +791,13 @@ function waitFor(selector, ms = undefined) {
 // Main Entry Point
 initApiBase().then(() => {
     // 初始加载：等待 Vue 加载时须:搜索框应该是最后进行load
-    waitFor('.nav-search-input').then((ele) =>{
-        ele.addEventListener("load",()=>{
-            const fn = () =>{
-                if(ele.readyState=='complete'){
+    waitFor('.nav-search-input').then((ele) => {
+        ele.addEventListener("load", () => {
+            const fn = () => {
+                if (ele.readyState == 'complete') {
                     tryInject()
-                }else{
-                    setTimeout(fn,100);
+                } else {
+                    setTimeout(fn, 100);
                 }
             }
             fn()

@@ -1015,7 +1015,7 @@
             dmInput.dispatchEvent(enterEvent);
 
             // 等待观察结果
-            await wait(200);
+            await wait(1000);
 
             // 检查是否发送成功（发送成功通常会清空输入框）
             // 如果输入框内容变了（比如变空），说明发送成功
@@ -1034,7 +1034,7 @@
             dmSendBtn.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
 
             // 等待观察结果
-            await wait(200);
+            await wait(1000);
 
             if (dmInput.value !== text) {
                 console.log('[B站问号榜] 方案2生效，发送成功');
