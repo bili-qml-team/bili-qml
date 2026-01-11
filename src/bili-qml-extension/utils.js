@@ -67,7 +67,7 @@ const sq = (
  * 等待标签页处于前台时(未失去焦点, 未最小化)再执行动作
  * @param action 要执行的动作
  */
-export const waitForForeground = (action) => {
+const waitForForeground = (action) => {
   const runAction = () => {
     if (document.visibilityState === 'visible') {
       action()
@@ -92,11 +92,11 @@ const playerReady = async () => {
     () => unsafeWindow,
     () => unsafeWindow.UserStatus !== undefined,
   )
-    ////  return new Promise<void>((resolve, reject) => {
+  ////  return new Promise<void>((resolve, reject) => {
   return new Promise((resolve, reject) => {
     const isJudgementVideo =
       document.URL.replace(window.location.search, '') ===
-        'https://www.bilibili.com/blackboard/newplayer.html' && document.URL.includes('fjw=true')
+      'https://www.bilibili.com/blackboard/newplayer.html' && document.URL.includes('fjw=true')
     if (isJudgementVideo) {
       /* 如果是风纪委员里的内嵌视频, 永远不 resolve
         https://github.com/the1812/Bilibili-Evolved/issues/2340
@@ -127,12 +127,12 @@ const addVideoActionButton = async (getButton) => {
   await playerReady()
   const favoriteButton = dq(
     '.video-toolbar .ops .collect, .video-toolbar-v1 .toolbar-left .collect, .video-toolbar-left-item.video-fav',
-////  ) as HTMLElement
-    )
+    ////  ) as HTMLElement
+  )
   if (!favoriteButton) {
     return null
   }
-////  const { hasVideo } = await import('@/core/spin-query')
+  ////  const { hasVideo } = await import('@/core/spin-query')
   await hasVideo()
   const button = await getButton()
   if (favoriteButton.classList.contains('video-fav')) {
