@@ -9,7 +9,7 @@
  */
 import { env } from "cloudflare:workers";
 
-async function purgeCache(hostname) {
+async function purgeCache() {
     return fetch(`https://api.cloudflare.com/client/v4/zones/${env.ZONE_ID}/purge_cache`,
         {
             method: "POST",
@@ -18,7 +18,7 @@ async function purgeCache(hostname) {
                 "Authorization": `Bearer ${env.CACHE_PURGE_TOKEN}`
             },
             body: JSON.stringify({
-                "hosts": [`${hostname}`]
+                "hosts": [`${env.WORKER_HOST}`]
             })
         });
 }
@@ -34,12 +34,12 @@ export default {
         const end = Date.now();
         const responseJson = await response.json();
         if (responseJson && responseJson.success) {
-            console.log(`Refresh success at ${end}, took ${(end - start) / 1000.0}s, cache: ${JSON.stringify(responseJson.leaderBoardCache)}`);
             await env.LEADERBOARD_CACHE.put('expireTime', String(responseJson.leaderBoardCache.expireTime));
             await env.LEADERBOARD_CACHE.put('daily', JSON.stringify(responseJson.leaderBoardCache.caches[0]));
             await env.LEADERBOARD_CACHE.put('weekly', JSON.stringify(responseJson.leaderBoardCache.caches[1]));
             await env.LEADERBOARD_CACHE.put('monthly', JSON.stringify(responseJson.leaderBoardCache.caches[2]));
-            await purgeCache(env.WORKER_HOST);
+            await purgeCache();
+            console.log(`Refresh success at ${end}, took ${(end - start) / 1000.0}s, cache: ${JSON.stringify(responseJson.leaderBoardCache)}`);
         } else {
             console.error(`Refresh failed at ${end}`);
         }
@@ -52,6 +52,7 @@ export default {
             let cache = caches.default;
             const response = await cache.match(request);
             if (response) {
+                console.log("Cache Hit, use existing cache.")
                 return response;
             }
             const period = url.pathname.slice(1); // remove leading '/'
@@ -70,6 +71,7 @@ export default {
                     }
                 });
                 await cache.put(request, response);
+                console.log("Cache Miss, new cache stored.")
                 return new Response(JSON.stringify({
                     success: true,
                     period: period,
