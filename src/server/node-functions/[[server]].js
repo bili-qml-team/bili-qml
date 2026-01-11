@@ -4,6 +4,7 @@ const bodyParser = require('body-parser');
 const { Redis } = require('ioredis');
 const { createChallenge, verifySolution } = require('altcha-lib');
 const cron = require('node-cron');
+require('dotenv').config();
 
 const app = express();
 
@@ -73,12 +74,17 @@ async function getLeaderBoard(range) {
     }
 }
 
-cron.schedule('*/5 * * * *', async () => { // 每5分钟执行一次
+async function updateLeaderBoardCache() {
     leaderBoardCache.expireTime = Date.now() + CACHE_EXPIRE_MS;
     leaderBoardCache.caches = await Promise.all(leaderboardTimeInterval.map((time) => {
         return getLeaderBoardFromTime(time);
     }));
-});
+    console.log('Leaderboard cache updated.');
+}
+
+cron.schedule('*/5 * * * *', updateLeaderBoardCache); // 每5分钟更新一次排行榜缓存
+
+updateLeaderBoardCache();
 // 服务器逻辑区
 
 app.use(cors({
@@ -324,4 +330,10 @@ app.get(['/api/leaderboard', '/leaderboard'], async (req, res) => {
     }
 });
 
-export default app;
+module.exports = app;
+if (require.main === module) {
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => {
+        console.log(`Server is running on port ${PORT}`);
+    });
+}
