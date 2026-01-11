@@ -889,12 +889,11 @@
     // 同步按钮状态
     async function syncButtonState() {
         const qBtn = document.getElementById('bili-qmr-btn');
-        if (!qBtn) return;
+        const qBtnInner = document.getElementById('bili-qmr-btn-inner');
+        if (!qBtn || !qBtnInner || isSyncing) return;
 
         const bvid = getBvid();
         if (!bvid) return;
-
-        if (isSyncing) return;
 
         try {
             isSyncing = true;
@@ -908,12 +907,13 @@
             const isLoggedIn = !!userId;
             if (statusData.active && isLoggedIn) {
                 qBtn.classList.add('voted');
-                document.getElementById('bili-qmr-btn-inner').classList.add('on');
+                qBtnInner.classList.add('on');
             } else {
                 qBtn.classList.remove('voted');
-                document.getElementById('bili-qmr-btn-inner').classList.remove('on');
+                qBtnInner.classList.remove('on');
             }
 
+            // 更新显示的数量
             const countText = qBtn.querySelector('.qmr-text');
             if (countText) {
                 const newText = statusData.count > 0 ? formatCount(statusData.count) : '问号';
@@ -1089,18 +1089,13 @@
                     <span class="qmr-text">...</span>`;
                 qBtn.appendChild(qBtnInner);
 
+
                 toolbarLeft.style.position = 'relative';
                 toolbarLeft.appendChild(qBtn);
 
-                // 阻止悬停事件冒泡
-                ['mouseenter', 'mouseover'].forEach(type => {
-                    qBtn.addEventListener(type, (e) => e.stopPropagation());
-                });
-
-                // 左键点击：投票
                 qBtn.onclick = async (e) => {
                     e.preventDefault();
-                    e.stopPropagation();
+                    // e.stopPropagation(); // 依然保留，防止点击事件向上冒泡干扰 B 站
 
                     if (!document.cookie.includes('DedeUserID')) {
                         alert('请先登录 B 站后再投问号哦 ~');
@@ -1157,7 +1152,6 @@
 
                         if (resData.success) {
                             console.log('[B站问号榜] 投票成功, isVoting:', isVoting);
-                            syncButtonState();
                             // 只有当点亮（isVoting 为 true）时才发弹幕
                             if (isVoting) {
                                 console.log('[B站问号榜] 获取弹幕偏好...');
@@ -1182,6 +1176,7 @@
                                 }
                                 // preference === false 时不发送
                             }
+                            await syncButtonState();
                         } else {
                             alert('投票失败: ' + (resData.error || '未知错误'));
                         }
@@ -1981,38 +1976,41 @@
         });
     }
 
-    function observeDomStabilization(callback, { delay = 2000, maxWait = 20000 } = {}) {
-        let debounceTimeout;
-        let maxWaitTimeout;
-        let disconnected = false;
+    function waitFor(selector, ms = undefined) {
+        return new Promise((resolve, reject) => {
+            const target = document.querySelector(selector);
+            if (target) {
+                resolve(target);
+                return;
+            }
 
-        const observer = new MutationObserver(() => {
-            clearTimeout(debounceTimeout);
-            if (!disconnected) {
-                debounceTimeout = setTimeout(done, delay);
+            const observer = new MutationObserver(() => {
+                const element = document.querySelector(selector);
+                if (element) {
+                    observer.disconnect();
+                    resolve(element);
+                }
+            });
+
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+
+            if (ms) {
+                const timeoutId = setTimeout(() => {
+                    observer.disconnect();
+                    reject(new Error(`Element not found: "${selector}" within ${ms}ms`));
+                }, ms);
+
+                // 清理：如果元素提前找到了，清除定时器
+                const originalResolve = resolve;
+                resolve = (value) => {
+                    clearTimeout(timeoutId);
+                    originalResolve(value);
+                };
             }
         });
-
-        const done = () => {
-            if (disconnected) return;
-            disconnected = true;
-            observer.disconnect();
-            clearTimeout(maxWaitTimeout);
-            callback();
-        };
-
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true,
-            attributes: false
-        });
-
-        maxWaitTimeout = setTimeout(() => {
-            console.log('[B站问号榜] 最长等待时间到了，强制注入');
-            done();
-        }, maxWait);
-
-        debounceTimeout = setTimeout(done, delay);
     }
 
     // 核心注入逻辑
@@ -2030,7 +2028,6 @@
 
         // 如果找不到工具栏，可能还在加载，或者是不支持的页面
         if (!toolbarLeft) {
-            // console.log('[B站问号榜] 未找到工具栏，跳过注入');
             return;
         }
 
@@ -2043,9 +2040,18 @@
 
     // ==================== 初始化 ====================
 
-    // 初始加载：等待 DOM 稳定
-    observeDomStabilization(() => {
-        tryInject();
+    // 初始加载：等待 Vue 加载完成，搜索框应该是最后进行 load 的元素
+    waitFor('.nav-search-input').then((ele) => {
+        ele.addEventListener("load", () => {
+            const fn = () => {
+                if (ele.readyState == 'complete') {
+                    tryInject();
+                } else {
+                    setTimeout(fn, 100);
+                }
+            };
+            fn();
+        });
     });
 
     // 处理 SPA 软导航 (URL 变化)
@@ -2054,9 +2060,7 @@
         if (location.href !== lastUrl) {
             lastUrl = location.href;
             // URL 变化后，重新等待稳定再注入
-            observeDomStabilization(() => {
-                tryInject();
-            }, { delay: 500 });
+            syncButtonState();
         } else {
             // 简单的保底检查：如果当前应该是视频页但按钮丢了
             if (getBvid() && !document.getElementById('bili-qmr-btn')) {
