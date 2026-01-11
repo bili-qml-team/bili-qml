@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const leaderboard = document.getElementById('leaderboard');
     const settingsPanel = document.getElementById('settings');
+    const settingsWrapper = document.getElementById('settings-wrapper');
     const tabs = document.querySelectorAll('.tab-btn');
 
     function openPageWithRange() {
@@ -283,12 +284,12 @@ document.addEventListener('DOMContentLoaded', () => {
     function switchPanel(panelType) {
         if (panelType === 'settings') {
             leaderboard.style.display = 'none';
-            settingsPanel.style.display = 'block';
+            if (settingsWrapper) settingsWrapper.style.display = 'flex';
             document.querySelector('.tabs').style.display = 'none'; // 隐藏排行榜Tab
             loadSettings();
         } else {
             leaderboard.style.display = 'block';
-            settingsPanel.style.display = 'none';
+            if (settingsWrapper) settingsWrapper.style.display = 'none';
             document.querySelector('.tabs').style.display = 'flex'; // 显示排行榜Tab
         }
     }
@@ -309,7 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (settingsBtn) {
         settingsBtn.addEventListener('click', () => {
             // 如果当前在设置页，则返回排行榜（toggle效果）
-            if (settingsPanel.style.display === 'block') {
+            if (settingsWrapper && settingsWrapper.style.display === 'flex') {
                 switchPanel('leaderboard');
             } else {
                 switchPanel('settings');
