@@ -351,6 +351,17 @@
             align-items: center;
             background: rgba(255,255,255,0.5);
             border-radius: 16px 16px 0 0;
+            cursor: grab;
+            user-select: none;
+        }
+
+        #bili-qmr-panel .qmr-header:active {
+            cursor: grabbing;
+        }
+
+        #bili-qmr-panel.qmr-dragging {
+            animation: none;
+            transition: none;
         }
 
         #bili-qmr-panel .qmr-title {
@@ -1814,6 +1825,70 @@
             e.preventDefault();
             e.stopPropagation();
             panel.classList.remove('show');
+        });
+
+        // 拖拽功能
+        const header = panel.querySelector('.qmr-header');
+        let isDragging = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let panelStartX = 0;
+        let panelStartY = 0;
+
+        header.addEventListener('mousedown', (e) => {
+            // 排除点击按钮等交互元素
+            if (e.target.closest('.qmr-close') ||
+                e.target.closest('.qmr-settings-btn') ||
+                e.target.closest('.qmr-page-btn') ||
+                e.target.closest('#qmr-theme-btn')) {
+                return;
+            }
+
+            isDragging = true;
+            panel.classList.add('qmr-dragging');
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+
+            // 获取当前面板位置
+            const rect = panel.getBoundingClientRect();
+            panelStartX = rect.left;
+            panelStartY = rect.top;
+
+            // 改为使用 left/top 定位以便拖拽
+            panel.style.right = 'auto';
+            panel.style.left = panelStartX + 'px';
+            panel.style.top = panelStartY + 'px';
+
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+
+            const deltaX = e.clientX - dragStartX;
+            const deltaY = e.clientY - dragStartY;
+
+            let newX = panelStartX + deltaX;
+            let newY = panelStartY + deltaY;
+
+            // 边界限制
+            const panelWidth = panel.offsetWidth;
+            const panelHeight = panel.offsetHeight;
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+
+            newX = Math.max(0, Math.min(newX, windowWidth - panelWidth));
+            newY = Math.max(0, Math.min(newY, windowHeight - panelHeight));
+
+            panel.style.left = newX + 'px';
+            panel.style.top = newY + 'px';
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                panel.classList.remove('qmr-dragging');
+            }
         });
 
         // 设置按钮
