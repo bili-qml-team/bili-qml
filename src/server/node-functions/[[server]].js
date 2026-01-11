@@ -298,7 +298,7 @@ app.get(['/api/leaderboard', '/leaderboard'], async (req, res) => {
         }
 
         const board = await getLeaderBoard(range);
-        if (range !== 'realtime') res.set('QML-Cache-Expires', `${CACHE_EXPIRE_MS / 1000}`);
+        if (range !== 'realtime') res.set('QML-Cache-Expires', `${leaderBoardCache.expireTime}`);
         let list = board.map((array) => { return { bvid: array[0], count: array[1] } });
         // no type or type != 2: add backward capability
         if (!proc_type || proc_type !== 2) {
