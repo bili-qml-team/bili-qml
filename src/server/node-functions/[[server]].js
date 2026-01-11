@@ -20,10 +20,7 @@ const RATE_LIMIT_VOTE_WINDOW = Number(process.env.RATE_LIMIT_VOTE_WINDOW) || 300
 const RATE_LIMIT_LEADERBOARD_MAX = Number(process.env.RATE_LIMIT_LEADERBOARD_MAX) || 20; // 排行榜最大次数
 const RATE_LIMIT_LEADERBOARD_WINDOW = Number(process.env.RATE_LIMIT_LEADERBOARD_WINDOW) || 300; // 排行榜窗口（秒）
 
-var leaderBoardCache = {
-    caches: [],
-    expireTime: 0
-};
+// 使用Workers KV作为缓存，见worker.js
 
 const redis = new Redis(`${process.env.UPSTASH_REDIS_PROTO}://default:${process.env.UPSTASH_REDIS_REST_TOKEN}@${process.env.UPSTASH_REDIS_REST_URL}`);
 
@@ -59,17 +56,17 @@ async function getLeaderBoardFromTime(periodMs = 24 * 3600 * 1000, limit = 30) {
     return sorted;
 }
 
+async function getCachedLeaderBoard(range) {
+    const response = await fetch(`https://${process.env.WORKER_CACHE_URL}/${range}`);
+    const data = await response.json();
+    return [data.data, data.expireTime];
+}
+
 async function getLeaderBoard(range) {
-    switch (range) { //滑动窗口榜单 以UNIX时间戳计算
-        case "realtime":
-            return await getLeaderBoardFromTime(12 * 3600 * 1000); //实时榜单 过去12小时
-        case "daily":
-            return leaderBoardCache.caches[0];
-        case "weekly":
-            return leaderBoardCache.caches[1];
-        case "monthly":
-            return leaderBoardCache.caches[2];
+    if (range === 'realtime') {
+        return [(await getLeaderBoardFromTime(12 * 3600 * 1000)), 0]; //过去12小时
     }
+    return await getCachedLeaderBoard(range);
 }
 
 async function updateLeaderBoardCache() {
@@ -167,7 +164,7 @@ app.use(["/api/refresh", "/refresh"], async (req, res) => {
     }
     try {
         await updateLeaderBoardCache();
-        return res.json({ success: true , leaderBoardCache});
+        return res.json({ success: true, leaderBoardCache });
     } catch (error) {
         console.error('Leaderboard Cache Update Error:', error);
         return res.status(500).json({ success: false, error: 'Failed to refresh cache' });
@@ -309,8 +306,8 @@ app.get(['/api/leaderboard', '/leaderboard'], async (req, res) => {
             }
         }
 
-        const board = await getLeaderBoard(range);
-        if (range !== 'realtime') res.set('QML-Cache-Expires', `${leaderBoardCache.expireTime}`);
+        const [board, expireTime] = await getLeaderBoard(range);
+        if (range !== 'realtime') res.set('QML-Cache-Expires', `${expireTime}`);
         let list = board.map((array) => { return { bvid: array[0], count: array[1] } });
         // no type or type != 2: add backward capability
         if (!proc_type || proc_type !== 2) {
