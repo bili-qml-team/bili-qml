@@ -211,23 +211,27 @@ h1 {
     flex: 1;
 }
 
-#leaderboard {
+#leaderboard,
+#settings {
     max-height: 450px;
     overflow-y: auto;
     padding-bottom: 20px;
 }
 
 
-#leaderboard::-webkit-scrollbar {
+#leaderboard::-webkit-scrollbar,
+#settings::-webkit-scrollbar {
     width: 6px;
 }
 
-#leaderboard::-webkit-scrollbar-thumb {
+#leaderboard::-webkit-scrollbar-thumb,
+#settings::-webkit-scrollbar-thumb {
     background-color: #ccc;
     border-radius: 3px;
 }
 
-#leaderboard::-webkit-scrollbar-track {
+#leaderboard::-webkit-scrollbar-track,
+#settings::-webkit-scrollbar-track {
     background-color: transparent;
 }
 
