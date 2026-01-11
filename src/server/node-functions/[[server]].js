@@ -4,7 +4,6 @@ const bodyParser = require('body-parser');
 const { Redis } = require('ioredis');
 const { createChallenge, verifySolution } = require('altcha-lib');
 const cron = require('node-cron');
-require('dotenv').config();
 
 const app = express();
 
@@ -336,4 +335,7 @@ if (require.main === module) {
     app.listen(PORT, () => {
         console.log(`Server is running on port ${PORT}`);
     });
+    process.exit(0);
 }
+
+export default app;
