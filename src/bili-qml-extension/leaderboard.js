@@ -101,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 获取设置
         const settings = await new Promise(resolve => browserStorage.sync.get(['rank1Setting'], resolve));
-        const rank1Custom = settings.rank1Setting === 'custom';
+        const rank1Custom = (settings.rank1Setting || 'custom') === 'custom';
 
 
         const renderedItems = await Promise.all(list.map(async (item, index) => {

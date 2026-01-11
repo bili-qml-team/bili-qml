@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
         leaderboard.innerHTML = '';
         // 获取设置
         const settings = await browserStorage.sync.get(['rank1Setting']);
-        const rank1Custom = settings.rank1Setting === 'custom';
+        const rank1Custom = (settings.rank1Setting || 'custom') === 'custom';
 
         await Promise.all(list.map(async (item, index) => {
             try {
