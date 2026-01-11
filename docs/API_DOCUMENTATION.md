@@ -25,7 +25,7 @@
 ### server.js 可选环境变量
 
 * `TIMESTAMP_EXPIRE_MS`：（默认180天）排行榜总数据过期时间（毫秒），过期数据会被删除
-* `CACHE_EXPIRE_MS`：（默认5分钟）排行榜数据缓存过期时间（毫秒）
+* `CACHE_EXPIRE_MS`：（默认30分钟）排行榜数据缓存过期时间（毫秒）
 * `ALTCHA_COMPLEXITY`：（默认250000）Altcha 验证计算难度
 * `RATE_LIMIT_VOTE_WINDOW`: （默认300秒）频率限制投票窗口（秒）
 * `RATE_LIMIT_VOTE_MAX`：（默认10次）频率限制窗口内投票最大次数

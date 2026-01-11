@@ -7,7 +7,7 @@ const { createChallenge, verifySolution } = require('altcha-lib');
 const app = express();
 
 const TIMESTAMP_EXPIRE_MS = Number(process.env.TIMESTAMP_EXPIRE_MS) || 180 * 24 * 3600 * 1000; //排行榜总数据过期时间
-const CACHE_EXPIRE_MS = Number(process.env.CACHE_EXPIRE_MS) || 300 * 1000; // 排行榜cache过期时间
+const CACHE_EXPIRE_MS = Number(process.env.CACHE_EXPIRE_MS) || 1800 * 1000; // 排行榜cache过期时间
 const leaderboardTimeInterval = [24 * 3600 * 1000, 7 * 24 * 3600 * 1000, 30 * 24 * 3600 * 1000]; //排行榜相差时间
 
 // Altcha 配置
