@@ -458,6 +458,21 @@
         #bili-qmr-panel .qmr-item:nth-child(2) .qmr-rank { color: #ff9500; text-shadow: 0 2px 4px rgba(255,149,0,0.2); }
         #bili-qmr-panel .qmr-item:nth-child(3) .qmr-rank { color: #ffcc00; text-shadow: 0 2px 4px rgba(255,204,0,0.2); }
 
+        #bili-qmr-panel .qmr-rank-custom {
+            font-size: 18px;
+            font-weight: 900;
+            line-height: normal;
+            writing-mode: vertical-rl;
+            text-orientation: upright;
+            margin: 0 auto;
+            display: inline-block;
+            letter-spacing: 1px;
+            transform: translateX(4px);
+            width: auto;
+            color: #fe2c55;
+            text-shadow: 0 2px 4px rgba(254,44,85,0.2);
+        }
+
         #bili-qmr-panel .qmr-info {
             flex: 1;
             margin-left: 10px;
@@ -686,7 +701,7 @@
         #bili-qmr-panel .qmr-settings-divider {
             margin: 20px 0;
             border: none;
-            border-top: 1px solid #e3e5e7;
+            border-top: 1px solid var(--qmr-border);
         }
 
         /* 高级选项折叠区域 */
@@ -735,6 +750,21 @@
         #bili-qmr-panel .qmr-advanced-content {
             padding: 15px;
             background: #fff;
+        }
+
+        /* Loading Spinner */
+        #bili-qmr-panel .qmr-spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid rgba(0, 174, 236, 0.1);
+            border-radius: 50%;
+            border-top-color: var(--qmr-primary);
+            animation: qmr-spin 1s ease-in-out infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes qmr-spin {
+            to { transform: rotate(360deg); }
         }
     `);
 
@@ -1380,25 +1410,7 @@
         }
         .qml-icon { color: #4facfe; }
 
-        .rank-badge {
-            position: absolute; top: 4px; left: 8px; right: auto;
-            font-size: 2.5rem; font-weight: 900; color: rgba(255, 255, 255, 0.95);
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); z-index: 3;
-            font-style: italic; font-family: 'Impact', sans-serif; pointer-events: none;
-            display: flex; align-items: center; justify-content: center; width: 3.5rem; height: 3.5rem;
-        }
-        .rank-1, .rank-2, .rank-3 {
-            font-size: 1.8rem; font-style: normal; text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-            color: #fff; background-size: cover; background-position: center;
-            border-radius: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.3); border: 2px solid rgba(255,255,255,0.4);
-        }
-        .rank-1 { background: linear-gradient(135deg, #FFD700 0%, #FDB931 100%); font-size: 2rem; }
-        .rank-2 { background: linear-gradient(135deg, #E0E0E0 0%, #BDBDBD 100%); }
-        .rank-3 { background: linear-gradient(135deg, #CD7F32 0%, #A0522D 100%); }
-        .rank-1::after {
-            content: '👑'; position: absolute; top: -16px; left: 30%;
-            transform: translateX(-50%) rotate(-15deg); font-size: 1.5rem; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));
-        }
+
 
         .video-title { font-size: 1rem; line-height: 1.4; margin-bottom: 4px; font-weight: 500; }
         .video-card:hover .video-title { color: var(--primary-color); }
@@ -1420,6 +1432,36 @@
             border-top-color: var(--primary-color); animation: spin 1s ease-in-out infinite; margin-bottom: 20px;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Rank Badges */
+        .rank-badge {
+            position: absolute; top: 4px; left: 8px; right: auto;
+            font-size: 2.5rem; font-weight: 900; color: rgba(255, 255, 255, 0.95);
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); z-index: 3;
+            font-style: italic; font-family: 'Impact', sans-serif; pointer-events: none;
+            display: flex; align-items: center; justify-content: center; width: 3.5rem; height: 3.5rem;
+        }
+        .rank-1, .rank-2, .rank-3 {
+            font-size: 1.8rem; font-style: normal; text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            color: #fff; background-size: cover; background-position: center;
+            border-radius: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.3); border: 2px solid rgba(255,255,255,0.4);
+        }
+        .rank-1 { background: linear-gradient(135deg, #FFD700 0%, #FDB931 100%); font-size: 2rem; }
+        .rank-2 { background: linear-gradient(135deg, #E0E0E0 0%, #BDBDBD 100%); }
+        .rank-3 { background: linear-gradient(135deg, #CD7F32 0%, #A0522D 100%); }
+        .rank-1::after {
+            content: '👑'; position: absolute; top: -16px; left: 30%;
+            transform: translateX(-50%) rotate(-15deg); font-size: 1.5rem; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));
+        }
+
+        /* Custom Rank Text Style (matches extension) */
+        .rank-badge.rank-custom-text {
+            font-size: 1rem;
+            line-height: 1.1;
+            letter-spacing: -1px;
+            color: #FF4D4F;
+            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+        }
     </style>
 </head>
 <body>
@@ -1451,6 +1493,7 @@
         (function(){
             const API_BASE = ${JSON.stringify(API_BASE)};
             const initialRange = ${JSON.stringify(safeRange)};
+            const rank1Custom = ${JSON.stringify(GM_getValue('rank1Setting', 'default') === 'custom')};
             const grid = document.getElementById('leaderboard-grid');
             const tabs = document.querySelectorAll('.tab-btn');
             
@@ -1632,8 +1675,13 @@
                     }
 
                     const rank = index + 1;
-                     const rankClass = rank <= 3 ? 'rank-' + rank : '';
-                    const rankDisplay = rank <= 3 ? rank : '#' + rank;
+                    let rankDisplay = rank <= 3 ? rank : '#' + rank;
+                    let rankClass = rank <= 3 ? 'rank-' + rank : '';
+
+                    if (rank === 1 && rank1Custom) {
+                        rankDisplay = '何一位';
+                        rankClass += ' rank-custom-text';
+                    }
                     const safeTitle = escapeHtml(details.title);
                     const picUrl = details.pic ? details.pic.replace('http:', 'https:') : '';
                     const ownerName = escapeHtml(details.ownerName || '未知UP');
@@ -1730,6 +1778,19 @@
                         <span>总是不发送</span>
                     </label>
                 </div>
+                <hr class="qmr-settings-divider">
+                <h3>第一名显示设置</h3>
+                <p class="qmr-settings-desc">自定义排行榜第一名的显示文本</p>
+                <div class="qmr-radio-group">
+                    <label class="qmr-radio-item">
+                        <input type="radio" name="qmr-rank1-pref" value="default">
+                        <span>默认 (1)</span>
+                    </label>
+                    <label class="qmr-radio-item">
+                        <input type="radio" name="qmr-rank1-pref" value="custom">
+                        <span>抽象 (何一位)</span>
+                    </label>
+                </div>
                 <details class="qmr-advanced-section">
                     <summary class="qmr-advanced-toggle">高级选项</summary>
                     <div class="qmr-advanced-content">
@@ -1813,6 +1874,7 @@
         // 保存按钮
         panel.querySelector('.qmr-save-btn').onclick = () => {
             const selectedRadio = panel.querySelector('input[name="qmr-danmaku-pref"]:checked');
+            const rank1Radio = panel.querySelector('input[name="qmr-rank1-pref"]:checked');
             const endpointInput = panel.querySelector('.qmr-endpoint-input');
             const endpointValue = endpointInput ? endpointInput.value.trim() : '';
 
@@ -1834,6 +1896,11 @@
                 } else {
                     setDanmakuPreference(preference);
                 }
+            }
+
+            // 第一名显示设置
+            if (rank1Radio) {
+                GM_setValue('rank1Setting', rank1Radio.value);
             }
 
             // Endpoint 设置
@@ -1901,6 +1968,13 @@
             radio.checked = true;
         }
 
+        // 第一名显示设置
+        const rank1Setting = GM_getValue('rank1Setting', 'default');
+        const rank1Radio = panel.querySelector(`input[name="qmr-rank1-pref"][value="${rank1Setting}"]`);
+        if (rank1Radio) {
+            rank1Radio.checked = true;
+        }
+
         // Endpoint 设置
         const endpointInput = panel.querySelector('.qmr-endpoint-input');
         if (endpointInput) {
@@ -1924,7 +1998,7 @@
         const leaderboard = document.querySelector('#bili-qmr-panel .qmr-leaderboard');
         if (!leaderboard) return;
 
-        leaderboard.innerHTML = '<div class="qmr-loading">加载中...</div>';
+        leaderboard.innerHTML = '<div class="qmr-loading"><div class="qmr-spinner"></div>加载中...</div>';
 
         try {
             let url = `${API_BASE}/leaderboard?range=${range}&_t=${Date.now()}`;
@@ -1936,7 +2010,7 @@
 
             // 处理频率限制，需要 CAPTCHA 验证
             if (data.requiresCaptcha) {
-                leaderboard.innerHTML = '<div class="qmr-loading">需要人机验证...</div>';
+                leaderboard.innerHTML = '<div class="qmr-loading"><div class="qmr-spinner"></div>需要人机验证...</div>';
                 try {
                     const solution = await showAltchaCaptchaDialog();
                     return fetchLeaderboard(range, solution);
@@ -1961,12 +2035,22 @@
         const leaderboard = document.querySelector('#bili-qmr-panel .qmr-leaderboard');
         if (!leaderboard) return;
 
+        const rank1Custom = GM_getValue('rank1Setting', 'default') === 'custom';
+
         leaderboard.innerHTML = '';
         list.forEach((item, index) => {
             const div = document.createElement('div');
             div.className = 'qmr-item';
+
+            let rankDisplay = index + 1;
+            let rankClass = 'qmr-rank';
+            if (index === 0 && rank1Custom) {
+                rankDisplay = '何一位';
+                rankClass += ' qmr-rank-custom';
+            }
+
             div.innerHTML = `
-                <div class="qmr-rank">${index + 1}</div>
+                <div class="${rankClass}">${rankDisplay}</div>
                 <div class="qmr-info">
                     <a href="https://www.bilibili.com/video/${item.bvid}" target="_blank" class="qmr-video-title" title="${item.title}">${item.title}</a>
                     <div class="qmr-count">❓ 抽象指数: ${item.count}</div>
