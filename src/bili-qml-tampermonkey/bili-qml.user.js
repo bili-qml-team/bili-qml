@@ -359,7 +359,8 @@
             cursor: grabbing;
         }
 
-        #bili-qmr-panel.qmr-dragging {
+        #bili-qmr-panel.qmr-dragging,
+        #bili-qmr-panel.qmr-dragged {
             animation: none;
             transition: none;
         }
@@ -1888,6 +1889,7 @@
             if (isDragging) {
                 isDragging = false;
                 panel.classList.remove('qmr-dragging');
+                panel.classList.add('qmr-dragged');
             }
         });
 
