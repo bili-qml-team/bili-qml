@@ -20,7 +20,10 @@ const RATE_LIMIT_VOTE_WINDOW = Number(process.env.RATE_LIMIT_VOTE_WINDOW) || 300
 const RATE_LIMIT_LEADERBOARD_MAX = Number(process.env.RATE_LIMIT_LEADERBOARD_MAX) || 20; // 排行榜最大次数
 const RATE_LIMIT_LEADERBOARD_WINDOW = Number(process.env.RATE_LIMIT_LEADERBOARD_WINDOW) || 300; // 排行榜窗口（秒）
 
-// 使用EdgeOne KV存储leaderboardCache
+var leaderBoardCache = {
+    caches: [],
+    expireTime: 0
+};
 
 const redis = new Redis(`${process.env.UPSTASH_REDIS_PROTO}://default:${process.env.UPSTASH_REDIS_REST_TOKEN}@${process.env.UPSTASH_REDIS_REST_URL}`);
 
@@ -61,24 +64,19 @@ async function getLeaderBoard(range) {
         case "realtime":
             return await getLeaderBoardFromTime(12 * 3600 * 1000); //实时榜单 过去12小时
         case "daily":
-            return JSON.parse(await leaderBoardCache.get("dailyCache"));
+            return leaderBoardCache.caches[0];
         case "weekly":
-            return JSON.parse(await leaderBoardCache.get("weeklyCache"));
+            return leaderBoardCache.caches[1];
         case "monthly":
-            return JSON.parse(await leaderBoardCache.get("monthlyCache"));
+            return leaderBoardCache.caches[2];
     }
 }
 
 async function updateLeaderBoardCache() {
-    const caches = await Promise.all(leaderboardTimeInterval.map((time) => {
+    leaderBoardCache.expireTime = Date.now() + CACHE_EXPIRE_MS;
+    leaderBoardCache.caches = await Promise.all(leaderboardTimeInterval.map((time) => {
         return getLeaderBoardFromTime(time);
     }));
-    await Promise.all([
-        leaderBoardCache.put("expireTime", Date.now() + CACHE_EXPIRE_MS),
-        leaderBoardCache.put("dailyCache", JSON.stringify(caches[0])),
-        leaderBoardCache.put("weeklyCache", JSON.stringify(caches[1])),
-        leaderBoardCache.put("monthlyCache", JSON.stringify(caches[2]))
-    ]);
     console.log('Leaderboard cache updated.');
 }
 
@@ -169,7 +167,7 @@ app.use(["/api/refresh", "/refresh"], async (req, res) => {
     }
     try {
         await updateLeaderBoardCache();
-        return res.json({ success: true });
+        return res.json({ success: true , leaderBoardCache});
     } catch (error) {
         console.error('Leaderboard Cache Update Error:', error);
         return res.status(500).json({ success: false, error: 'Failed to refresh cache' });
@@ -312,7 +310,7 @@ app.get(['/api/leaderboard', '/leaderboard'], async (req, res) => {
         }
 
         const board = await getLeaderBoard(range);
-        if (range !== 'realtime') res.set('QML-Cache-Expires', `${await leaderBoardCache.get("expireTime")}`);
+        if (range !== 'realtime') res.set('QML-Cache-Expires', `${leaderBoardCache.expireTime}`);
         let list = board.map((array) => { return { bvid: array[0], count: array[1] } });
         // no type or type != 2: add backward capability
         if (!proc_type || proc_type !== 2) {
