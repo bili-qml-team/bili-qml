@@ -56,14 +56,17 @@ export default {
                 return response;
             }
             const period = url.pathname.slice(1); // remove leading '/'
-            const data = await env.LEADERBOARD_CACHE.get(period);
-            const expireTime = Number(await env.LEADERBOARD_CACHE.get('expireTime'));
+            let data = await env.LEADERBOARD_CACHE.get(period);
+            let expireTime = Number(await env.LEADERBOARD_CACHE.get('expireTime'));
             if (data) {
+                data = JSON.parse(data);
+                const now = Date.now();
+                if (now > expireTime) expireTime = now + 300 * 1000; // at least 5 min
                 const response = new Response(JSON.stringify({
                     success: true,
-                    period: period,
-                    expireTime: expireTime,
-                    data: JSON.parse(data)
+                    period,
+                    expireTime,
+                    data
                 }), {
                     headers: {
                         'Content-Type': 'application/json',
@@ -74,13 +77,12 @@ export default {
                 console.log("Cache Miss, new cache stored.")
                 return new Response(JSON.stringify({
                     success: true,
-                    period: period,
-                    expireTime: expireTime,
-                    data: JSON.parse(data)
+                    period,
+                    expireTime,
+                    data
                 }), {
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Expires': (new Date(expireTime)).toUTCString()
+                        'Content-Type': 'application/json'
                     }
                 });
             }
