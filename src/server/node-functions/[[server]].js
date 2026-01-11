@@ -20,7 +20,7 @@ const RATE_LIMIT_VOTE_WINDOW = Number(process.env.RATE_LIMIT_VOTE_WINDOW) || 300
 const RATE_LIMIT_LEADERBOARD_MAX = Number(process.env.RATE_LIMIT_LEADERBOARD_MAX) || 20; // 排行榜最大次数
 const RATE_LIMIT_LEADERBOARD_WINDOW = Number(process.env.RATE_LIMIT_LEADERBOARD_WINDOW) || 300; // 排行榜窗口（秒）
 
-var leaderBoardCache = {
+const leaderBoardCache = {
     caches: [],
     expireTime: 0
 };
