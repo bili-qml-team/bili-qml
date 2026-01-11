@@ -53,7 +53,7 @@ async function getLeaderBoardFromTime(periodMs = 24 * 3600 * 1000, limit = 30) {
     const sorted = Object.entries(counts)
         .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
         .slice(0, limit);
-    return sorted;
+    return sorted.map((array) => { return { bvid: array[0], count: array[1] } });
 }
 
 async function getCachedLeaderBoard(range) {
@@ -316,7 +316,6 @@ app.get(['/api/leaderboard', '/leaderboard'], async (req, res) => {
         if (!board || board.length === 0) {
             return res.json({ success: false, list: [] });
         }
-        let list = board.map((array) => { return { bvid: array[0], count: array[1] } });
         // no type or type != 2: add backward capability
         // if (!proc_type || proc_type !== 2) {
             // await Promise.all(list.map(async (item, index) => {
@@ -341,7 +340,7 @@ app.get(['/api/leaderboard', '/leaderboard'], async (req, res) => {
             //     }
             // }));
         // }
-        res.json({ success: true, list: list });
+        res.json({ success: true, list: board });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
