@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Altcha Test</title>
+    <link rel="stylesheet" href="popup.css">
+    <style>
+        body {
+            width: auto;
+            min-width: 400px;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .test-section {
+            background: var(--card-bg);
+            border-radius: var(--radius-md);
+            padding: 24px;
+            box-shadow: var(--shadow-sm);
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        #result-area {
+            margin-top: 20px;
+            padding: 16px;
+            background: #f6f7f8;
+            border-radius: 8px;
+            font-family: monospace;
+            word-break: break-all;
+            display: none;
+            text-align: left;
+        }
+
+        body.dark-mode #result-area {
+            background: #2a2b30;
+        }
+
+        .status-verified {
+            color: #00aeec;
+            font-weight: bold;
+        }
+
+        .status-error {
+            color: #ff4d4f;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header style="position: relative; top: 0; margin-bottom: 20px; border-radius: var(--radius-md);">
+            <div class="header-top">
+                <div class="header-left">
+                    <h1>Altcha 测试页面</h1>
+                </div>
+                <div class="header-actions">
+                    <div class="settings-btn" id="theme-btn" title="切换深色/浅色模式">🌓</div>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div class="test-section">
+                <p style="margin-bottom: 24px; color: var(--text-secondary);">
+                    点击下方按钮测试 Altcha 人机验证流程。<br>
+                    这将模拟从服务器获取挑战并进行本地计算的过程。
+                </p>
+                <button id="start-test-btn" class="save-btn" style="max-width: 200px;">开始验证测试</button>
+            </div>
+
+            <div id="result-area"></div>
+        </main>
+    </div>
+
+    <script src="platform.js"></script>
+    <script src="altcha-test.js"></script>
+</body>
+
+</html>

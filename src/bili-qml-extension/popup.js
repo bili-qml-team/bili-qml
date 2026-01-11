@@ -341,6 +341,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Altcha 测试按钮
+    const testAltchaBtn = document.getElementById('test-altcha-btn');
+    if (testAltchaBtn) {
+        testAltchaBtn.addEventListener('click', () => {
+            const url = getExtensionUrl('altcha-test.html');
+            window.open(url, '_blank');
+        });
+    }
+
     // 初始化 API_BASE 后加载排行榜
     initApiBase().then(() => {
         fetchLeaderboard();
