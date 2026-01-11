@@ -12,6 +12,20 @@
 
 ---
 
+## 环境变量
+
+### 必须环境变量
+
+* `UPSTASH_REDIS_REST_URL`：Redis 服务访问地址
+* `UPSTASH_REDIS_REST_TOKEN`：Redis 服务访问Token
+* `ALTCHA_HMAC_KEY`：Altcha 验证码校验字符串
+* `REFRESH_TOKEN`：后端Workers像服务器请求更新缓存时验证的字符串
+
+### 可选环境变量
+
+* 
+
+
 ## 接口列表
 
 ### 1. 获取状态 (Check Status)
@@ -130,15 +144,15 @@
 
 ### 6. 刷新缓存 (Refresh Cache) - 管理接口
 
-手动强制刷新排行榜缓存。
+手动强制刷新排行榜缓存。仅供内部 Workers 缓存数据库查询结果时使用。
 
 *   **Endpoint**: `/api/refresh` (或 `/refresh`)
 *   **Method**: `POST`
 *   **Headers**:
     *   `Authorization`: `Bearer <REFRESH_TOKEN>`
-*   **Response**:
+*   **Response**: 刷新后的leaderboard数据
     ```json
-    { "success": true }
+    { "success": true, "leaderBoardCache": {...}}
     ```
 
 ---
