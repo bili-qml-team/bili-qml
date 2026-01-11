@@ -1,16 +1,171 @@
 // content.js
-const API_BASE = 'https://bili-qml.bydfk.com/api';
-// for debug
-//const API_BASE = 'http://localhost:3000/api'
 
-// 存储键名
-const STORAGE_KEY_DANMAKU_PREF = 'danmakuPreference';
+// ==================== Altcha CAPTCHA 功能 ====================
+
+// 获取 Altcha 挑战
+async function fetchAltchaChallenge() {
+    const response = await fetch(`${API_BASE}/altcha/challenge`);
+    if (!response.ok) throw new Error('Failed to fetch challenge');
+    return response.json();
+}
+
+// 解决 Altcha 挑战 (Proof-of-Work)
+async function solveAltchaChallenge(challenge) {
+    const { algorithm, challenge: challengeHash, salt, maxnumber, signature } = challenge;
+
+    // 使用 Web Crypto API 进行 SHA-256 哈希
+    const encoder = new TextEncoder();
+
+    for (let number = 0; number <= maxnumber; number++) {
+        const data = encoder.encode(salt + number);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+        if (hashHex === challengeHash) {
+            // 找到解决方案，返回 Base64 编码的 JSON
+            const solution = {
+                algorithm,
+                challenge: challengeHash,
+                number,
+                salt,
+                signature
+            };
+            return btoa(JSON.stringify(solution));
+        }
+
+        // 每1000次迭代让出主线程，避免阻塞 UI
+        if (number % 1000 === 0) {
+            await new Promise(resolve => setTimeout(resolve, 0));
+        }
+    }
+    throw new Error('Failed to solve challenge');
+}
+
+// 显示 Altcha CAPTCHA 对话框
+function showAltchaCaptchaDialog() {
+    return new Promise((resolve, reject) => {
+        const overlay = document.createElement('div');
+        overlay.id = 'qmr-captcha-overlay';
+        overlay.style.cssText = `
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 999999;
+            display: flex; align-items: center; justify-content: center;
+        `;
+
+        const dialog = document.createElement('div');
+        dialog.style.cssText = `
+            background: white; border-radius: 12px; padding: 24px;
+            width: 320px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+            text-align: center;
+        `;
+
+        dialog.innerHTML = `
+            <div style="font-size: 48px; margin-bottom: 16px;">🤖</div>
+            <div style="font-size: 18px; font-weight: bold; color: #18191c; margin-bottom: 12px;">
+                人机验证
+            </div>
+            <div id="qmr-captcha-status" style="font-size: 14px; color: #61666d; margin-bottom: 20px;">
+                检测到频繁操作，请完成验证
+            </div>
+            <div id="qmr-captcha-progress" style="display: none; margin-bottom: 20px;">
+                <div style="width: 100%; height: 6px; background: #e3e5e7; border-radius: 3px; overflow: hidden;">
+                    <div id="qmr-captcha-bar" style="width: 0%; height: 100%; background: #00aeec; transition: width 0.3s;"></div>
+                </div>
+                <div style="font-size: 12px; color: #9499a0; margin-top: 8px;">正在验证中...</div>
+            </div>
+            <div id="qmr-captcha-buttons">
+                <button id="qmr-captcha-start" style="
+                    padding: 10px 32px; border: none; border-radius: 6px;
+                    background: #00aeec; color: white; cursor: pointer;
+                    font-size: 14px; transition: all 0.2s;
+                ">
+                    开始验证
+                </button>
+                <button id="qmr-captcha-cancel" style="
+                    padding: 10px 20px; border: 1px solid #e3e5e7; border-radius: 6px;
+                    background: white; color: #61666d; cursor: pointer;
+                    font-size: 14px; margin-left: 12px; transition: all 0.2s;
+                ">
+                    取消
+                </button>
+            </div>
+        `;
+
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+
+        const startBtn = dialog.querySelector('#qmr-captcha-start');
+        const cancelBtn = dialog.querySelector('#qmr-captcha-cancel');
+        const statusDiv = dialog.querySelector('#qmr-captcha-status');
+        const progressDiv = dialog.querySelector('#qmr-captcha-progress');
+        const buttonsDiv = dialog.querySelector('#qmr-captcha-buttons');
+
+        startBtn.addEventListener('mouseenter', () => startBtn.style.background = '#00a1d6');
+        startBtn.addEventListener('mouseleave', () => startBtn.style.background = '#00aeec');
+
+        cancelBtn.onclick = () => {
+            overlay.remove();
+            reject(new Error('CAPTCHA cancelled'));
+        };
+
+        startBtn.onclick = async () => {
+            try {
+                buttonsDiv.style.display = 'none';
+                progressDiv.style.display = 'block';
+                statusDiv.textContent = '正在获取验证挑战...';
+
+                const challenge = await fetchAltchaChallenge();
+                statusDiv.textContent = '正在计算验证...';
+
+                // 模拟进度（实际进度难以精确计算）
+                const progressBar = dialog.querySelector('#qmr-captcha-bar');
+                let progress = 0;
+                const progressInterval = setInterval(() => {
+                    progress = Math.min(progress + Math.random() * 15, 95);
+                    progressBar.style.width = progress + '%';
+                }, 200);
+
+                const solution = await solveAltchaChallenge(challenge);
+
+                clearInterval(progressInterval);
+                progressBar.style.width = '100%';
+                statusDiv.textContent = '验证成功！';
+
+                setTimeout(() => {
+                    overlay.remove();
+                    resolve(solution);
+                }, 500);
+            } catch (error) {
+                statusDiv.textContent = '验证失败: ' + error.message;
+                statusDiv.style.color = '#ff4d4f';
+                buttonsDiv.style.display = 'block';
+                progressDiv.style.display = 'none';
+            }
+        };
+
+        // ESC 键关闭
+        const escHandler = (e) => {
+            if (e.key === 'Escape') {
+                overlay.remove();
+                reject(new Error('CAPTCHA cancelled'));
+                document.removeEventListener('keydown', escHandler);
+            }
+        };
+        document.addEventListener('keydown', escHandler);
+    });
+}
+
+// ==================== 弹幕偏好功能 ====================
+
 
 // 获取弹幕发送偏好
 // 返回: null (未设置), true (总是发送), false (总是不发送)
 async function getDanmakuPreference() {
     return new Promise((resolve) => {
-        chrome.storage.sync.get([STORAGE_KEY_DANMAKU_PREF], (result) => {
+        browserStorage.sync.get([STORAGE_KEY_DANMAKU_PREF], (result) => {
             resolve(result[STORAGE_KEY_DANMAKU_PREF] !== undefined ? result[STORAGE_KEY_DANMAKU_PREF] : null);
         });
     });
@@ -19,7 +174,7 @@ async function getDanmakuPreference() {
 // 设置弹幕发送偏好
 async function setDanmakuPreference(preference) {
     return new Promise((resolve) => {
-        chrome.storage.sync.set({ [STORAGE_KEY_DANMAKU_PREF]: preference }, () => {
+        browserStorage.sync.set({ [STORAGE_KEY_DANMAKU_PREF]: preference }, () => {
             resolve();
         });
     });
@@ -282,65 +437,133 @@ function formatCount(num) {
 }
 
 // 模拟发送弹幕功能
-function sendDanmaku(text) {
+async function sendDanmaku(text) {
+    console.log('[B站问号榜] 尝试发送弹幕:', text);
+
     // 1. 寻找弹幕输入框和发送按钮
-    // const showNotice = (msg, isError = false) => {
-    //     if (!isError) return; // 正常情况下不显示提示
-    //     const notice = document.createElement('div');
-    //     notice.style.cssText = `
-    //         position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-    //         padding: 10px 20px; border-radius: 4px; z-index: 100000;
-    //         background: #ff4d4f; color: white;
-    //         font-size: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    //         transition: opacity 0.5s;
-    //     `;
-    //     notice.innerText = `[问号榜提示] ${msg}`;
-    //     document.body.appendChild(notice);
-    //     setTimeout(() => {
-    //         notice.style.opacity = '0';
-    //         setTimeout(() => notice.remove(), 500);
-    //     }, 3000);
-    // };
+    // 尝试多种选择器以增强兼容性
+    const inputSelectors = [
+        'input.bpx-player-dm-input', // 新版
+        '.bilibili-player-video-danmaku-input', // 旧版
+        'textarea.bpx-player-dm-input', // 可能的变体
+        '.video-danmaku-input'
+    ];
+
+    const btnSelectors = [
+        '.bpx-player-dm-btn-send', // 新版
+        '.bilibili-player-video-danmaku-btn-send', // 旧版
+        '.video-danmaku-btn-send'
+    ];
+
+    let dmInput = null;
+    let dmSendBtn = null;
+
+    for (const sel of inputSelectors) {
+        dmInput = document.querySelector(sel);
+        if (dmInput) break;
+    }
+
+    for (const sel of btnSelectors) {
+        dmSendBtn = document.querySelector(sel);
+        if (dmSendBtn) break;
+    }
+
+    if (!dmInput || !dmSendBtn) {
+        console.error('[B站问号榜] 未找到弹幕输入框或发送按钮');
+        return;
+    }
 
     try {
-        const dmInput = document.querySelector('input.bpx-player-dm-input');
-        const dmSendBtn = document.querySelector('.bpx-player-dm-btn-send');
-        if (!dmInput || !dmSendBtn) return;
-
-        // 1. 填入内容并让 React 感知
+        // 2. 聚焦输入框
         dmInput.focus();
+        dmInput.click(); // 确保激活
+
+        // 3. 填入内容并让 React 感知
+        // React 重写了 value setter，必须获取原始 setter
         const setter = Object.getOwnPropertyDescriptor(
             window.HTMLInputElement.prototype,
             'value'
+        )?.set || Object.getOwnPropertyDescriptor(
+            window.HTMLTextAreaElement.prototype,
+            'value'
         )?.set;
-        setter?.call(dmInput, text);
+
+        if (setter) {
+            setter.call(dmInput, text);
+        } else {
+            dmInput.value = text;
+        }
+
+        // 4. 模拟完整输入事件链
+        // React often needs 'input' and 'change' bubbles
         dmInput.dispatchEvent(new Event('input', { bubbles: true }));
+        dmInput.dispatchEvent(new Event('change', { bubbles: true }));
 
-        // 2. 增加一个适中的延时（150ms），避开 B 站的频率检测和 React 渲染冲突
+        // 模拟中文输入法结束事件（有时对React组件很重要）
+        dmInput.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
+        dmInput.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, data: text }));
+
+        // 辅助等待函数
+        const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+        // 5. 顺序尝试发送方案
+        // 稍微延迟，确保状态同步
+        await wait(100);
+
+        // --- 方案1: 回车键 ---
+        console.log('[B站问号榜] 尝试方案1: 回车发送');
+        const enterEvent = new KeyboardEvent('keydown', {
+            bubbles: true,
+            cancelable: true,
+            key: 'Enter',
+            code: 'Enter',
+            keyCode: 13,
+            which: 13
+        });
+        dmInput.dispatchEvent(enterEvent);
+
+        // 等待观察结果
+        await wait(1000);
+
+        // 检查是否发送成功（发送成功通常会清空输入框）
+        // 如果输入框内容变了（比如变空），说明发送成功
+        if (dmInput.value !== text) {
+            console.log('[B站问号榜] 方案1生效，发送成功');
+            dmInput.blur();
+            return;
+        }
+
+        // --- 方案2: 点击发送按钮 ---
+        console.log('[B站问号榜] 方案1未奏效，尝试方案2: 点击按钮');
+        // 模拟鼠标交互
+        dmSendBtn.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+        dmSendBtn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+        dmSendBtn.click();
+        dmSendBtn.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+
+        // 等待观察结果
+        await wait(1000);
+
+        if (dmInput.value !== text) {
+            console.log('[B站问号榜] 方案2生效，发送成功');
+            dmInput.blur();
+            return;
+        }
+
+        // --- 方案3: 强制点击 (Fallback) ---
+        console.log('[B站问号榜] 方案2未奏效，尝试方案3: 强制点击');
+        dmSendBtn.click();
+
+        // 6. 清理
         setTimeout(() => {
-            // 3. 模拟按键和点击
-            const events = ['keydown', 'keyup']; // 移除冗余的 keypress
-            events.forEach(type => {
-                dmInput.dispatchEvent(new KeyboardEvent(type, {
-                    bubbles: true, cancelable: true, key: 'Enter', keyCode: 13
-                }));
-            });
-
-            dmSendBtn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
-            dmSendBtn.click();
-
-            // 4. 发送后稍微等一下再失焦，确保 B 站逻辑执行完
-            setTimeout(() => {
-                dmInput.blur();
-                // 如果还有残留，最后补一刀
-                if (dmInput.value !== '') {
-                    dmSendBtn.click();
-                }
-            }, 100);
-        }, 150);
+            if (dmInput.value === text) {
+                console.warn('[B站问号榜] 所有方案尝试完毕，似乎仍未发送成功');
+            }
+            dmInput.blur();
+        }, 200);
 
     } catch (e) {
-        console.error('[B站问号榜] 弹幕瞬发失败:', e);
+        console.error('[B站问号榜] 弹幕发送异常:', e);
     }
 }
 
@@ -367,7 +590,7 @@ async function injectQuestionButton() {
             qBtn = document.createElement('div');
             qBtn.id = 'bili-qmr-btn';
             qBtn.className = 'toolbar-left-item-wrap';
-            qBtnInner = document.createElement('div');
+            const qBtnInner = document.createElement('div');
             qBtnInner.id = 'bili-qmr-btn-inner';
             qBtnInner.className = 'qmr-icon-wrap video-toolbar-left-item';
             qBtnInner.innerHTML = `<svg version="1.1" id="Layer_1" class="video-share-icon video-toolbar-item-icon" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="24" height="20" viewBox="0 0 28 28" preserveAspectRatio="xMidYMid meet"> <path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M 5.419 0.414 L 4.888 1.302 L 4.888 2.782 L 5.366 3.611 L 6.588 4.736 L 3.825 4.795 L 2.444 5.209 L 0.85 6.63 L 0 8.584 L 0 23.915 L 0.584 25.632 L 1.275 26.638 L 3.241 27.941 L 24.706 27.941 L 26.353 26.934 L 27.362 25.573 L 27.841 24.152 L 27.841 8.939 L 27.097 6.985 L 25.662 5.505 L 24.175 4.913 L 21.252 4.795 L 22.953 2.723 L 23.006 1.776 L 22.634 0.888 L 21.731 0.118 L 20.615 0 L 19.605 0.651 L 15.408 4.795 L 12.486 4.854 L 7.598 0.178 L 6.004 0 Z M 4.038 9.649 L 4.569 9.057 L 5.154 8.761 L 22.421 8.761 L 23.271 9.057 L 23.962 9.708 L 24.281 10.478 L 24.228 21.666 L 24.015 22.85 L 23.431 23.619 L 22.687 24.034 L 5.419 24.034 L 4.782 23.738 L 4.091 23.027 L 3.772 22.199 L 3.772 10.241 Z M 8.288 11.188 L 7.651 11.425 L 7.173 11.721 L 6.641 12.254 L 6.216 12.964 L 6.163 13.26 L 6.057 13.438 L 6.057 13.793 L 5.951 14.266 L 6.163 14.503 L 7.81 14.503 L 7.917 14.266 L 7.917 13.911 L 8.076 13.497 L 8.554 12.964 L 8.82 12.846 L 9.404 12.846 L 9.723 12.964 L 10.042 13.201 L 10.201 13.438 L 10.361 13.911 L 10.307 14.503 L 9.935 15.095 L 8.979 15.865 L 8.501 16.457 L 8.235 17.108 L 8.182 17.7 L 8.129 17.759 L 8.129 18.351 L 8.235 18.469 L 9.935 18.469 L 9.935 17.937 L 10.201 17.285 L 10.679 16.753 L 11.211 16.338 L 11.795 15.687 L 12.167 15.036 L 12.326 14.148 L 12.22 13.142 L 11.848 12.372 L 11.423 11.899 L 10.732 11.425 L 10.042 11.188 L 9.564 11.188 L 9.51 11.129 Z M 17.958 11.188 L 17.002 11.603 L 16.63 11.899 L 16.205 12.372 L 15.833 13.082 L 15.674 13.615 L 15.62 14.326 L 15.727 14.444 L 15.992 14.503 L 17.427 14.503 L 17.533 14.385 L 17.586 13.793 L 17.746 13.438 L 18.118 13.023 L 18.49 12.846 L 19.074 12.846 L 19.605 13.142 L 19.871 13.497 L 19.977 13.793 L 19.977 14.385 L 19.871 14.681 L 19.446 15.214 L 18.702 15.805 L 18.224 16.338 L 17.905 17.049 L 17.852 17.641 L 17.799 17.7 L 17.799 18.41 L 17.852 18.469 L 19.552 18.469 L 19.605 18.41 L 19.605 17.877 L 19.712 17.522 L 19.924 17.167 L 20.296 16.753 L 21.093 16.101 L 21.465 15.687 L 21.784 15.095 L 21.996 14.148 L 21.89 13.201 L 21.677 12.668 L 21.412 12.254 L 21.093 11.899 L 20.243 11.366 L 19.712 11.188 L 19.233 11.188 L 19.18 11.129 Z M 9.032 19.18 L 8.979 19.239 L 8.767 19.239 L 8.713 19.298 L 8.66 19.298 L 8.607 19.357 L 8.501 19.357 L 8.129 19.772 L 8.129 19.831 L 8.076 19.89 L 8.076 19.949 L 8.023 20.008 L 8.023 20.186 L 7.97 20.245 L 7.97 20.6 L 8.023 20.66 L 8.023 20.837 L 8.076 20.896 L 8.076 20.956 L 8.129 21.015 L 8.129 21.074 L 8.448 21.429 L 8.501 21.429 L 8.554 21.488 L 8.607 21.488 L 8.66 21.548 L 8.82 21.548 L 8.873 21.607 L 9.298 21.607 L 9.351 21.548 L 9.457 21.548 L 9.51 21.488 L 9.564 21.488 L 9.617 21.429 L 9.67 21.429 L 10.042 21.015 L 10.042 20.956 L 10.095 20.896 L 10.095 20.778 L 10.148 20.719 L 10.148 20.186 L 10.095 20.127 L 10.095 19.949 L 10.042 19.89 L 10.042 19.831 L 9.935 19.712 L 9.935 19.653 L 9.723 19.416 L 9.67 19.416 L 9.617 19.357 L 9.564 19.357 L 9.51 19.298 L 9.404 19.298 L 9.351 19.239 L 9.192 19.239 L 9.139 19.18 Z M 18.436 19.239 L 18.383 19.298 L 18.277 19.298 L 18.224 19.357 L 18.171 19.357 L 18.118 19.416 L 18.065 19.416 L 17.852 19.653 L 17.852 19.712 L 17.746 19.831 L 17.746 19.89 L 17.693 19.949 L 17.693 20.008 L 17.639 20.068 L 17.639 20.719 L 17.693 20.778 L 17.693 20.896 L 17.746 20.956 L 17.746 21.015 L 18.118 21.429 L 18.171 21.429 L 18.224 21.488 L 18.277 21.488 L 18.33 21.548 L 18.436 21.548 L 18.49 21.607 L 18.915 21.607 L 18.968 21.548 L 19.074 21.548 L 19.127 21.488 L 19.18 21.488 L 19.233 21.429 L 19.287 21.429 L 19.393 21.311 L 19.446 21.311 L 19.446 21.252 L 19.499 21.192 L 19.552 21.192 L 19.552 21.133 L 19.712 20.956 L 19.712 20.837 L 19.765 20.778 L 19.765 20.719 L 19.818 20.66 L 19.818 20.186 L 19.765 20.127 L 19.765 20.008 L 19.712 19.949 L 19.712 19.89 L 19.658 19.831 L 19.658 19.772 L 19.34 19.416 L 19.287 19.416 L 19.18 19.298 L 19.074 19.298 L 19.021 19.239 Z"/></svg><span class="qmr-text">...</span>`;
@@ -417,27 +640,58 @@ async function injectQuestionButton() {
                     return;
                 }
 
-                try {
-                    qBtn.style.pointerEvents = 'none';
-                    qBtn.style.opacity = '0.5';
-                    let endpoint = qBtn.classList.contains("voted") == true ? "unvote" : "vote";
+                // 判断是投票还是取消投票
+                const isVoting = !qBtn.classList.contains("voted");
+
+                // 内部函数：执行投票请求
+                const doVote = async (altchaSolution = null) => {
+                    const endpoint = isVoting ? "vote" : "unvote";
+                    const requestBody = { bvid: activeBvid, userId };
+                    if (altchaSolution) {
+                        requestBody.altcha = altchaSolution;
+                    }
+
                     const response = await fetch(`${API_BASE}/${endpoint}`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify({ bvid: activeBvid, userId })
+                        body: JSON.stringify(requestBody)
                     });
+                    return response.json();
+                };
 
-                    const resData = await response.json();
+                try {
+                    qBtn.style.pointerEvents = 'none';
+                    qBtn.style.opacity = '0.5';
+
+                    let resData = await doVote();
+
+                    // 处理频率限制，需要 CAPTCHA 验证
+                    if (resData.requiresCaptcha) {
+                        try {
+                            const altchaSolution = await showAltchaCaptchaDialog();
+                            resData = await doVote(altchaSolution);
+                        } catch (captchaError) {
+                            // 用户取消了 CAPTCHA
+                            console.log('[B站问号榜] CAPTCHA 已取消');
+                            return;
+                        }
+                    }
+
                     if (resData.success) {
-                        // 只有当点亮（active 为 true）时才发弹幕
-                        if (resData.active) {
+                        console.log('[B站问号榜] 投票成功, isVoting:', isVoting);
+                        // 只有当点亮（isVoting 为 true）时才发弹幕
+                        if (isVoting) {
+                            console.log('[B站问号榜] 获取弹幕偏好...');
                             const preference = await getDanmakuPreference();
+                            console.log('[B站问号榜] 弹幕偏好:', preference);
 
                             if (preference === null) {
+                                console.log('[B站问号榜] 首次使用，显示确认对话框');
                                 // 首次使用，显示确认对话框
                                 const choice = await showDanmakuConfirmDialog();
+                                console.log('[B站问号榜] 用户选择:', choice);
                                 if (choice.sendDanmaku) {
                                     sendDanmaku('？');
                                 }
@@ -446,6 +700,7 @@ async function injectQuestionButton() {
                                 }
                             } else if (preference === true) {
                                 // 用户选择了总是发送
+                                console.log('[B站问号榜] 偏好为总是发送，直接发弹幕');
                                 sendDanmaku('？');
                             }
                             // preference === false 时不发送
@@ -472,65 +727,98 @@ async function injectQuestionButton() {
     }
 }
 
-// 防抖函数
-function debounce(fn, delay) {
-    let timer = null;
-    return function () {
-        if (timer) clearTimeout(timer);
-        timer = setTimeout(() => fn.apply(this, arguments), delay);
+// 核心注入逻辑
+async function tryInject() {
+    // 再次检查 BVID
+    const bvid = getBvid();
+    if (!bvid) return;
+
+    // 避免重复注入
+    if (document.getElementById('bili-qmr-btn')) return;
+
+    // 寻找挂载点
+    const toolbarLeft = document.querySelector('.video-toolbar-left-main') ||
+        document.querySelector('.toolbar-left'); // 兼容旧版
+
+    // 如果找不到工具栏，可能还在加载，或者是不支持的页面
+    if (!toolbarLeft) {
+        // console.log('[B站问号榜] 未找到工具栏，跳过注入');
+        return;
+    }
+
+    try {
+        await injectQuestionButton();
+    } catch (e) {
+        console.error('[B站问号榜] 注入失败:', e);
     }
 }
+function waitFor(selector, ms = undefined) {
+    return new Promise((resolve, reject) => {
+        const target = document.querySelector(selector);
+        if (target) {
+            resolve(target);
+            return;
+        }
 
-// 监听 DOM 变化以注入按钮
-const observer = new MutationObserver(debounce(injectQuestionButton, 500));
-const mainApp = document.getElementById('app') || document.body;
-observer.observe(mainApp, { childList: true, subtree: true });
-injectQuestionButton();
+        const observer = new MutationObserver(() => {
+            const element = document.querySelector(selector);
+            if (element) {
+                observer.disconnect();
+                resolve(element);
+            }
+        });
 
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
 
-let lastUrl = location.href;
-setInterval(() => {
-    const urlChanged = location.href !== lastUrl;
-    const userId = getUserId();
-    const userChanged = userId !== lastSyncedUserId;
+        if (ms) {
+            const timeoutId = setTimeout(() => {
+                observer.disconnect();
+                reject(new Error(`Element not found: "${selector}" within ${ms}ms`));
+            }, ms);
 
-    if (urlChanged || userChanged) {
-        lastUrl = location.href;
-        injectQuestionButton();
-    }
-}, 500);
+            // 清理：如果元素提前找到了，清除定时器
+            const originalResolve = resolve;
+            resolve = (value) => {
+                clearTimeout(timeoutId);
+                originalResolve(value);
+            };
+        }
+    });
+}
+// Main Entry Point
+initApiBase().then(() => {
+    // 初始加载：等待 Vue 加载时须:搜索框应该是最后进行load
+    waitFor('.nav-search-input').then((ele) => {
+        ele.addEventListener("load", () => {
+            const fn = () => {
+                if (ele.readyState == 'complete') {
+                    tryInject()
+                } else {
+                    setTimeout(fn, 100);
+                }
+            }
+            fn()
+        });
+    });
 
-
-// 初始尝试 - 增加延迟，等 B 站顶栏加载完再动
-// setTimeout(() => {
-//     const mainApp = document.getElementById('app') || document.body;
-//     observer.observe(mainApp, { childList: true, subtree: true });
-//     injectQuestionButton();
-
-// 合并后的心跳检测
-// setInterval(() => {
-//     const urlChanged = location.href !== lastUrl;
-//     if (urlChanged) {
-//         lastUrl = location.href;
-//         injectQuestionButton();
-//     } else {
-//         // 心跳检测：强制检查
-//         const btn = document.getElementById('bili-qmr-btn');
-//         const toolbar = document.querySelector('.video-toolbar-left-main') ||
-//             document.querySelector('.toolbar-left') ||
-//             document.querySelector('.video-toolbar-container .left-operations');
-
-//         if (toolbar && (!btn || !toolbar.contains(btn))) {
-//             injectQuestionButton();
-//         }
-//     }
-
-//     // 检查视频事件绑定
-//     const video = document.querySelector('video');
-//     if (video && !video.dataset.qmrListen) {
-//         video.dataset.qmrListen = 'true';
-//         video.addEventListener('play', () => setTimeout(injectQuestionButton, 500));
-//         video.addEventListener('pause', () => setTimeout(injectQuestionButton, 500));
-//     }
-// }, 2000); // 心跳频率也降低
-// }, 2500); // 延迟 2.5 秒启动，避开顶栏渲染高峰期
+    // 处理 SPA 软导航 (URL 变化)
+    let lastUrl = location.href;
+    setInterval(() => {
+        if (location.href !== lastUrl) {
+            lastUrl = location.href;
+            // URL 变化后，重新等待稳定再注入
+            syncButtonState();
+        } else {
+            // 简单的保底检查：如果当前应该是视频页但按钮丢了
+            if (getBvid() && !document.getElementById('bili-qmr-btn')) {
+                // 不使用 observer，直接尝试一下，避免死循环
+                if (document.querySelector('.video-toolbar-left-main')) {
+                    tryInject();
+                }
+            }
+        }
+    }, 1000);
+});

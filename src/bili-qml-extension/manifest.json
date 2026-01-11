@@ -32,7 +32,9 @@
         "https://www.bilibili.com/video/*"
       ],
       "js": [
-        "content.js"
+        "platform.js",
+        "content.js",
+        "utils.js"
       ],
       "css": [
         "content.css"

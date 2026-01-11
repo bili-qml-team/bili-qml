@@ -10,9 +10,12 @@
     <div class="container">
         <header>
             <div class="header-top">
+                <div class="header-left">
+                    <div class="settings-btn" id="full-leaderboard-btn" title="打开完整榜单">📊</div>
+                    <div class="settings-btn" id="theme-btn" title="切换深色/浅色模式">🌓</div>
+                </div>
                 <h1>B站问号榜 ❓</h1>
                 <div class="header-actions">
-                    <button class="page-btn" id="page-btn" title="打开独立页面">页面</button>
                     <div class="settings-btn" id="settings-btn" title="设置">⚙️</div>
                 </div>
             </div>
@@ -26,29 +29,61 @@
         <main id="leaderboard" class="content-panel">
             <div class="loading">加载中...</div>
         </main>
-        <main id="settings" class="content-panel" style="display: none;">
-            <div class="settings-section">
-                <h3>弹幕发送设置</h3>
-                <p class="settings-desc">点亮问号后，是否自动发送"?"弹幕</p>
-                <div class="radio-group">
-                    <label class="radio-item">
-                        <input type="radio" name="danmaku-pref" value="ask">
-                        <span>每次询问</span>
-                    </label>
-                    <label class="radio-item">
-                        <input type="radio" name="danmaku-pref" value="always">
-                        <span>总是发送</span>
-                    </label>
-                    <label class="radio-item">
-                        <input type="radio" name="danmaku-pref" value="never">
-                        <span>总是不发送</span>
-                    </label>
+        <div id="settings-wrapper" class="settings-wrapper" style="display: none;">
+            <main id="settings" class="settings-content">
+                <div class="settings-section">
+                    <h3>弹幕发送设置</h3>
+                    <p class="settings-desc">点亮问号后，是否自动发送"?"弹幕</p>
+                    <div class="radio-group">
+                        <label class="radio-item">
+                            <input type="radio" name="danmaku-pref" value="ask">
+                            <span>每次询问</span>
+                        </label>
+                        <label class="radio-item">
+                            <input type="radio" name="danmaku-pref" value="always">
+                            <span>总是发送</span>
+                        </label>
+                        <label class="radio-item">
+                            <input type="radio" name="danmaku-pref" value="never">
+                            <span>总是不发送</span>
+                        </label>
+                    </div>
                 </div>
+
+                <div class="settings-section" style="margin-top: 15px;">
+                    <h3>第一名显示设置</h3>
+                    <p class="settings-desc">自定义排行榜第一名的显示文本</p>
+                    <div class="radio-group">
+                        <label class="radio-item">
+                            <input type="radio" name="rank1-pref" value="default">
+                            <span>正常 (1)</span>
+                        </label>
+                        <label class="radio-item">
+                            <input type="radio" name="rank1-pref" value="custom">
+                            <span>抽象 (何一位)</span>
+                        </label>
+                    </div>
+                </div>
+                <details class="advanced-section" style="margin-top: 15px;">
+                    <summary class="advanced-toggle">高级选项</summary>
+                    <div class="settings-section">
+                        <h3>API 服务器设置</h3>
+                        <p class="settings-desc">自定义问号榜服务器地址</p>
+                        <div class="endpoint-input-group">
+                            <input type="text" id="endpoint-input" class="endpoint-input"
+                                placeholder="https://bili-qml.bydfk.com/api">
+                            <button id="reset-endpoint" class="reset-btn" title="恢复默认">↺</button>
+                        </div>
+                    </div>
+                </details>
+            </main>
+            <div id="settings-footer" class="settings-footer">
                 <button id="save-settings" class="save-btn">保存设置</button>
                 <div id="save-status" class="save-status"></div>
             </div>
-        </main>
+        </div>
     </div>
+    <script src="platform.js"></script>
     <script src="popup.js"></script>
 </body>
 
