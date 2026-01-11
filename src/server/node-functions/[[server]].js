@@ -329,13 +329,4 @@ app.get(['/api/leaderboard', '/leaderboard'], async (req, res) => {
     }
 });
 
-module.exports = app;
-if (require.main === module) {
-    const PORT = process.env.PORT || 3000;
-    app.listen(PORT, () => {
-        console.log(`Server is running on port ${PORT}`);
-    });
-    process.exit(0);
-}
-
 export default app;
