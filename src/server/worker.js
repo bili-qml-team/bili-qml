@@ -9,6 +9,67 @@
  */
 import { env } from "cloudflare:workers";
 
+
+async function updateGitHub(filename, newContent) {
+    const token = env.GITHUB_TOKEN;
+    if (!token) return console.error("Missing GITHUB_TOKEN secret.");
+
+    const apiBase = "https://api.github.com";
+    const encodePath = (p) => p.split("/").map(encodeURIComponent).join("/");
+
+    // UTF-8 string -> base64
+    const toBase64 = (str) => {
+        const bytes = new TextEncoder().encode(str);
+        let binary = "";
+        const chunk = 0x8000;
+        for (let i = 0; i < bytes.length; i += chunk) {
+            binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+        }
+        return btoa(binary);
+    };
+
+    const headers = {
+        "Authorization": `Bearer ${token}`,
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "Bili-QML-Cron-Worker"
+    };
+
+    const fileUrl = `${apiBase}/repos/bili-qml-team/bili-qml-leaderboard-cache/contents/${encodePath(filename)}`;
+
+    // Try to read existing file to get SHA (if exists)
+    let sha = undefined;
+    const getResp = await fetch(fileUrl, { headers });
+    if (getResp.status === 200) {
+        const data = await getResp.json();
+        sha = data.sha;
+    } else if (getResp.status !== 404) {
+        const errText = await getResp.text();
+        return console.error(`GET file failed: ${getResp.status}\n${errText}`)
+    }
+
+    // Create or update
+    const message = `auto: update cache at ${new Date(Date.now()).toUTCString()}`
+    const putBody = {
+        message: message,
+        content: toBase64(newContent),
+        branch: "main",
+        ...(sha ? { sha } : {}), // required only when updating existing file
+    };
+
+    const putResp = await fetch(fileUrl.split("?")[0], {
+        method: "PUT",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify(putBody),
+    });
+
+    const putText = await putResp.text();
+    if (!putResp.ok) {
+        return console.error(`PUT failed: ${putResp.status}\n${putText}`);
+    }
+
+    return console.log("GitHub update succeed.");
+}
+
 async function purgeCache() {
     return fetch(`https://api.cloudflare.com/client/v4/zones/${env.ZONE_ID}/purge_cache`,
         {
@@ -38,6 +99,10 @@ export default {
             await env.LEADERBOARD_CACHE.put('daily', JSON.stringify(responseJson.leaderBoardCache.caches[0]));
             await env.LEADERBOARD_CACHE.put('weekly', JSON.stringify(responseJson.leaderBoardCache.caches[1]));
             await env.LEADERBOARD_CACHE.put('monthly', JSON.stringify(responseJson.leaderBoardCache.caches[2]));
+            // await updateGitHub("expireTime", String(responseJson.leaderBoardCache.expireTime));
+            await updateGitHub("daily", JSON.stringify(responseJson.leaderBoardCache.caches[0]));
+            await updateGitHub("weekly", JSON.stringify(responseJson.leaderBoardCache.caches[1]));
+            await updateGitHub("monthly", JSON.stringify(responseJson.leaderBoardCache.caches[2]));
             await purgeCache();
             console.log(`Refresh success at ${end}, took ${(end - start) / 1000.0}s, cache: ${JSON.stringify(responseJson.leaderBoardCache)}`);
         } else {
@@ -73,7 +138,6 @@ export default {
                         'Expires': (new Date(expireTime)).toUTCString()
                     }
                 });
-                // Store in cache and return the same response
                 ctx.waitUntil(
                     cache.put(request, response.clone()).catch(err => {
                         console.error("Failed to store response in cache:", err);
