@@ -1,0 +1,36 @@
+name: Build
+
+on:
+  push:
+    branches: [ "dev", "main" ]
+  pull_request:
+    branches: [ "dev", "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Use Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18.x'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build
+      run: npm run build
+
+    - name: Upload Build Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: bili-qml-dist
+        path: |
+          src/bili-qml-tampermonkey/bili-qml.user.js
+          src/bili-qml-extension/content.js
+          src/bili-qml-extension/popup.js
+          src/bili-qml-extension/leaderboard.js
