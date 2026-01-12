@@ -1,5 +1,6 @@
 {
   "name": "bili-qmr-server",
+  "type": "module",
   "version": "1.0.0",
   "description": "B站问号榜后端服务",
   "author": "Bili-QML Developers",
