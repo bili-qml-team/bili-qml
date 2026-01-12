@@ -57,15 +57,24 @@ async function getLeaderBoardFromTime(periodMs = 24 * 3600 * 1000, limit = 30) {
 }
 
 async function getCachedLeaderBoard(range) {
-    const response = await fetch(`https://api.github.com/repos/bili-qml-team/bili-qml-leaderboard-cache/contents/${range}`,
-        {
-            headers: {
-                'Accept': 'application/vnd.github.raw+json',
-                'Authorization': `Bearer ${process.env.GITHUB_TOKEN}`,
-                'User-Agent': 'Bili-QML-Server 1.2'
-            }
-        });
-    return await response.json();
+    try {
+        const response = await fetch(`https://api.github.com/repos/bili-qml-team/bili-qml-leaderboard-cache/contents/${range}`,
+            {
+                headers: {
+                    'Accept': 'application/vnd.github.raw+json',
+                    'Authorization': `Bearer ${process.env.GITHUB_TOKEN}`,
+                    'User-Agent': 'Bili-QML-Server 1.2'
+                }
+            });
+        if (!response.ok) {
+            console.error(`Failed to fetch cached leaderboard for ${range}: ${response.status}`);
+            return null;
+        }
+        return await response.json();
+    } catch (error) {
+        console.error(`Error fetching cached leaderboard for ${range}:`, error);
+        return null;
+    }
 }
 
 async function getLeaderBoard(range) {

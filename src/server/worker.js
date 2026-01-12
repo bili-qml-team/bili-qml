@@ -73,18 +73,10 @@ export default {
                         'Expires': (new Date(expireTime)).toUTCString()
                     }
                 });
-                await cache.put(request, response);
+                // Store in cache and return the same response
+                ctx.waitUntil(cache.put(request, response.clone()));
                 console.log("Cache Miss, new cache stored.")
-                return new Response(JSON.stringify({
-                    success: true,
-                    period,
-                    expireTime,
-                    data
-                }), {
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
+                return response;
             }
             return Response.json({ success: false, expireTime: 0 })
         }
