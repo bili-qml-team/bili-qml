@@ -789,21 +789,17 @@ function waitFor(selector, ms = undefined) {
     });
 }
 // Main Entry Point
-initApiBase().then(() => {
+initApiBase().then(async () => {
     // 初始加载：等待 Vue 加载时须:搜索框应该是最后进行load
-    waitFor('.nav-search-input').then((ele) => {
-        ele.addEventListener("load", () => {
-            const fn = () => {
-                if (ele.readyState == 'complete') {
-                    tryInject()
-                } else {
-                    setTimeout(fn, 100);
-                }
-            }
-            fn()
+    function insertPromise(selector){
+        return new Promise((resolve)=>{
+            waitFor(selector).then((ele)=>{
+                resolve();
+            });
         });
-    });
-
+    }
+    await Promise.all([insertPromise('.nav-search-input[maxlength]'),insertPromise('.view-icon[width]')]);
+    tryInject()
     // 处理 SPA 软导航 (URL 变化)
     let lastUrl = location.href;
     setInterval(() => {
