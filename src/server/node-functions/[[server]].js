@@ -318,7 +318,7 @@ app.get(['/api/leaderboard', '/leaderboard'], async (req, res) => {
         }
 
         const board = await getLeaderBoard(range);
-        if (!board || board.length === 0) {
+        if (!board) {
             return res.json({ success: false, list: [] });
         }
         // no type or type != 2: add backward capability
