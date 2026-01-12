@@ -57,14 +57,20 @@ async function getLeaderBoardFromTime(periodMs = 24 * 3600 * 1000, limit = 30) {
 }
 
 async function getCachedLeaderBoard(range) {
-    const response = await fetch(`https://${process.env.WORKER_CACHE_URL}/${range}`);
-    const data = await response.json();
-    return [data.data, data.expireTime];
+    const response = await fetch(`https://api.github.com/repos/bili-qml-team/bili-qml-leaderboard-cache/contents/${range}`,
+        {
+            headers: {
+                'Accept': 'application/vnd.github.raw+json',
+                'Authorization': `Bearer ${process.env.GITHUB_TOKEN}`,
+                'User-Agent': 'Bili-QML-Server 1.2'
+            }
+        });
+    return response.text;
 }
 
 async function getLeaderBoard(range) {
     if (range === 'realtime') {
-        return [(await getLeaderBoardFromTime(12 * 3600 * 1000)), 0]; //过去12小时
+        return await getLeaderBoardFromTime(6 * 3600 * 1000); //过去6小时
     }
     return await getCachedLeaderBoard(range);
 }
@@ -311,34 +317,33 @@ app.get(['/api/leaderboard', '/leaderboard'], async (req, res) => {
             }
         }
 
-        const [board, expireTime] = await getLeaderBoard(range);
-        if (range !== 'realtime') res.set('QML-Cache-Expires', `${expireTime}`);
+        const board = await getLeaderBoard(range);
         if (!board || board.length === 0) {
             return res.json({ success: false, list: [] });
         }
         // no type or type != 2: add backward capability
         // if (!proc_type || proc_type !== 2) {
-            // await Promise.all(list.map(async (item, index) => {
-            //     try {
-            //         const conn = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${item.bvid}`,
-            //             {
-            //                 headers: {
-            //                     "Origin": "https://www.bilibili.com",
-            //                     "Referer": `https://www.bilibili.com/video/${item.bvid}/`,
-            //                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
-            //                 }
-            //             });
-            //         const json = await conn.json();
-            //         if (json.code === 0 && json.data?.title) {
-            //             list[index].title = json.data.title;
-            //         } else {
-            //             list[index].title = '未知标题';
-            //         }
-            //     } catch (err) {
-            //         console.error(`获取标题失败 ${item.bvid}:`, err);
-            //         list[index].title = '加载失败';
-            //     }
-            // }));
+        // await Promise.all(list.map(async (item, index) => {
+        //     try {
+        //         const conn = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${item.bvid}`,
+        //             {
+        //                 headers: {
+        //                     "Origin": "https://www.bilibili.com",
+        //                     "Referer": `https://www.bilibili.com/video/${item.bvid}/`,
+        //                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
+        //                 }
+        //             });
+        //         const json = await conn.json();
+        //         if (json.code === 0 && json.data?.title) {
+        //             list[index].title = json.data.title;
+        //         } else {
+        //             list[index].title = '未知标题';
+        //         }
+        //     } catch (err) {
+        //         console.error(`获取标题失败 ${item.bvid}:`, err);
+        //         list[index].title = '加载失败';
+        //     }
+        // }));
         // }
         res.json({ success: true, list: board });
     } catch (error) {
