@@ -65,12 +65,12 @@ async function getCachedLeaderBoard(range) {
                 'User-Agent': 'Bili-QML-Server 1.2'
             }
         });
-    return response.text;
+    return await response.json();
 }
 
 async function getLeaderBoard(range) {
     if (range === 'realtime') {
-        return await getLeaderBoardFromTime(6 * 3600 * 1000); //过去6小时
+        return await getLeaderBoardFromTime(12 * 3600 * 1000); //过去12小时
     }
     return await getCachedLeaderBoard(range);
 }
