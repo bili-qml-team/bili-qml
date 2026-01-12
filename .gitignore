@@ -27,10 +27,3 @@ release/
 src/extension.crx
 src/extension.pem
 src/bili-qml.pem
-
-
-# Generated Files
-src/bili-qml-tampermonkey/bili-qml.user.js
-src/bili-qml-extension/content.js
-src/bili-qml-extension/popup.js
-src/bili-qml-extension/leaderboard.js

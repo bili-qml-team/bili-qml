@@ -2,11 +2,10 @@
 // @name         B站问号榜
 // @namespace    https://github.com/bili-qml-team/bili-qml
 // @version      1.2
-// @description  在B站视频下方增加问号键，统计并展示抽象视频排行榜。油猴脚本版本。
+// @description  在B站视频下方增加问号键，统计并展示抽象视频排行榜。
 // @author       bili-qml-team
 // @homepage     https://github.com/bili-qml-team/bili-qml
-// @match        *://*.bilibili.com/video/*
-// @match        *://*.bilibili.com/list/*
+// @match        https://www.bilibili.com/video/*
 // @icon         https://www.bilibili.com/favicon.ico
 // @grant        GM_addStyle
 // @grant        GM_getValue
@@ -14,6 +13,7 @@
 // @grant        GM_registerMenuCommand
 // @grant        GM_xmlhttpRequest
 // @connect      *
+// @license      AGPL-3.0
 // @run-at       document-end
 // ==/UserScript==
 
