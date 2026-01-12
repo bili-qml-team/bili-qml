@@ -1,8 +1,8 @@
-const express = require('express');
-const cors = require('cors');
-const bodyParser = require('body-parser');
-const { Redis } = require('ioredis');
-const { createChallenge, verifySolution } = require('altcha-lib');
+import express from 'express';
+import cors from 'cors';
+import bodyParser from 'body-parser';
+import { Redis } from 'ioredis';
+import { createChallenge, verifySolution } from 'altcha-lib';
 
 const app = express();
 
