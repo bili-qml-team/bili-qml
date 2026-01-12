@@ -818,6 +818,12 @@
         return num.toString();
     }
 
+    // HTML 转义函数，防止特殊字符导致 HTML 属性被截断
+    function escapeHtml(text) {
+        if (!text) return '';
+        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+
     // 防抖函数
     function debounce(fn, delay) {
         let timer = null;
@@ -2129,7 +2135,7 @@
             div.innerHTML = `
                 <div class="${rankClass}">${rankDisplay}</div>
                 <div class="qmr-info">
-                    <a href="https://www.bilibili.com/video/${item.bvid}" target="_blank" class="qmr-video-title" title="${item.title}">${item.title}</a>
+                    <a href="https://www.bilibili.com/video/${item.bvid}" target="_blank" class="qmr-video-title" title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</a>
                     <div class="qmr-count">❓ 抽象指数: ${item.count}</div>
                 </div>
             `;

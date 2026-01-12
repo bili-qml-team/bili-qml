@@ -10,6 +10,18 @@ function getExtensionUrl(path) {
     return path;
 }
 
+// HTML转义函数，防止特殊字符破坏HTML结构
+function escapeHtml(text) {
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    };
+    return text.replace(/[&<>"']/g, char => map[char]);
+}
+
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -143,11 +155,16 @@ document.addEventListener('DOMContentLoaded', () => {
             rankHtmlClass += ' rank-custom';
         }
 
+        // 对数据进行HTML转义，防止特殊字符破坏HTML结构
+        const escapedTitle = escapeHtml(item.title);
+        const escapedBvid = escapeHtml(item.bvid);
+        const escapedCount = escapeHtml(String(item.count));
+
         div.innerHTML = `
             <div class="${rankHtmlClass}">${rankDisplay}</div>
             <div class="info">
-                <a href="https://www.bilibili.com/video/${item.bvid}" target="_blank" class="title" title="${item.title}">${item.title}</a>
-                <div class="count">❓ 抽象指数: ${item.count}</div>
+                <a href="https://www.bilibili.com/video/${escapedBvid}" target="_blank" class="title" title="${escapedTitle}">${escapedTitle}</a>
+                <div class="count">❓ 抽象指数: ${escapedCount}</div>
             </div>
         `;
         leaderboard.appendChild(div);

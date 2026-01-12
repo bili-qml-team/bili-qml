@@ -1,13 +1,13 @@
-const express = require('express');
-const cors = require('cors');
-const bodyParser = require('body-parser');
-const { Redis } = require('ioredis');
-const { createChallenge, verifySolution } = require('altcha-lib');
+import express from 'express';
+import cors from 'cors';
+import bodyParser from 'body-parser';
+import { Redis } from 'ioredis';
+import { createChallenge, verifySolution } from 'altcha-lib';
 
 const app = express();
 
 const TIMESTAMP_EXPIRE_MS = Number(process.env.TIMESTAMP_EXPIRE_MS) || 180 * 24 * 3600 * 1000; //排行榜总数据过期时间
-const CACHE_EXPIRE_MS = Number(process.env.CACHE_EXPIRE_MS) || 300 * 1000; // 排行榜cache过期时间
+const CACHE_EXPIRE_MS = Number(process.env.CACHE_EXPIRE_MS) || 1800 * 1000; // 排行榜cache过期时间
 const leaderboardTimeInterval = [24 * 3600 * 1000, 7 * 24 * 3600 * 1000, 30 * 24 * 3600 * 1000]; //排行榜相差时间
 
 // Altcha 配置
@@ -53,18 +53,33 @@ async function getLeaderBoardFromTime(periodMs = 24 * 3600 * 1000, limit = 30) {
     const sorted = Object.entries(counts)
         .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
         .slice(0, limit);
-    return sorted;
+    return sorted.map((array) => { return { bvid: array[0], count: array[1] } });
 }
 
 async function getCachedLeaderBoard(range) {
-    const response = await fetch(`https://${process.env.WORKER_CACHE_URL}/${range}`);
-    const data = await response.json();
-    return [data.data, data.expireTime];
+    try {
+        const response = await fetch(`https://api.github.com/repos/bili-qml-team/bili-qml-leaderboard-cache/contents/${range}`,
+            {
+                headers: {
+                    'Accept': 'application/vnd.github.raw+json',
+                    'Authorization': `Bearer ${process.env.GITHUB_TOKEN}`,
+                    'User-Agent': 'Bili-QML-Server 1.2'
+                }
+            });
+        if (!response.ok) {
+            console.error(`Failed to fetch cached leaderboard for ${range}: ${response.status} ${response.statusText}`);
+            return null;
+        }
+        return await response.json();
+    } catch (error) {
+        console.error(`Error fetching cached leaderboard for ${range}:`, error);
+        return null;
+    }
 }
 
 async function getLeaderBoard(range) {
     if (range === 'realtime') {
-        return [(await getLeaderBoardFromTime(12 * 3600 * 1000)), 0]; //过去12小时
+        return await getLeaderBoardFromTime(12 * 3600 * 1000); //过去12小时
     }
     return await getCachedLeaderBoard(range);
 }
@@ -288,8 +303,7 @@ app.get(['/api/status', '/status'], async (req, res) => {
 
 // 获取排行榜
 app.get(['/api/leaderboard', '/leaderboard'], async (req, res) => {
-    const { range = 'realtime', type, altcha } = req.query;
-    let proc_type = parseInt(type);
+    const { range = 'realtime', altcha } = req.query;
     if (range !== 'realtime' && range !== 'daily' && range !== 'weekly' && range !== 'monthly') {
         return res.status(400).json({ success: false, error: 'Invalid range' });
     }
@@ -312,34 +326,35 @@ app.get(['/api/leaderboard', '/leaderboard'], async (req, res) => {
             }
         }
 
-        const [board, expireTime] = await getLeaderBoard(range);
-        if (range !== 'realtime') res.set('QML-Cache-Expires', `${expireTime}`);
-        let list = board.map((array) => { return { bvid: array[0], count: array[1] } });
-        // no type or type != 2: add backward capability
-        if (!proc_type || proc_type !== 2) {
-            await Promise.all(list.map(async (item, index) => {
-                try {
-                    const conn = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${item.bvid}`,
-                        {
-                            headers: {
-                                "Origin": "https://www.bilibili.com",
-                                "Referer": `https://www.bilibili.com/video/${item.bvid}/`,
-                                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
-                            }
-                        });
-                    const json = await conn.json();
-                    if (json.code === 0 && json.data?.title) {
-                        list[index].title = json.data.title;
-                    } else {
-                        list[index].title = '未知标题';
-                    }
-                } catch (err) {
-                    console.error(`获取标题失败 ${item.bvid}:`, err);
-                    list[index].title = '加载失败';
-                }
-            }));
+        const board = await getLeaderBoard(range);
+        if (!board) {
+            return res.json({ success: false, list: [] });
         }
-        res.json({ success: true, list: list });
+        // no type or type != 2: add backward capability
+        // if (!proc_type || proc_type !== 2) {
+        // await Promise.all(list.map(async (item, index) => {
+        //     try {
+        //         const conn = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${item.bvid}`,
+        //             {
+        //                 headers: {
+        //                     "Origin": "https://www.bilibili.com",
+        //                     "Referer": `https://www.bilibili.com/video/${item.bvid}/`,
+        //                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
+        //                 }
+        //             });
+        //         const json = await conn.json();
+        //         if (json.code === 0 && json.data?.title) {
+        //             list[index].title = json.data.title;
+        //         } else {
+        //             list[index].title = '未知标题';
+        //         }
+        //     } catch (err) {
+        //         console.error(`获取标题失败 ${item.bvid}:`, err);
+        //         list[index].title = '加载失败';
+        //     }
+        // }));
+        // }
+        res.json({ success: true, list: board });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
