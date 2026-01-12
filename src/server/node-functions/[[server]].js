@@ -67,7 +67,7 @@ async function getCachedLeaderBoard(range) {
                 }
             });
         if (!response.ok) {
-            console.error(`Failed to fetch cached leaderboard for ${range}: ${response.status}`);
+            console.error(`Failed to fetch cached leaderboard for ${range}: ${response.status} ${response.statusText}`);
             return null;
         }
         return await response.json();

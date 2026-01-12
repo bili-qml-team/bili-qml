@@ -74,7 +74,11 @@ export default {
                     }
                 });
                 // Store in cache and return the same response
-                ctx.waitUntil(cache.put(request, response.clone()));
+                ctx.waitUntil(
+                    cache.put(request, response.clone()).catch(err => {
+                        console.error("Failed to store response in cache:", err);
+                    })
+                );
                 console.log("Cache Miss, new cache stored.")
                 return response;
             }
