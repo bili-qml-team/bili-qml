@@ -790,18 +790,10 @@ function waitFor(selector, ms = undefined) {
 }
 // Main Entry Point
 initApiBase().then(() => {
-    // 初始加载：等待 Vue 加载时须:搜索框应该是最后进行load
-    waitFor('.nav-search-input').then((ele) => {
-        ele.addEventListener("load", () => {
-            const fn = () => {
-                if (ele.readyState == 'complete') {
-                    tryInject()
-                } else {
-                    setTimeout(fn, 100);
-                }
-            }
-            fn()
-        });
+    // 初始加载：等待搜索框出现，说明页面基本结构已加载
+    waitFor('.nav-search-input').then(() => {
+        // 搜索框已出现，尝试注入按钮
+        tryInject();
     });
 
     // 处理 SPA 软导航 (URL 变化)
