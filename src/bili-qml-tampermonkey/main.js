@@ -742,18 +742,7 @@ async function tryInject() {
 // ==================== 初始化 ====================
 
 // 初始加载：等待 Vue 加载完成
-waitFor(SELECTORS.NAV_SEARCH).then((ele) => {
-    ele.addEventListener("load", () => {
-        const fn = () => {
-            if (ele.readyState == 'complete') {
-                tryInject();
-            } else {
-                setTimeout(fn, 100);
-            }
-        };
-        fn();
-    });
-});
+Promise.all(SELECTORS.LOAD_INDICATOR.map((indicator)=>{return waitFor(indicator)})).then(()=>{tryInject()});
 
 // 处理 SPA 软导航 (URL 变化)
 let lastUrl = location.href;

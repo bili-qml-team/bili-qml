@@ -40,8 +40,11 @@ export const SELECTORS = {
         '.video-share',
         '.share-info'
     ],
-    // 搜索框（用于判断页面加载完成）
-    NAV_SEARCH: '.nav-search-input'
+    // 搜索框/视频播放量图标（用于判断页面加载完成）
+    LOAD_INDICATOR: [
+        '.nav-search-input[maxlength]',
+        '.view-icon[width]'
+    ]
 };
 
 // 问号按钮相关
