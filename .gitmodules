@@ -1,0 +1,4 @@
+[submodule "src/server"]
+	path = src/server
+	url = https://github.com/bili-qml-team/bili-qml-server
+	branch = main
