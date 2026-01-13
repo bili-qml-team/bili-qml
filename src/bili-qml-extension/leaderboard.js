@@ -14,27 +14,67 @@ document.addEventListener('DOMContentLoaded', () => {
     const themeToggleBtn = document.getElementById('theme-toggle');
     // 默认浅色模式。如果保存了'dark'，则应用暗色模式。
     browserStorage.sync.get(['theme'], (result) => {
+        const classList = [...document.body.classList];
+        classList.forEach(className => {
+            document.body.classList.remove(className);
+        });
         if (result.theme === 'dark') {
             document.body.classList.add('dark-mode');
+        } else if (result.theme === 'light') {
+            document.body.classList.add('light-mode');
         }
     });
 
     // 监听其他标签页/Popup的主题变更
     browserStorage.onChanged.addListener((changes, areaName) => {
         if (areaName === 'sync' && changes.theme) {
+            const classList = [...document.body.classList];
+            classList.forEach(className => {
+                document.body.classList.remove(className);
+            });
             if (changes.theme.newValue === 'dark') {
                 document.body.classList.add('dark-mode');
-            } else {
-                document.body.classList.remove('dark-mode');
+            } else if (changes.theme.newValue === 'light') {
+                document.body.classList.add('light-mode');
             }
         }
     });
 
     if (themeToggleBtn) {
         themeToggleBtn.addEventListener('click', () => {
-            document.body.classList.toggle('dark-mode');
-            const isDark = document.body.classList.contains('dark-mode');
-            browserStorage.sync.set({ theme: isDark ? 'dark' : 'light' });
+            const { matches } = window.matchMedia('(prefers-color-scheme: dark)');
+
+            const changeThemeDark = () => {
+                const classList = [...document.body.classList];
+                classList.forEach(className => {
+                    document.body.classList.remove(className);
+                });
+                document.body.classList.add('dark-mode');
+                browserStorage.sync.set({ theme: 'dark' });
+            }
+
+            const changeThemeLight = () => {
+                const classList = [...document.body.classList];
+                classList.forEach(className => {
+                    document.body.classList.remove(className);
+                });
+                document.body.classList.add('light-mode');
+                browserStorage.sync.set({ theme: 'light' });
+            }
+
+            if (matches) {
+                if (document.body.className === 'light-mode') {
+                    changeThemeDark();
+                } else if (matches || document.body.className === 'dark-mode') {
+                    changeThemeLight();
+                }
+            } else {
+                if (document.body.className === 'dark-mode') {
+                    changeThemeLight();
+                } else if (!matches || document.body.className === 'light-mode') {
+                    changeThemeDark();
+                }
+            }
         });
     }
 

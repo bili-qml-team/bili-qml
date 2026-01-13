@@ -29,16 +29,22 @@ document.addEventListener('DOMContentLoaded', () => {
     browserStorage.sync.get(['theme'], (result) => {
         if (result.theme === 'dark') {
             document.body.classList.add('dark-mode');
+        } else if (result.theme === 'light') {
+            document.body.classList.add('light-mode');
         }
     });
 
 
     browserStorage.onChanged.addListener((changes, areaName) => {
         if (areaName === 'sync' && changes.theme) {
+            const classList = [...document.body.classList];
+            classList.forEach(className => {
+                document.body.classList.remove(className);
+            });
             if (changes.theme.newValue === 'dark') {
                 document.body.classList.add('dark-mode');
-            } else {
-                document.body.classList.remove('dark-mode');
+            } else if (changes.theme.newValue === 'light') {
+                document.body.classList.add('light-mode');
             }
         }
     });
@@ -76,15 +82,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 主题切换
-    const themeBtn = document.getElementById('theme-btn');
-    if (themeBtn) {
-        themeBtn.addEventListener('click', () => {
-            document.body.classList.toggle('dark-mode');
-            const isDark = document.body.classList.contains('dark-mode');
-            browserStorage.sync.set({ theme: isDark ? 'dark' : 'light' });
-        });
-    }
-
+    const themeRadioSystem = document.querySelector('input[name="theme-pref"][value="system"]');
+    const themeRadioLight = document.querySelector('input[name="theme-pref"][value="light"]');
+    const themeRadioDark = document.querySelector('input[name="theme-pref"][value="dark"]');
+    if (themeRadioSystem) {
+        themeRadioSystem.onclick = () => {
+            const classList = [...document.body.classList];
+            classList.forEach(className => {
+                document.body.classList.remove(className);
+            });
+            browserStorage.sync.set({ theme: 'system' });
+        };
+    };
+    if (themeRadioLight) {
+        themeRadioLight.onclick = () => {
+            document.body.classList.remove('dark-mode');
+            document.body.classList.add('light-mode');
+            browserStorage.sync.set({ theme: 'light' });
+        };
+    };
+    if (themeRadioDark) {
+        themeRadioDark.onclick = () => {
+            document.body.classList.remove('light-mode');
+            document.body.classList.add('dark-mode');
+            browserStorage.sync.set({ theme: 'dark' });
+        };
+    };
     // 加载排行榜
     async function fetchLeaderboard(range = 'realtime', altchaSolution = null) {
         leaderboard.innerHTML = '<div class="loading">加载中...</div>';
