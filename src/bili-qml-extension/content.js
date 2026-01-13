@@ -40,8 +40,11 @@
             '.video-share',
             '.share-info'
         ],
-        // 搜索框（用于判断页面加载完成）
-        NAV_SEARCH: '.nav-search-input'
+        // 搜索框/视频播放量图标（用于判断页面加载完成）
+        LOAD_INDICATOR: [
+            '.nav-search-input[maxlength]',
+            '.view-icon[width]'
+        ]
     };
 
     // 问号按钮相关
@@ -884,21 +887,10 @@
 
     // ==================== Main Entry Point ====================
 
-    initApiBase().then(() => {
+    initApiBase().then(async () => {
         // 初始加载：等待 Vue 加载完成
-        waitFor(SELECTORS.NAV_SEARCH).then((ele) => {
-            ele.addEventListener("load", () => {
-                const fn = () => {
-                    if (ele.readyState == 'complete') {
-                        tryInject();
-                    } else {
-                        setTimeout(fn, 100);
-                    }
-                };
-                fn();
-            });
-        });
-
+        await Promise.all(SELECTORS.LOAD_INDICATOR.map((indicator)=>{return waitFor(indicator)}));
+        tryInject()
         // 处理 SPA 软导航 (URL 变化)
         let lastUrl = location.href;
         setInterval(() => {
