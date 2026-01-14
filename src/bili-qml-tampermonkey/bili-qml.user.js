@@ -15,7 +15,7 @@
 // @license      AGPL-3.0
 // ==/UserScript==
 
-(function () {
+(async function () {
     'use strict';
 
     const DEFAULT_API_BASE = 'https://bili-qml.bydfk.com/api';
@@ -82,7 +82,7 @@
 
             const dialog = document.createElement('div');
             dialog.style.cssText = `
-                background: white; border-radius: 12px; padding: 24px;
+                background: var(--bg-color); border-radius: 12px; padding: 24px;
                 width: 320px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);
                 font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
                 text-align: center;
@@ -90,29 +90,29 @@
 
             dialog.innerHTML = `
                 <div style="font-size: 48px; margin-bottom: 16px;">🤖</div>
-                <div style="font-size: 18px; font-weight: bold; color: #18191c; margin-bottom: 12px;">
+                <div style="font-size: 18px; font-weight: bold; color: var(--text-main); margin-bottom: 12px;">
                     人机验证
                 </div>
-                <div id="qmr-captcha-status" style="font-size: 14px; color: #61666d; margin-bottom: 20px;">
+                <div id="qmr-captcha-status" style="font-size: 14px; color: var(--text-secondary); margin-bottom: 20px;">
                     检测到频繁操作，请完成验证
                 </div>
                 <div id="qmr-captcha-progress" style="display: none; margin-bottom: 20px;">
-                    <div style="width: 100%; height: 6px; background: #e3e5e7; border-radius: 3px; overflow: hidden;">
+                    <div style="width: 100%; height: 6px; background: var(--border-color); border-radius: 3px; overflow: hidden;">
                         <div id="qmr-captcha-bar" style="width: 0%; height: 100%; background: #00aeec; transition: width 0.3s;"></div>
                     </div>
-                    <div style="font-size: 12px; color: #9499a0; margin-top: 8px;">正在验证中...</div>
+                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">正在验证中...</div>
                 </div>
                 <div id="qmr-captcha-buttons">
                     <button id="qmr-captcha-start" style="
                         padding: 10px 32px; border: none; border-radius: 6px;
-                        background: #00aeec; color: white; cursor: pointer;
+                        background: var(--primary-color); color: white; cursor: pointer;
                         font-size: 14px; transition: all 0.2s;
                     ">
                         开始验证
                     </button>
                     <button id="qmr-captcha-cancel" style="
-                        padding: 10px 20px; border: 1px solid #e3e5e7; border-radius: 6px;
-                        background: white; color: #61666d; cursor: pointer;
+                        padding: 10px 20px; border: 1px solid var(--border-color); border-radius: 6px;
+                        background: var(--card-bg); color: var(--text-main); cursor: pointer;
                         font-size: 14px; margin-left: 12px; transition: all 0.2s;
                     ">
                         取消
@@ -129,8 +129,8 @@
             const progressDiv = dialog.querySelector('#qmr-captcha-progress');
             const buttonsDiv = dialog.querySelector('#qmr-captcha-buttons');
 
-            startBtn.addEventListener('mouseenter', () => startBtn.style.background = '#00a1d6');
-            startBtn.addEventListener('mouseleave', () => startBtn.style.background = '#00aeec');
+            startBtn.addEventListener('mouseenter', () => startBtn.style.background = 'var(--primary-hover)');
+            startBtn.addEventListener('mouseleave', () => startBtn.style.background = 'var(--primary-color)');
 
             cancelBtn.onclick = () => {
                 overlay.remove();
@@ -860,41 +860,41 @@
 
             const dialog = document.createElement('div');
             dialog.style.cssText = `
-                background: white; border-radius: 8px; padding: 24px;
-                width: 360px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-                font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: var(--bg1); border-radius: 8px; padding: 24px;
+            width: 360px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
             `;
 
             dialog.innerHTML = `
-                <div style="font-size: 18px; font-weight: bold; color: #18191c; margin-bottom: 16px;">
-                    发送弹幕确认
-                </div>
-                <div style="font-size: 14px; color: #61666d; margin-bottom: 20px;">
-                    点亮问号后是否自动发送"?"弹幕？
-                </div>
-                <div style="margin-bottom: 20px;">
-                    <label style="display: flex; align-items: center; cursor: pointer; user-select: none;">
-                        <input type="checkbox" id="qmr-dont-ask" style="margin-right: 8px;">
-                        <span style="font-size: 14px; color: #61666d;">不再询问（记住我的选择）</span>
-                    </label>
-                </div>
-                <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                    <button id="qmr-btn-no" style="
-                        padding: 8px 20px; border: 1px solid #e3e5e7; border-radius: 4px;
-                        background: white; color: #61666d; cursor: pointer;
-                        font-size: 14px; transition: all 0.2s;
-                    ">
-                        不发送
-                    </button>
-                    <button id="qmr-btn-yes" style="
-                        padding: 8px 20px; border: none; border-radius: 4px;
-                        background: #00aeec; color: white; cursor: pointer;
-                        font-size: 14px; transition: all 0.2s;
-                    ">
-                        发送弹幕
-                    </button>
-                </div>
-            `;
+            <div style="font-size: 18px; font-weight: bold; color: var(--text1); margin-bottom: 16px;">
+                发送弹幕确认
+            </div>
+            <div style="font-size: 14px; color: var(--text1); margin-bottom: 20px;">
+                点亮问号后是否自动发送"?"弹幕？
+            </div>
+            <div style="margin-bottom: 20px;">
+                <label style="display: flex; align-items: center; cursor: pointer; user-select: none;">
+                    <input type="checkbox" id="qmr-dont-ask" style="margin-right: 8px;">
+                    <span style="font-size: 14px; color: var(--text3);">不再询问（记住我的选择）</span>
+                </label>
+            </div>
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button id="qmr-btn-no" style="
+                    padding: 8px 20px; border: 1px solid var(--line_regular); border-radius: 4px;
+                    background: var(--bg1_float); color: var(--text1); cursor: pointer;
+                    font-size: 14px; transition: all 0.2s;
+                ">
+                    不发送
+                </button>
+                <button id="qmr-btn-yes" style="
+                    padding: 8px 20px; border: none; border-radius: 4px;
+                    background: var(--brand_blue); color: white; cursor: pointer;
+                    font-size: 14px; transition: all 0.2s;
+                ">
+                    发送弹幕
+                </button>
+            </div>
+        `;
 
             overlay.appendChild(dialog);
             document.body.appendChild(overlay);
@@ -902,8 +902,8 @@
             const btnNo = dialog.querySelector('#qmr-btn-no');
             const btnYes = dialog.querySelector('#qmr-btn-yes');
 
-            btnNo.addEventListener('mouseenter', () => { btnNo.style.background = '#f4f5f7'; });
-            btnNo.addEventListener('mouseleave', () => { btnNo.style.background = 'white'; });
+            btnNo.addEventListener('mouseenter', () => { btnNo.style.background = 'var(--bg3)'; });
+            btnNo.addEventListener('mouseleave', () => { btnNo.style.background = 'var(--bg1_float)'; });
             btnYes.addEventListener('mouseenter', () => { btnYes.style.background = '#00a1d6'; });
             btnYes.addEventListener('mouseleave', () => { btnYes.style.background = '#00aeec'; });
 
@@ -1110,9 +1110,6 @@
     // 注入问号按钮
     async function injectQuestionButton() {
         try {
-            const bvid = getBvid();
-            if (!bvid) return;
-
             const toolbarLeft = document.querySelector('.video-toolbar-left-main');
             const shareBtn = document.querySelector('.video-toolbar-left-item.share') ||
                 document.querySelector('.video-share') ||
@@ -2208,18 +2205,15 @@
     // ==================== 初始化 ====================
 
     // 初始加载：等待 Vue 加载完成，搜索框应该是最后进行 load 的元素
-    waitFor('.nav-search-input').then((ele) => {
-        ele.addEventListener("load", () => {
-            const fn = () => {
-                if (ele.readyState == 'complete') {
-                    tryInject();
-                } else {
-                    setTimeout(fn, 100);
-                }
-            };
-            fn();
+    function insertPromise(selector) {
+        return new Promise((resolve) => {
+            waitFor(selector).then((ele) => {
+                resolve();
+            });
         });
-    });
+    }
+    await Promise.all([insertPromise('.nav-search-input[maxlength]'), insertPromise('.view-icon[width]')]);
+    tryInject()
 
     // 处理 SPA 软导航 (URL 变化)
     let lastUrl = location.href;

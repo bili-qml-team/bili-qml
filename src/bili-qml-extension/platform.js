@@ -110,7 +110,7 @@ function showAltchaCaptchaDialog() {
         <div style="width: 100%; height: 6px; background: var(--border-color); border-radius: 3px; overflow: hidden;">
           <div id="qmr-captcha-bar" style="width: 0%; height: 100%; background: var; transition: width 0.3s;"></div>
         </div>
-        <div style="font-size: 12px; color: var(--text-main); margin-top: 8px;">正在验证中...</div>
+        <div style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">正在验证中...</div>
       </div>
       <div id="qmr-captcha-buttons">
         <button id="qmr-captcha-start" type="button" style="
