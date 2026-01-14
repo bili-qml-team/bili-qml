@@ -29,16 +29,22 @@ document.addEventListener('DOMContentLoaded', () => {
     browserStorage.sync.get(['theme'], (result) => {
         if (result.theme === 'dark') {
             document.body.classList.add('dark-mode');
+        } else if (result.theme === 'light') {
+            document.body.classList.add('light-mode');
         }
     });
 
 
     browserStorage.onChanged.addListener((changes, areaName) => {
         if (areaName === 'sync' && changes.theme) {
+            const classList = [...document.body.classList];
+            classList.forEach(className => {
+                document.body.classList.remove(className);
+            });
             if (changes.theme.newValue === 'dark') {
                 document.body.classList.add('dark-mode');
-            } else {
-                document.body.classList.remove('dark-mode');
+            } else if (changes.theme.newValue === 'light') {
+                document.body.classList.add('light-mode');
             }
         }
     });
@@ -76,15 +82,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 主题切换
-    const themeBtn = document.getElementById('theme-btn');
-    if (themeBtn) {
-        themeBtn.addEventListener('click', () => {
-            document.body.classList.toggle('dark-mode');
-            const isDark = document.body.classList.contains('dark-mode');
-            browserStorage.sync.set({ theme: isDark ? 'dark' : 'light' });
-        });
-    }
-
+    const themeRadioSystem = document.querySelector('input[name="theme-pref"][value="system"]');
+    const themeRadioLight = document.querySelector('input[name="theme-pref"][value="light"]');
+    const themeRadioDark = document.querySelector('input[name="theme-pref"][value="dark"]');
+    if (themeRadioSystem) {
+        themeRadioSystem.onclick = () => {
+            const classList = [...document.body.classList];
+            classList.forEach(className => {
+                document.body.classList.remove(className);
+            });
+        };
+    };
+    if (themeRadioLight) {
+        themeRadioLight.onclick = () => {
+            document.body.classList.remove('dark-mode');
+            document.body.classList.add('light-mode');
+        };
+    };
+    if (themeRadioDark) {
+        themeRadioDark.onclick = () => {
+            document.body.classList.remove('light-mode');
+            document.body.classList.add('dark-mode');
+        };
+    };
     // 加载排行榜
     async function fetchLeaderboard(range = 'realtime', altchaSolution = null) {
         leaderboard.innerHTML = '<div class="loading">加载中...</div>';
@@ -187,7 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 加载设置
     async function loadSettings() {
         return new Promise((resolve) => {
-            browserStorage.sync.get([STORAGE_KEY_DANMAKU_PREF, STORAGE_KEY_API_ENDPOINT, 'rank1Setting'], (result) => {
+            browserStorage.sync.get([STORAGE_KEY_DANMAKU_PREF, STORAGE_KEY_API_ENDPOINT, 'rank1Setting', 'theme'], (result) => {
                 // 弹幕偏好设置
                 const preference = result[STORAGE_KEY_DANMAKU_PREF];
                 let value = 'ask'; // 默认每次询问
@@ -199,7 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 // 设置选中的单选按钮
-                const radio = document.querySelector(`input[name="danmaku-pref"][value="${value}"]`);
+                const radio = document.querySelector(`input[name="danmaku-pref"][value="${result.value}"]`);
                 if (radio) {
                     radio.checked = true;
                 }
@@ -209,6 +229,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const rank1Radio = document.querySelector(`input[name="rank1-pref"][value="${rank1Setting}"]`);
                 if (rank1Radio) {
                     rank1Radio.checked = true;
+                }
+
+                // theme 设置状态
+                const themeRadio = document.querySelector(`input[name="theme-pref"][value="${result.theme}"]`);
+                if (themeRadio) {
+                    themeRadio.checked = true;
                 }
 
                 // Endpoint 设置
@@ -228,6 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const rank1Radio = document.querySelector('input[name="rank1-pref"]:checked');
         const endpointInput = document.getElementById('endpoint-input');
         const endpointValue = endpointInput ? endpointInput.value.trim() : '';
+        const themeRadio = document.querySelector('input[name="theme-pref"]:checked');
 
         // 处理弹幕偏好
         let preference = null;
@@ -242,6 +269,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Handle Rank 1 Setting
         const rank1Setting = rank1Radio ? rank1Radio.value : 'default';
+
+        // theme Setting
+        let theme = null;
+        if (themeRadio) {
+            theme = themeRadio.value;
+        }
 
         return new Promise((resolve) => {
             const updates = {};
@@ -263,6 +296,13 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 removals.push(STORAGE_KEY_API_ENDPOINT);
                 API_BASE = DEFAULT_API_BASE;
+            }
+
+            // theme 设置
+            if (theme) {
+                updates.theme = theme;
+                removals.push(theme);
+                browserStorage.sync.set({ theme });
             }
 
             // 执行存储操作

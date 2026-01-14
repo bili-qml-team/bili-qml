@@ -24,6 +24,32 @@
     --tab-hover-bg: rgba(0, 0, 0, 0.05);
 }
 
+/* 浅色模式 */
+body.light-mode {
+    --bg-color: #f6f7f8;
+    --card-bg: #ffffff;
+    --card-border: rgba(0, 0, 0, 0.06);
+    --card-hover-bg: #ffffff;
+    --primary-color: #00aeec;
+    --text-primary: #18191c;
+    --text-secondary: #9499a0;
+    --accent-glow: rgba(0, 174, 236, 0.15);
+    --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+    --scroll-track: #f6f7f8;
+    --scroll-thumb: #c1c1c1;
+    --scroll-thumb-hover: #a8a8a8;
+
+    --rank-badge-color: rgba(0, 0, 0, 0.05);
+    --rank-badge-hover: rgba(0, 174, 236, 0.1);
+
+    --mesh-color-1: rgba(0, 174, 236, 0.05);
+    --mesh-color-2: rgba(255, 102, 153, 0.04);
+
+    --tab-container-bg: rgba(0, 0, 0, 0.04);
+    --tab-hover-bg: rgba(0, 0, 0, 0.05);
+}
+
 /* 黑暗模式 */
 body.dark-mode {
     --bg-color: #0f0f11;
@@ -47,6 +73,32 @@ body.dark-mode {
 
     --tab-container-bg: rgba(255, 255, 255, 0.05);
     --tab-hover-bg: rgba(255, 255, 255, 0.05);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-color: #0f0f11;
+        --card-bg: rgba(255, 255, 255, 0.03);
+        --card-border: rgba(255, 255, 255, 0.08);
+        --card-hover-bg: rgba(255, 255, 255, 0.06);
+        --primary-color: #00aeec;
+        --text-primary: #ffffff;
+        --text-secondary: #a0a0a0;
+        --accent-glow: rgba(0, 174, 236, 0.3);
+
+        --scroll-track: #0f0f11;
+        --scroll-thumb: #333;
+        --scroll-thumb-hover: #555;
+
+        --rank-badge-color: rgba(255, 255, 255, 0.1);
+        --rank-badge-hover: rgba(0, 174, 236, 0.15);
+
+        --mesh-color-1: rgba(0, 174, 236, 0.08);
+        --mesh-color-2: rgba(255, 102, 153, 0.06);
+
+        --tab-container-bg: rgba(255, 255, 255, 0.05);
+        --tab-hover-bg: rgba(255, 255, 255, 0.05);
+    }
 }
 
 /* 切换按钮 */

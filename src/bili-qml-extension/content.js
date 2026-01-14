@@ -163,9 +163,19 @@ function showAltchaCaptchaDialog() {
 
 // 获取弹幕发送偏好
 // 返回: null (未设置), true (总是发送), false (总是不发送)
+/**
+ * 获取弹幕偏好设置的异步函数
+ * 该函数会从浏览器存储中读取弹幕相关的配置信息
+ * @returns {Promise} 返回一个Promise对象，解析后得到弹幕偏好设置
+ */
 async function getDanmakuPreference() {
+    // 创建一个新的Promise对象，用于异步获取弹幕偏好设置
     return new Promise((resolve) => {
+        // 从浏览器同步存储中获取指定键的值
+        // STORAGE_KEY_DANMAKU_PREF 是存储弹幕偏好设置的键名
         browserStorage.sync.get([STORAGE_KEY_DANMAKU_PREF], (result) => {
+            // 检查结果中是否包含该键的值
+            // 如果存在则返回该值，否则返回null
             resolve(result[STORAGE_KEY_DANMAKU_PREF] !== undefined ? result[STORAGE_KEY_DANMAKU_PREF] : null);
         });
     });
@@ -195,35 +205,35 @@ function showDanmakuConfirmDialog() {
         // 创建对话框
         const dialog = document.createElement('div');
         dialog.style.cssText = `
-            background: white; border-radius: 8px; padding: 24px;
+            background: var(--bg1); border-radius: 8px; padding: 24px;
             width: 360px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
         `;
 
         dialog.innerHTML = `
-            <div style="font-size: 18px; font-weight: bold; color: #18191c; margin-bottom: 16px;">
+            <div style="font-size: 18px; font-weight: bold; color: var(--text1); margin-bottom: 16px;">
                 发送弹幕确认
             </div>
-            <div style="font-size: 14px; color: #61666d; margin-bottom: 20px;">
+            <div style="font-size: 14px; color: var(--text1); margin-bottom: 20px;">
                 点亮问号后是否自动发送"?"弹幕？
             </div>
             <div style="margin-bottom: 20px;">
                 <label style="display: flex; align-items: center; cursor: pointer; user-select: none;">
                     <input type="checkbox" id="qmr-dont-ask" style="margin-right: 8px;">
-                    <span style="font-size: 14px; color: #61666d;">不再询问（记住我的选择）</span>
+                    <span style="font-size: 14px; color: var(--text3);">不再询问（记住我的选择）</span>
                 </label>
             </div>
             <div style="display: flex; gap: 12px; justify-content: flex-end;">
                 <button id="qmr-btn-no" style="
-                    padding: 8px 20px; border: 1px solid #e3e5e7; border-radius: 4px;
-                    background: white; color: #61666d; cursor: pointer;
+                    padding: 8px 20px; border: 1px solid var(--line_regular); border-radius: 4px;
+                    background: var(--bg1_float); color: var(--text1); cursor: pointer;
                     font-size: 14px; transition: all 0.2s;
                 ">
                     不发送
                 </button>
                 <button id="qmr-btn-yes" style="
                     padding: 8px 20px; border: none; border-radius: 4px;
-                    background: #00aeec; color: white; cursor: pointer;
+                    background: var(--brand_blue); color: white; cursor: pointer;
                     font-size: 14px; transition: all 0.2s;
                 ">
                     发送弹幕
@@ -239,10 +249,10 @@ function showDanmakuConfirmDialog() {
         const btnYes = dialog.querySelector('#qmr-btn-yes');
 
         btnNo.addEventListener('mouseenter', () => {
-            btnNo.style.background = '#f4f5f7';
+            btnNo.style.background = 'var(--bg3)';
         });
         btnNo.addEventListener('mouseleave', () => {
-            btnNo.style.background = 'white';
+            btnNo.style.background = 'var(--bg1_float)';
         });
 
         btnYes.addEventListener('mouseenter', () => {
@@ -572,6 +582,9 @@ async function injectQuestionButton() {
         const bvid = getBvid();
         if (!bvid) return;
 
+        // 排除私密视频
+        if (document.querySelector('.rec-list').children.length === 0) return;
+
         // 1. 寻找工具栏左侧容器作为真正的父壳子
         const toolbarLeft = document.querySelector('.video-toolbar-left-main');
         const shareBtn = document.querySelector('.video-toolbar-left-item.share') ||
@@ -791,7 +804,14 @@ function waitFor(selector, ms = undefined) {
 // Main Entry Point
 initApiBase().then(async () => {
     // 初始加载：等待 Vue 加载时须:搜索框应该是最后进行load
-    await Promise.all([waitFor('.nav-search-input[maxlength]'),waitFor('.view-icon[width]')]);
+    function insertPromise(selector) {
+        return new Promise((resolve) => {
+            waitFor(selector).then((ele) => {
+                resolve();
+            });
+        });
+    }
+    await Promise.all([insertPromise('.nav-search-input[maxlength]'), insertPromise('.view-icon[width]')]);
     tryInject()
     // 处理 SPA 软导航 (URL 变化)
     let lastUrl = location.href;

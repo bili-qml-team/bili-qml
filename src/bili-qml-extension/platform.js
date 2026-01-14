@@ -92,7 +92,7 @@ function showAltchaCaptchaDialog() {
 
     const dialog = document.createElement('div');
     dialog.style.cssText = `
-      background: white; border-radius: 12px; padding: 24px;
+      background: var(--bg-color); border-radius: 12px; padding: 24px;
       width: 320px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);
       font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
       text-align: center;
@@ -100,29 +100,29 @@ function showAltchaCaptchaDialog() {
 
     dialog.innerHTML = `
       <div style="font-size: 48px; margin-bottom: 16px;">🤖</div>
-      <div style="font-size: 18px; font-weight: bold; color: #18191c; margin-bottom: 12px;">
+      <div style="font-size: 18px; font-weight: bold; color: var(--text-main); margin-bottom: 12px;">
         人机验证
       </div>
-      <div id="qmr-captcha-status" style="font-size: 14px; color: #61666d; margin-bottom: 20px;">
+      <div id="qmr-captcha-status" style="font-size: 14px; color: var(--text-secondary); margin-bottom: 20px;">
         检测到频繁操作，请完成验证
       </div>
       <div id="qmr-captcha-progress" style="display: none; margin-bottom: 20px;">
-        <div style="width: 100%; height: 6px; background: #e3e5e7; border-radius: 3px; overflow: hidden;">
-          <div id="qmr-captcha-bar" style="width: 0%; height: 100%; background: #00aeec; transition: width 0.3s;"></div>
+        <div style="width: 100%; height: 6px; background: var(--border-color); border-radius: 3px; overflow: hidden;">
+          <div id="qmr-captcha-bar" style="width: 0%; height: 100%; background: var; transition: width 0.3s;"></div>
         </div>
-        <div style="font-size: 12px; color: #9499a0; margin-top: 8px;">正在验证中...</div>
+        <div style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">正在验证中...</div>
       </div>
       <div id="qmr-captcha-buttons">
         <button id="qmr-captcha-start" type="button" style="
           padding: 10px 32px; border: none; border-radius: 6px;
-          background: #00aeec; color: white; cursor: pointer;
+          background: var(--primary-color); color: white; cursor: pointer;
           font-size: 14px; transition: all 0.2s;
         ">
           开始验证
         </button>
         <button id="qmr-captcha-cancel" type="button" style="
-          padding: 10px 20px; border: 1px solid #e3e5e7; border-radius: 6px;
-          background: white; color: #61666d; cursor: pointer;
+          padding: 10px 20px; border: 1px solid var(--border-color); border-radius: 6px;
+          background: var(--card-bg); color: var(--text-main); cursor: pointer;
           font-size: 14px; margin-left: 12px; transition: all 0.2s;
         ">
           取消
@@ -139,8 +139,8 @@ function showAltchaCaptchaDialog() {
     const progressDiv = dialog.querySelector('#qmr-captcha-progress');
     const buttonsDiv = dialog.querySelector('#qmr-captcha-buttons');
 
-    startBtn.addEventListener('mouseenter', () => startBtn.style.background = '#00a1d6');
-    startBtn.addEventListener('mouseleave', () => startBtn.style.background = '#00aeec');
+    startBtn.addEventListener('mouseenter', () => startBtn.style.background = 'var(--primary-hover)');
+    startBtn.addEventListener('mouseleave', () => startBtn.style.background = 'var(--primary-color)');
 
     cancelBtn.onclick = () => {
       overlay.remove();
