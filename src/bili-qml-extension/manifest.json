@@ -19,8 +19,12 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["icons/button-icon.png"],
-      "matches": ["https://www.bilibili.com/*"]
+      "resources": [
+        "icons/button-icon.png"
+      ],
+      "matches": [
+        "https://www.bilibili.com/*"
+      ]
     }
   ],
   "action": {
@@ -32,9 +36,7 @@
         "https://www.bilibili.com/video/*"
       ],
       "js": [
-        "platform.js",
-        "content.js",
-        "utils.js"
+        "content.js"
       ],
       "css": [
         "content.css"

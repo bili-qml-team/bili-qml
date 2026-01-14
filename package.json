@@ -1,0 +1,21 @@
+{
+  "name": "bili-qml",
+  "version": "1.2.0",
+  "description": "B站问号榜 - 统计并展示抽象视频排行榜",
+  "type": "module",
+  "scripts": {
+    "build": "rollup -c",
+    "build:userscript": "rollup -c",
+    "watch": "rollup -c --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bili-qml-team/bili-qml"
+  },
+  "author": "bili-qml-team",
+  "license": "GPL-3.0",
+  "devDependencies": {
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "rollup": "^4.9.0"
+  }
+}
