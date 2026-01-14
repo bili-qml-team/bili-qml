@@ -198,7 +198,7 @@
             --qmr-shadow-md: 0 8px 16px rgba(0, 0, 0, 0.08);
             --qmr-radius: 12px;
         }
-
+        
         #bili-qmr-panel.qmr-dark {
             --qmr-bg: rgba(31, 32, 35, 0.95);
             --qmr-card-bg: #2a2b30;
@@ -213,11 +213,8 @@
             border-bottom-color: rgba(255,255,255,0.05);
         }
 
-        #bili-qmr-panel.qmr-dark .qmr-tab-btn:hover,
-        #bili-qmr-panel.qmr-dark .qmr-page-btn:hover,
-        #bili-qmr-panel.qmr-dark .qmr-settings-btn:hover,
-        #bili-qmr-panel.qmr-dark .qmr-close:hover {
-            background: rgba(255,255,255,0.1);
+        #bili-qmr-panel.qmr-dark :is(.qmr-tab-btn, .qmr-page-btn, .qmr-settings-btn, .qmr-close):hover {
+            background: rgba(255, 255, 255, 0.1);
         }
 
         #bili-qmr-panel.qmr-dark .qmr-tab-btn.active {
@@ -242,10 +239,7 @@
             background: rgba(255,255,255,0.05);
         }
 
-        #bili-qmr-panel.qmr-dark .qmr-advanced-section,
-        #bili-qmr-panel.qmr-dark .qmr-advanced-toggle,
-        #bili-qmr-panel.qmr-dark .qmr-advanced-content,
-        #bili-qmr-panel.qmr-dark .qmr-settings {
+        #bili-qmr-panel.qmr-dark :is(.qmr-advanced-section, .qmr-advanced-toggle, .qmr-advanced-content, .qmr-settings) {
             background-color: var(--qmr-card-bg);
             border-color: #3f4045;
         }
@@ -270,8 +264,6 @@
             background: rgba(255, 255, 255, 0.05);
         }
 
-
-
         /* 问号按钮样式 */
         #bili-qmr-btn {
             cursor: pointer;
@@ -282,7 +274,7 @@
             transition: color 0.3s;
             user-select: none;
         }
-
+        
         #bili-qmr-btn:hover {
             color: var(--qmr-primary);
             transform: translateY(-1px);
@@ -359,8 +351,7 @@
             cursor: grabbing;
         }
 
-        #bili-qmr-panel.qmr-dragging,
-        #bili-qmr-panel.qmr-dragged {
+        #bili-qmr-panel is('.qmr-dragging','.qmr-dragged') {
             animation: none;
             transition: none;
         }
@@ -385,7 +376,11 @@
             padding: 0;
             line-height: 1;
         }
-
+        
+        #bili-qmr-panel.light .qmr-close {
+            color: var(--qmr-text-sec);
+        }
+        
         #bili-qmr-panel .qmr-close:hover {
             color: var(--qmr-text-main);
             transform: rotate(90deg);
@@ -777,6 +772,99 @@
 
         @keyframes qmr-spin {
             to { transform: rotate(360deg); }
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            :root {
+            --qmr-bg: rgba(31, 32, 35, 0.95);
+            --qmr-card-bg: #2a2b30;
+            --qmr-text-main: #ffffff;
+            --qmr-text-sec: #a0a0a0;
+            --qmr-border: #3f4045;
+            --qmr-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+            }
+            
+            #bili-qmr-panel {
+            --qmr-bg: rgba(31, 32, 35, 0.95);
+            --qmr-card-bg: #2a2b30;
+            --qmr-text-main: #ffffff;
+            --qmr-text-sec: #a0a0a0;
+            --qmr-border: #3f4045;
+            --qmr-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+            }
+            
+            #bili-qmr-panel .qmr-header {
+            background: rgba(40, 41, 45, 0.5);
+            border-bottom-color: rgba(255,255,255,0.05);
+            }
+            
+            #bili-qmr-panel is(.qmr-tab-btn:hover,.qmr-page-btn:hover,.qmr-settings-btn:hover,.qmr-close:hover) {
+                background: rgba(255,255,255,0.1);
+            }
+            
+            #bili-qmr-panel .qmr-tab-btn.active {
+                background: #3f4045;
+                color: var(--qmr-primary);
+            }
+            
+            #bili-qmr-panel .qmr-count {
+                background: rgba(255,255,255,0.1);
+            }
+
+            #bili-qmr-panel .qmr-settings-desc {
+                color: #888;
+            }
+            
+            #bili-qmr-panel .qmr-radio-item {
+                background: #2a2b30;
+                border-color: #3f4045;
+            }
+            
+            #bili-qmr-panel .qmr-radio-item:hover {
+                background: rgba(255,255,255,0.05);
+            }
+            
+            #bili-qmr-panel :is(.qmr-advanced-section, .qmr-advanced-toggle, .qmr-advanced-content, .qmr-settings) {
+                background-color: var(--qmr-card-bg);
+                border-color: #3f4045;
+            }
+            
+            #bili-qmr-panel .qmr-reset-btn {
+                background: rgba(255, 255, 255, 0.05);
+                border-color: #3f4045;
+                color: #eee;
+            }
+
+            #bili-qmr-panel .qmr-reset-btn:hover {
+                background: rgba(255, 255, 255, 0.1);
+            }
+
+            #bili-qmr-panel .qmr-tabs {
+                background: rgba(255, 255, 255, 0.05);
+            }
+        }
+        
+         #bili-qmr-panel.qmr-light {
+            --qmr-bg: rgba(255, 255, 255, 0.95);
+            --qmr-card-bg: #ffffff;
+            --qmr-text-main: #18191c;
+            --qmr-text-sec: #9499a0;
+            --qmr-border: #e3e5e7;
+            --qmr-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+            
+            
+            .qmr-tab-btn.active {
+                background: #fff;
+                color: var(--qmr-primary);
+            }
+            
+            .qmr-radio-item {
+                background: #fff;
+            }
+            
+            .qmr-header {
+                background: rgba(255,255,255,0.5);
+            }
         }
     `);
 
@@ -1291,7 +1379,27 @@
             --tab-container-bg: rgba(0, 0, 0, 0.04);
             --tab-hover-bg: rgba(0, 0, 0, 0.05);
         }
-
+        
+        @media (prefers-color-scheme: dark) {
+            --bg-color: #0f0f11;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --card-hover-bg: rgba(255, 255, 255, 0.06);
+            --primary-color: #00aeec;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --accent-glow: rgba(0, 174, 236, 0.3);
+            --scroll-track: #0f0f11;
+            --scroll-thumb: #333;
+            --scroll-thumb-hover: #555;
+            --rank-badge-color: rgba(255, 255, 255, 0.1);
+            --rank-badge-hover: rgba(0, 174, 236, 0.15);
+            --mesh-color-1: rgba(0, 174, 236, 0.08);
+            --mesh-color-2: rgba(255, 102, 153, 0.06);
+            --tab-container-bg: rgba(255, 255, 255, 0.05);
+            --tab-hover-bg: rgba(255, 255, 255, 0.05);
+        }
+        
         /* 黑暗模式 */
         body.dark-mode {
             --bg-color: #0f0f11;
@@ -1760,7 +1868,6 @@
         panel.innerHTML = `
             <div class="qmr-header">
                 <button class="qmr-page-btn" title="打开独立页面">📊</button>
-                <div class="qmr-page-btn" id="qmr-theme-btn" title="切换深色/浅色模式" style="cursor: pointer;margin-left:8px;">🌓</div>
                 <h2 class="qmr-title" style="flex:1; margin-left: 12px;">B站问号榜 ❓</h2>
                 <div style="display: flex; align-items: center;">
                     <span class="qmr-settings-btn" title="设置">⚙️</span>
@@ -1805,6 +1912,23 @@
                         <input type="radio" name="qmr-rank1-pref" value="custom">
                         <span>抽象 (何一位)</span>
                     </label>
+                </div>
+                <div class="settings-section" style="margin-top: 15px;">
+                    <h3>主题色设置</h3>
+                    <div class="qmr-radio-group">
+                        <label class="qmr-radio-item">
+                            <input type="radio" name="qmr-theme-pref" value="system" checked>
+                            <span>跟随系统主题</span>
+                        </label>
+                        <label class="qmr-radio-item">
+                            <input type="radio" name="qmr-theme-pref" value="light">
+                            <span>浅色模式</span>
+                        </label>
+                        <label class="qmr-radio-item">
+                            <input type="radio" name="qmr-theme-pref" value="dark">
+                            <span>深色模式</span>
+                        </label>
+                    </div>
                 </div>
                 <details class="qmr-advanced-section">
                     <summary class="qmr-advanced-toggle">高级选项</summary>
@@ -1932,24 +2056,46 @@
         };
 
         // 主题切换
-        const themeBtn = panel.querySelector('#qmr-theme-btn');
-        const applyTheme = () => {
-            const theme = GM_getValue('theme', 'light');
-            if (theme === 'dark') {
-                panel.classList.add('qmr-dark');
-            } else {
+        const themeBtnSystem = panel.querySelector('input[name="qmr-theme-pref"][value="system"]');
+        const themeBtnLight = panel.querySelector('input[name="qmr-theme-pref"][value="light"]');
+        const themeBtnDark = panel.querySelector('input[name="qmr-theme-pref"][value="dark"]');
+        if (themeBtnSystem) {
+            themeBtnSystem.addEventListener('change', () => {
+                panel.classList.remove('qmr-light','qmr-dark');
+            });
+        }
+        if (themeBtnLight) {
+            themeBtnLight.addEventListener('change', () => {
                 panel.classList.remove('qmr-dark');
+                panel.classList.add('qmr-light');
+            })
+        }
+        if (themeBtnDark) {
+            themeBtnDark.addEventListener('change', () => {
+                panel.classList.remove('qmr-light');
+                panel.classList.add('qmr-dark');
+            })
+        }
+
+        const applyTheme = () => {
+            const value = GM_getValue('theme');
+            switch (value) {
+                case 'system':
+                    panel.classList.remove('qmr-dark','qmr-light');
+                    break;
+                case 'light':
+                    panel.classList.remove('qmr-dark');
+                    panel.classList.add('qmr-light');
+                    break;
+                case 'dark':
+                    panel.classList.remove('qmr-light');
+                    panel.classList.add('qmr-dark');
+                    break;
+                default:
+                    break;
             }
         };
-        // 初始应用主题
         applyTheme();
-
-        themeBtn.onclick = () => {
-            const currentTheme = GM_getValue('theme', 'light');
-            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-            GM_setValue('theme', newTheme);
-            applyTheme();
-        };
 
         // 保存按钮
         panel.querySelector('.qmr-save-btn').onclick = () => {
@@ -1981,6 +2127,13 @@
             // 第一名显示设置
             if (rank1Radio) {
                 GM_setValue('rank1Setting', rank1Radio.value);
+            }
+
+            // 主题设置
+            const themeRadio = panel.querySelector('input[name="qmr-theme-pref"]:checked');
+            if (themeRadio) {
+                GM_setValue('theme', themeRadio.value);
+                applyTheme();
             }
 
             // Endpoint 设置
@@ -2046,6 +2199,12 @@
         const radio = panel.querySelector(`input[name="qmr-danmaku-pref"][value="${value}"]`);
         if (radio) {
             radio.checked = true;
+        }
+
+        const themeValue = GM_getValue('theme', null);
+        const themeRadio = document.querySelector(`input[name="qmr-theme-pref"][value="${themeValue}"]`);
+        if (themeRadio) {
+            themeRadio.checked = true;
         }
 
         // 第一名显示设置
@@ -2183,6 +2342,8 @@
         const bvid = getBvid();
         if (!bvid) return;
 
+        if (document.querySelector('.rec-list').children.length === 0) return;
+
         // 避免重复注入
         if (document.getElementById('bili-qmr-btn')) return;
 
@@ -2207,7 +2368,7 @@
     // 初始加载：等待 Vue 加载完成，搜索框应该是最后进行 load 的元素
     function insertPromise(selector) {
         return new Promise((resolve) => {
-            waitFor(selector).then((ele) => {
+            waitFor(selector).then(() => {
                 resolve();
             });
         });
