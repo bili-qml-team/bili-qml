@@ -55,6 +55,8 @@ import {
     LEADERBOARD_PAGE_STYLES
 } from '../shared/styles.js';
 
+import { tryInject, syncButtonState } from '../shared/inject.js';
+
 // ==================== 油猴特有配置 ====================
 
 // 当前 API_BASE
@@ -109,180 +111,12 @@ const gmFetch = (resource, init) => {
     });
 };
 
+// ==================== 问号按钮全局变量 ====================
 
-// ==================== 弹幕偏好功能 ====================
-
-function getDanmakuPreference() {
-    return GM_getValue(STORAGE_KEYS.DANMAKU_PREF, null);
-}
-
-function setDanmakuPreference(preference) {
-    GM_setValue(STORAGE_KEYS.DANMAKU_PREF, preference);
-}
-
-// ==================== 问号按钮逻辑 ====================
-
-let isInjecting = false;
-let isSyncing = false;
-let currentBvid = '';
-let lastSyncedUserId = null;
-
-// 同步按钮状态
-async function syncButtonState() {
-    const qBtn = document.getElementById(QUESTION_BTN.ID);
-    const qBtnInner = document.getElementById(QUESTION_BTN.INNER_ID);
-    if (!qBtn || !qBtnInner || isSyncing) return;
-
-    const bvid = getBvid();
-    if (!bvid) return;
-
-    try {
-        isSyncing = true;
-        const userId = getUserId();
-        const statusData = await getVoteStatus(API_BASE, bvid, userId, gmFetch);
-
-        currentBvid = bvid;
-        lastSyncedUserId = userId;
-
-        const isLoggedIn = !!userId;
-        if (statusData.active && isLoggedIn) {
-            qBtn.classList.add('voted');
-            qBtnInner.classList.add('on');
-        } else {
-            qBtn.classList.remove('voted');
-            qBtnInner.classList.remove('on');
-        }
-
-        // 更新显示的数量
-        const countText = qBtn.querySelector('.qmr-text');
-        if (countText) {
-            const newText = statusData.count > 0 ? formatCount(statusData.count) : '问号';
-            if (countText.innerText !== newText) {
-                countText.innerText = newText;
-            }
-        }
-    } catch (e) {
-        console.error('[B站问号榜] 同步状态失败:', e);
-    } finally {
-        isSyncing = false;
-    }
-}
-
-// 注入问号按钮
-async function injectQuestionButton() {
-    try {
-        const bvid = getBvid();
-        if (!bvid) return;
-
-        const toolbarLeft = document.querySelector(SELECTORS.TOOLBAR_LEFT);
-        const shareBtn = findFirst(SELECTORS.SHARE_BTN);
-
-        if (!toolbarLeft || !shareBtn) return;
-
-        let qBtn = document.getElementById(QUESTION_BTN.ID);
-
-        if (!qBtn) {
-            if (isInjecting) return;
-            isInjecting = true;
-
-            qBtn = document.createElement('div');
-            qBtn.id = QUESTION_BTN.ID;
-            qBtn.className = 'toolbar-left-item-wrap';
-
-            const qBtnInner = document.createElement('div');
-            qBtnInner.id = QUESTION_BTN.INNER_ID;
-            qBtnInner.className = 'qmr-icon-wrap video-toolbar-left-item';
-            qBtnInner.innerHTML = `${QUESTION_BTN.SVG_ICON}<span class="qmr-text">...</span>`;
-            qBtn.appendChild(qBtnInner);
-
-            toolbarLeft.style.position = 'relative';
-            toolbarLeft.appendChild(qBtn);
-
-            qBtn.onclick = async (e) => {
-                e.preventDefault();
-
-                if (!document.cookie.includes('DedeUserID')) {
-                    alert('请先登录 B 站后再投问号哦 ~');
-                    return;
-                }
-
-                const activeBvid = getBvid();
-                if (!activeBvid) return;
-
-                const userId = getUserId();
-                if (!userId) {
-                    alert('无法获取用户信息，请确认已登录');
-                    return;
-                }
-
-                // 判断是投票还是取消投票
-                const isVoting = !qBtn.classList.contains("voted");
-                const endpoint = isVoting ? "vote" : "unvote";
-
-                try {
-                    qBtn.style.pointerEvents = 'none';
-                    qBtn.style.opacity = '0.5';
-
-                    let resData = await doVote(API_BASE, endpoint, activeBvid, userId, null, gmFetch);
-
-                    // 处理频率限制，需要 CAPTCHA 验证
-                    if (resData.requiresCaptcha) {
-                        try {
-                            const altchaSolution = await showAltchaCaptchaDialog(API_BASE, gmFetch);
-                            resData = await doVote(API_BASE, endpoint, activeBvid, userId, altchaSolution, gmFetch);
-                        } catch (captchaError) {
-                            console.log('[B站问号榜] CAPTCHA 已取消');
-                            return;
-                        }
-                    }
-
-                    if (resData.success) {
-                        console.log('[B站问号榜] 投票成功, isVoting:', isVoting);
-
-                        // 只有当点亮时才发弹幕
-                        if (isVoting) {
-                            const preference = getDanmakuPreference();
-
-                            if (preference === null) {
-                                const choice = await showDanmakuConfirmDialog();
-                                if (choice.sendDanmaku) {
-                                    sendDanmaku('？');
-                                }
-                                if (choice.dontAskAgain) {
-                                    setDanmakuPreference(choice.sendDanmaku);
-                                }
-                            } else if (preference === true) {
-                                sendDanmaku('？');
-                            }
-                        }
-                        await syncButtonState();
-                    } else {
-                        alert('投票失败: ' + (resData.error || '未知错误'));
-                    }
-                } catch (err) {
-                    console.error('[B站问号榜] 投票请求异常:', err);
-                } finally {
-                    qBtn.style.pointerEvents = 'auto';
-                    qBtn.style.opacity = '1';
-                }
-            };
-
-            // 右键点击：显示排行榜面板
-            qBtn.oncontextmenu = (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                toggleLeaderboardPanel();
-            };
-
-            isInjecting = false;
-        }
-
-        // 状态同步检查
-        await syncButtonState();
-    } catch (e) {
-        isInjecting = false;
-    }
-}
+globalThis.isInjecting = false;
+globalThis.isSyncing = false;
+globalThis.currentBvid = '';
+globalThis.lastSyncedUserId = null;
 
 // ==================== 排行榜面板逻辑 ====================
 
@@ -716,26 +550,6 @@ async function loadLeaderboardData(range = 'realtime', altchaSolution = null) {
     } catch (e) {
         console.error('[B站问号榜] 获取排行榜失败:', e);
         leaderboardDiv.innerHTML = '<div class="loading">加载失败</div>';
-    }
-}
-
-// ==================== 核心注入逻辑 ====================
-
-async function tryInject() {
-    const bvid = getBvid();
-    if (!bvid) return;
-
-    if (document.getElementById(QUESTION_BTN.ID)) return;
-
-    const toolbarLeft = document.querySelector(SELECTORS.TOOLBAR_LEFT) ||
-        document.querySelector(SELECTORS.TOOLBAR_LEFT_FALLBACK);
-
-    if (!toolbarLeft) return;
-
-    try {
-        await injectQuestionButton();
-    } catch (e) {
-        console.error('[B站问号榜] 注入失败:', e);
     }
 }
 
