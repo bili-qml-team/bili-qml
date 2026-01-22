@@ -69,19 +69,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const fullLeaderboardBtn = document.getElementById('full-leaderboard-btn');
     if (fullLeaderboardBtn) {
         fullLeaderboardBtn.addEventListener('click', async () => {
-            const uid = await new Promise(resolve => {
-                browserStorage.sync.get(['biliUserId'], (result) => {
-                    resolve(result.biliUserId || null);
-                });
+            const result = await new Promise(resolve => {
+                browserStorage.sync.get(['biliUserId', STORAGE_KEY_WEB_ENDPOINT], resolve);
             });
-            const baseUrl = 'https://web.bili-qml.com/';
-            const url = uid ? `${baseUrl}?uid=${encodeURIComponent(uid)}` : baseUrl;
+            const uid = result.biliUserId || null;
+            const normalizedBase = normalizeWebEndpoint(result[STORAGE_KEY_WEB_ENDPOINT]) || DEFAULT_WEB_BASE;
+            let targetUrl;
+            try {
+                const url = new URL(normalizedBase);
+                if (uid) {
+                    url.searchParams.set('uid', uid);
+                }
+                targetUrl = url.toString();
+            } catch (error) {
+                const fallbackUrl = new URL(DEFAULT_WEB_BASE);
+                if (uid) {
+                    fallbackUrl.searchParams.set('uid', uid);
+                }
+                targetUrl = fallbackUrl.toString();
+            }
             if (typeof chrome !== 'undefined' && chrome.tabs && chrome.tabs.create) {
-                chrome.tabs.create({ url });
+                chrome.tabs.create({ url: targetUrl });
             } else if (typeof browser !== 'undefined' && browser.tabs && browser.tabs.create) {
-                browser.tabs.create({ url });
+                browser.tabs.create({ url: targetUrl });
             } else {
-                window.open(url, '_blank');
+                window.open(targetUrl, '_blank');
             }
         });
     }
@@ -212,7 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 加载设置
     async function loadSettings() {
         return new Promise((resolve) => {
-            browserStorage.sync.get([STORAGE_KEY_DANMAKU_PREF, STORAGE_KEY_API_ENDPOINT, 'rank1Setting', 'theme'], (result) => {
+            browserStorage.sync.get([STORAGE_KEY_DANMAKU_PREF, STORAGE_KEY_API_ENDPOINT, STORAGE_KEY_WEB_ENDPOINT, 'rank1Setting', 'theme'], (result) => {
                 // 弹幕偏好设置
                 const preference = result[STORAGE_KEY_DANMAKU_PREF];
                 let value = 'ask'; // 默认每次询问
@@ -248,6 +260,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     endpointInput.value = result[STORAGE_KEY_API_ENDPOINT] || '';
                 }
 
+                // Web Endpoint 设置
+                const webEndpointInput = document.getElementById('web-endpoint-input');
+                if (webEndpointInput) {
+                    webEndpointInput.value = result[STORAGE_KEY_WEB_ENDPOINT] || DEFAULT_WEB_BASE;
+                }
+
                 resolve();
             });
         });
@@ -259,7 +277,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const rank1Radio = document.querySelector('input[name="rank1-pref"]:checked');
         const endpointInput = document.getElementById('endpoint-input');
         const endpointValue = endpointInput ? endpointInput.value.trim() : '';
+        const webEndpointInput = document.getElementById('web-endpoint-input');
+        const webEndpointValue = webEndpointInput ? webEndpointInput.value.trim() : '';
+        const normalizedWebEndpoint = normalizeWebEndpoint(webEndpointValue);
         const themeRadio = document.querySelector('input[name="theme-pref"]:checked');
+
+        if (normalizedWebEndpoint === null) {
+            showSaveStatus('Web 端地址格式不正确');
+            return;
+        }
+        if (webEndpointInput && normalizedWebEndpoint && webEndpointInput.value !== normalizedWebEndpoint) {
+            webEndpointInput.value = normalizedWebEndpoint;
+        }
 
         // 处理弹幕偏好
         let preference = null;
@@ -303,6 +332,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 API_BASE = DEFAULT_API_BASE;
             }
 
+            // Web Endpoint 设置
+            if (normalizedWebEndpoint && normalizedWebEndpoint !== DEFAULT_WEB_BASE) {
+                updates[STORAGE_KEY_WEB_ENDPOINT] = normalizedWebEndpoint;
+            } else {
+                removals.push(STORAGE_KEY_WEB_ENDPOINT);
+            }
+
             // theme 设置
             if (theme) {
                 updates.theme = theme;
@@ -329,6 +365,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 doSave();
             }
         });
+    }
+
+    function normalizeWebEndpoint(value) {
+        const trimmed = (value || '').trim();
+        if (!trimmed) {
+            return '';
+        }
+        let candidate = trimmed;
+        if (!/^[a-zA-Z][a-zA-Z\d+\-.]*:\/\//.test(candidate)) {
+            candidate = `https://${candidate}`;
+        }
+        try {
+            const url = new URL(candidate);
+            if (!['http:', 'https:'].includes(url.protocol)) {
+                return null;
+            }
+            return url.toString();
+        } catch (error) {
+            return null;
+        }
     }
 
     // 显示保存状态提示
@@ -399,6 +455,17 @@ document.addEventListener('DOMContentLoaded', () => {
             const endpointInput = document.getElementById('endpoint-input');
             if (endpointInput) {
                 endpointInput.value = DEFAULT_API_BASE;
+            }
+        });
+    }
+
+    // 重置 Web Endpoint 按钮
+    const resetWebEndpointBtn = document.getElementById('reset-web-endpoint');
+    if (resetWebEndpointBtn) {
+        resetWebEndpointBtn.addEventListener('click', () => {
+            const webEndpointInput = document.getElementById('web-endpoint-input');
+            if (webEndpointInput) {
+                webEndpointInput.value = DEFAULT_WEB_BASE;
             }
         });
     }

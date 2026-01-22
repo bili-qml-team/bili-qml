@@ -1,4 +1,5 @@
 const DEFAULT_API_BASE = 'https://bili-qml.bydfk.com/api';
+const DEFAULT_WEB_BASE = 'https://web.bili-qml.com/';
 // for debug
 //const DEFAULT_API_BASE = 'http://localhost:3000/api'
 
@@ -13,6 +14,7 @@ const browserStorage = (function () {
 })();
 const STORAGE_KEY_DANMAKU_PREF = 'danmakuPreference';
 const STORAGE_KEY_API_ENDPOINT = 'apiEndpoint';
+const STORAGE_KEY_WEB_ENDPOINT = 'webEndpoint';
 
 // 当前 API_BASE
 let API_BASE = DEFAULT_API_BASE;

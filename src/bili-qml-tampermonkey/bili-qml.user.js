@@ -19,11 +19,13 @@
     'use strict';
 
     const DEFAULT_API_BASE = 'https://bili-qml.bydfk.com/api';
+    const DEFAULT_WEB_BASE = 'https://web.bili-qml.com/';
     // for debug
     //const DEFAULT_API_BASE = 'http://localhost:3000/api'
 
     // 当前 API_BASE
     const STORAGE_KEY_API_ENDPOINT = 'apiEndpoint';
+    const STORAGE_KEY_WEB_ENDPOINT = 'webEndpoint';
     let API_BASE = GM_getValue(STORAGE_KEY_API_ENDPOINT, null) || DEFAULT_API_BASE;
 
     // ==================== Altcha CAPTCHA 功能 ====================
@@ -912,6 +914,24 @@
         return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
     }
 
+    function normalizeWebEndpoint(value) {
+        const trimmed = (value || '').trim();
+        if (!trimmed) return '';
+        let candidate = trimmed;
+        if (!/^[a-zA-Z][a-zA-Z\d+\-.]*:\/\//.test(candidate)) {
+            candidate = `https://${candidate}`;
+        }
+        try {
+            const url = new URL(candidate);
+            if (!['http:', 'https:'].includes(url.protocol)) {
+                return null;
+            }
+            return url.toString();
+        } catch (error) {
+            return null;
+        }
+    }
+
     // 防抖函数
     function debounce(fn, delay) {
         let timer = null;
@@ -1351,241 +1371,6 @@
 
         const safeRange = ['realtime', 'daily', 'weekly', 'monthly'].includes(initialRange) ? initialRange : 'realtime';
 
-        const html = `<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>B站问号榜 ❓</title>
-    <style>
-        :root {
-            /* 默认浅色模式 */
-            --bg-color: #f6f7f8;
-            --card-bg: #ffffff;
-            --card-border: rgba(0, 0, 0, 0.06);
-            --card-hover-bg: #ffffff;
-            --primary-color: #00aeec;
-            --text-primary: #18191c;
-            --text-secondary: #9499a0;
-            --accent-glow: rgba(0, 174, 236, 0.15);
-            --font-family: 'Inter', "PingFang SC", "Microsoft YaHei", sans-serif;
-            --scroll-track: #f6f7f8;
-            --scroll-thumb: #c1c1c1;
-            --scroll-thumb-hover: #a8a8a8;
-            --rank-badge-color: rgba(0, 0, 0, 0.05);
-            --rank-badge-hover: rgba(0, 174, 236, 0.1);
-            --mesh-color-1: rgba(0, 174, 236, 0.05);
-            --mesh-color-2: rgba(255, 102, 153, 0.04);
-            --tab-container-bg: rgba(0, 0, 0, 0.04);
-            --tab-hover-bg: rgba(0, 0, 0, 0.05);
-        }
-        
-        @media (prefers-color-scheme: dark) {
-            --bg-color: #0f0f11;
-            --card-bg: rgba(255, 255, 255, 0.03);
-            --card-border: rgba(255, 255, 255, 0.08);
-            --card-hover-bg: rgba(255, 255, 255, 0.06);
-            --primary-color: #00aeec;
-            --text-primary: #ffffff;
-            --text-secondary: #a0a0a0;
-            --accent-glow: rgba(0, 174, 236, 0.3);
-            --scroll-track: #0f0f11;
-            --scroll-thumb: #333;
-            --scroll-thumb-hover: #555;
-            --rank-badge-color: rgba(255, 255, 255, 0.1);
-            --rank-badge-hover: rgba(0, 174, 236, 0.15);
-            --mesh-color-1: rgba(0, 174, 236, 0.08);
-            --mesh-color-2: rgba(255, 102, 153, 0.06);
-            --tab-container-bg: rgba(255, 255, 255, 0.05);
-            --tab-hover-bg: rgba(255, 255, 255, 0.05);
-        }
-        
-        /* 黑暗模式 */
-        body.dark-mode {
-            --bg-color: #0f0f11;
-            --card-bg: rgba(255, 255, 255, 0.03);
-            --card-border: rgba(255, 255, 255, 0.08);
-            --card-hover-bg: rgba(255, 255, 255, 0.06);
-            --primary-color: #00aeec;
-            --text-primary: #ffffff;
-            --text-secondary: #a0a0a0;
-            --accent-glow: rgba(0, 174, 236, 0.3);
-            --scroll-track: #0f0f11;
-            --scroll-thumb: #333;
-            --scroll-thumb-hover: #555;
-            --rank-badge-color: rgba(255, 255, 255, 0.1);
-            --rank-badge-hover: rgba(0, 174, 236, 0.15);
-            --mesh-color-1: rgba(0, 174, 236, 0.08);
-            --mesh-color-2: rgba(255, 102, 153, 0.06);
-            --tab-container-bg: rgba(255, 255, 255, 0.05);
-            --tab-hover-bg: rgba(255, 255, 255, 0.05);
-        }
-
-        /* 修复 dark mode 下的高级选项和重置按钮 */
-        body.dark-mode .qmr-advanced-section,
-        body.dark-mode .qmr-advanced-toggle {
-            background: var(--card-bg);
-            border-color: var(--card-border);
-        }
-
-        body.dark-mode .qmr-reset-btn {
-            background: rgba(255, 255, 255, 0.05);
-            border-color: var(--card-border);
-            color: var(--text-primary);
-        }
-        body.dark-mode .qmr-reset-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-
-        body {
-            margin: 0; padding: 0;
-            background-color: var(--bg-color);
-            color: var(--text-primary);
-            font-family: var(--font-family);
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-
-        /* 背景网格 */
-        .background-mesh {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1;
-            background: radial-gradient(circle at 10% 20%, var(--mesh-color-1) 0%, transparent 40%),
-                        radial-gradient(circle at 90% 80%, var(--mesh-color-2) 0%, transparent 40%);
-            pointer-events: none;
-        }
-
-        .container { max-width: 1200px; margin: 0 auto; padding: 40px 20px; }
-
-        header {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 60px; flex-wrap: wrap; gap: 20px;
-        }
-        .logo-section { display: flex; align-items: center; gap: 16px; }
-        .logo-icon { font-size: 48px; display: inline-block; animation: float 3s ease-in-out infinite; }
-        .logo-section h1 { font-size: 2rem; font-weight: 700; margin: 0; line-height: 1.2; }
-        .highlight {
-            background: linear-gradient(135deg, #00aeec 0%, #ff6699 100%);
-            -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; opacity: 0.9;
-        }
-        @keyframes float { 0%{transform:translateY(0)} 50%{transform:translateY(-5px)} 100%{transform:translateY(0)} }
-
-        /* 切换按钮 */
-        .theme-toggle-btn {
-            background: transparent; border: none; font-size: 1.5rem; cursor: pointer;
-            padding: 8px; border-radius: 50%; transition: background 0.3s ease;
-            display: flex; align-items: center; justify-content: center; margin-left: 20px;
-        }
-        .theme-toggle-btn:hover { background: var(--tab-hover-bg); }
-
-        /* 选项卡 */
-        .time-range-tabs {
-            display: flex; background: var(--tab-container-bg); padding: 4px; border-radius: 12px;
-            backdrop-filter: blur(10px); border: 1px solid var(--card-border);
-        }
-        .tab-btn {
-            background: transparent; border: none; color: var(--text-secondary);
-            padding: 10px 24px; font-size: 0.95rem; font-weight: 500; cursor: pointer;
-            border-radius: 8px; transition: all 0.3s ease; font-family: var(--font-family);
-        }
-        .tab-btn:hover { color: var(--text-primary); background: var(--tab-hover-bg); }
-        .tab-btn.active { background: var(--primary-color); color: white; box-shadow: 0 4px 12px rgba(0, 174, 236, 0.3); }
-
-        /* 网格布局 */
-        .leaderboard-grid {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px; perspective: 1000px;
-        }
-
-        /* 卡片 */
-        .video-card {
-            background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px;
-            padding: 0; display: flex; flex-direction: column; gap: 0;
-            text-decoration: none; color: var(--text-primary);
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            position: relative; overflow: hidden; backdrop-filter: blur(20px); cursor: pointer;
-        }
-        .video-card:hover {
-            transform: translateY(-5px) scale(1.02); background: var(--card-hover-bg);
-            border-color: rgba(0, 174, 236, 0.3); box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
-        }
-        .video-card::before {
-            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px;
-            background: linear-gradient(90deg, #00aeec, #ff6699); opacity: 0; transition: opacity 0.3s ease;
-        }
-        .video-card:hover::before { opacity: 1; }
-
-        .thumb-container {
-            position: relative; width: 100%; padding-top: 56.25%; overflow: hidden;
-            border-radius: 12px; background: rgba(0, 0, 0, 0.2);
-        }
-        .thumb-img {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease;
-        }
-        .video-card:hover .thumb-img { transform: scale(1.05); }
-
-        .card-content { padding: 16px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
-        .card-header-overlay { position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; z-index: 2; }
-        .score-tag {
-            background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(4px); color: #fff;
-            padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: 600;
-            display: flex; align-items: center; gap: 4px; border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .qml-icon { color: #4facfe; }
-
-
-
-        .video-title { font-size: 1rem; line-height: 1.4; margin-bottom: 4px; font-weight: 500; }
-        .video-card:hover .video-title { color: var(--primary-color); }
-        .video-info-row {
-            display: flex; align-items: center; justify-content: space-between;
-            font-size: 0.85rem; color: var(--text-secondary); margin-top: auto;
-        }
-        .owner-info { display: flex; align-items: center; gap: 6px; overflow: hidden; }
-        .owner-icon { font-size: 0.8rem; opacity: 0.8; }
-        .owner-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-block; max-width: 100px; }
-        .stat-item { display: flex; align-items: center; gap: 4px; }
-
-        .loading-state {
-            grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-            padding: 60px 0; color: var(--text-secondary);
-        }
-        .spinner {
-            width: 40px; height: 40px; border: 3px solid rgba(255, 255, 255, 0.1); border-radius: 50%;
-            border-top-color: var(--primary-color); animation: spin 1s ease-in-out infinite; margin-bottom: 20px;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* Rank Badges */
-        .rank-badge {
-            position: absolute; top: 4px; left: 8px; right: auto;
-            font-size: 2.5rem; font-weight: 900; color: rgba(255, 255, 255, 0.95);
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); z-index: 3;
-            font-style: italic; font-family: 'Impact', sans-serif; pointer-events: none;
-            display: flex; align-items: center; justify-content: center; width: 3.5rem; height: 3.5rem;
-        }
-        .rank-1, .rank-2, .rank-3 {
-            font-size: 1.8rem; font-style: normal; text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-            color: #fff; background-size: cover; background-position: center;
-            border-radius: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.3); border: 2px solid rgba(255,255,255,0.4);
-        }
-        .rank-1 { background: linear-gradient(135deg, #FFD700 0%, #FDB931 100%); font-size: 2rem; }
-        .rank-2 { background: linear-gradient(135deg, #E0E0E0 0%, #BDBDBD 100%); }
-        .rank-3 { background: linear-gradient(135deg, #CD7F32 0%, #A0522D 100%); }
-        .rank-1::after {
-            content: '👑'; position: absolute; top: -16px; left: 30%;
-            transform: translateX(-50%) rotate(-15deg); font-size: 1.5rem; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));
-        }
-
-        /* Custom Rank Text Style (matches extension) */
-        .rank-badge.rank-custom-text {
-            font-size: 1rem;
-            line-height: 1.1;
-            letter-spacing: -1px;
-            color: #FF4D4F;
-            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
-        }
-    </style>
 </head>
 <body>
     <div class="background-mesh"></div>
@@ -1811,32 +1596,7 @@
                     const viewText = details.view != null ? formatCount(details.view) : '-';
                     const danmakuText = details.danmaku != null ? formatCount(details.danmaku) : '-';
                     
-                    return \`
-                        <a href="https://www.bilibili.com/video/\${item.bvid}" target="_blank" class="video-card">
-                            <div class="thumb-container">
-                                \${picUrl ? '<img src="' + picUrl + '" alt="' + safeTitle + '" class="thumb-img" loading="lazy" />' : ''}
-                                <span class="rank-badge \${rankClass}">\${rankDisplay}</span>
-                                <div class="card-header-overlay">
-                                    <div class="score-tag">
-                                        <span class="qml-icon">❓</span> \${item.count}
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="card-content">
-                                <h3 class="video-title" title="\${safeTitle}">\${safeTitle}</h3>
-                                <div class="video-info-row">
-                                    <div class="owner-info">
-                                        <span class="owner-icon">UP</span>
-                                        <span class="owner-name" title="\${ownerName}">\${ownerName}</span>
-                                    </div>
-                                </div>
-                                <div class="video-info-row" style="margin-top: 4px;">
-                                    <div class="stat-item" title="播放量"><span>▶</span> \${viewText}</div>
-                                    <div class="stat-item" title="弹幕数"><span>💬</span> \${danmakuText}</div>
-                                </div>
-                            </div>
-                        </a>
-                    \`;
+                    return '';
                 }));
                 grid.innerHTML = items.join('');
             }
@@ -1860,6 +1620,31 @@
         win.document.close();
     }
 
+    function openWebLeaderboard() {
+        const rawBase = GM_getValue(STORAGE_KEY_WEB_ENDPOINT, null) || DEFAULT_WEB_BASE;
+        const normalizedBase = normalizeWebEndpoint(rawBase) || DEFAULT_WEB_BASE;
+        let targetUrl;
+        try {
+            const url = new URL(normalizedBase);
+            const uid = getUserId();
+            if (uid) {
+                url.searchParams.set('uid', uid);
+            }
+            targetUrl = url.toString();
+        } catch (error) {
+            const fallbackUrl = new URL(DEFAULT_WEB_BASE);
+            const uid = getUserId();
+            if (uid) {
+                fallbackUrl.searchParams.set('uid', uid);
+            }
+            targetUrl = fallbackUrl.toString();
+        }
+        const win = window.open(targetUrl, '_blank');
+        if (!win) {
+            alert('[B站问号榜] 打开新页面失败：可能被浏览器拦截了弹窗');
+        }
+    }
+
     function createLeaderboardPanel() {
         if (panelCreated) return;
 
@@ -1867,7 +1652,7 @@
         panel.id = 'bili-qmr-panel';
         panel.innerHTML = `
             <div class="qmr-header">
-                <button class="qmr-page-btn" title="打开独立页面">📊</button>
+                <button class="qmr-page-btn" title="打开 Web 端">📊</button>
                 <h2 class="qmr-title" style="flex:1; margin-left: 12px;">B站问号榜 ❓</h2>
                 <div style="display: flex; align-items: center;">
                     <span class="qmr-settings-btn" title="设置">⚙️</span>
@@ -1938,6 +1723,12 @@
                         <div class="qmr-endpoint-group">
                             <input type="text" class="qmr-endpoint-input" placeholder="https://bili-qml.bydfk.com/api">
                             <button class="qmr-reset-btn" title="恢复默认">↺</button>
+                        </div>
+                        <h3>Web 端网址设置</h3>
+                        <p class="qmr-settings-desc">自定义 Web 端跳转地址</p>
+                        <div class="qmr-endpoint-group">
+                            <input type="text" class="qmr-endpoint-input" data-role="web-endpoint" placeholder="https://web.bili-qml.com/">
+                            <button class="qmr-reset-btn" data-role="reset-web-endpoint" title="恢复默认">↺</button>
                         </div>
                     </div>
                 </details>
@@ -2040,20 +1831,31 @@
             }
         };
 
-        // 页面按钮：打开独立榜单页
+        // 页面按钮：打开 Web 端
         panel.querySelector('.qmr-page-btn').onclick = () => {
-            const active = panel.querySelector('.qmr-tab-btn.active');
-            const range = active?.dataset?.range || 'realtime';
-            openStandaloneLeaderboardPage(range);
+            openWebLeaderboard();
         };
 
         // 重置 Endpoint 按钮
-        panel.querySelector('.qmr-reset-btn').onclick = () => {
-            const endpointInput = panel.querySelector('.qmr-endpoint-input');
-            if (endpointInput) {
-                endpointInput.value = DEFAULT_API_BASE;
-            }
-        };
+        const resetEndpointBtn = panel.querySelector('.qmr-endpoint-group .qmr-reset-btn');
+        if (resetEndpointBtn) {
+            resetEndpointBtn.onclick = () => {
+                const endpointInput = panel.querySelector('.qmr-endpoint-input');
+                if (endpointInput) {
+                    endpointInput.value = DEFAULT_API_BASE;
+                }
+            };
+        }
+
+        const resetWebEndpointBtn = panel.querySelector('[data-role="reset-web-endpoint"]');
+        if (resetWebEndpointBtn) {
+            resetWebEndpointBtn.onclick = () => {
+                const webEndpointInput = panel.querySelector('[data-role="web-endpoint"]');
+                if (webEndpointInput) {
+                    webEndpointInput.value = DEFAULT_WEB_BASE;
+                }
+            };
+        }
 
         // 主题切换
         const themeBtnSystem = panel.querySelector('input[name="qmr-theme-pref"][value="system"]');
@@ -2103,6 +1905,21 @@
             const rank1Radio = panel.querySelector('input[name="qmr-rank1-pref"]:checked');
             const endpointInput = panel.querySelector('.qmr-endpoint-input');
             const endpointValue = endpointInput ? endpointInput.value.trim() : '';
+            const webEndpointInput = panel.querySelector('[data-role="web-endpoint"]');
+            const webEndpointValue = webEndpointInput ? webEndpointInput.value.trim() : '';
+            const normalizedWebEndpoint = normalizeWebEndpoint(webEndpointValue);
+            const statusDiv = panel.querySelector('.qmr-save-status');
+
+            if (normalizedWebEndpoint === null) {
+                if (statusDiv) {
+                    statusDiv.textContent = 'Web 端地址格式不正确';
+                    statusDiv.style.opacity = '1';
+                }
+                return;
+            }
+            if (webEndpointInput && normalizedWebEndpoint && webEndpointInput.value !== normalizedWebEndpoint) {
+                webEndpointInput.value = normalizedWebEndpoint;
+            }
 
             // 弹幕偏好
             if (selectedRadio) {
@@ -2145,9 +1962,17 @@
                 API_BASE = DEFAULT_API_BASE;
             }
 
-            const statusDiv = panel.querySelector('.qmr-save-status');
-            statusDiv.textContent = '设置已保存';
-            statusDiv.style.opacity = '1';
+            // Web Endpoint 设置
+            if (normalizedWebEndpoint && normalizedWebEndpoint !== DEFAULT_WEB_BASE) {
+                GM_setValue(STORAGE_KEY_WEB_ENDPOINT, normalizedWebEndpoint);
+            } else {
+                GM_setValue(STORAGE_KEY_WEB_ENDPOINT, null);
+            }
+
+            if (statusDiv) {
+                statusDiv.textContent = '设置已保存';
+                statusDiv.style.opacity = '1';
+            }
 
             setTimeout(() => {
                 statusDiv.style.opacity = '0';
@@ -2219,6 +2044,12 @@
         if (endpointInput) {
             const savedEndpoint = GM_getValue(STORAGE_KEY_API_ENDPOINT, null);
             endpointInput.value = savedEndpoint || '';
+        }
+
+        const webEndpointInput = panel.querySelector('[data-role="web-endpoint"]');
+        if (webEndpointInput) {
+            const savedWebEndpoint = GM_getValue(STORAGE_KEY_WEB_ENDPOINT, null);
+            webEndpointInput.value = savedWebEndpoint || DEFAULT_WEB_BASE;
         }
     }
 
