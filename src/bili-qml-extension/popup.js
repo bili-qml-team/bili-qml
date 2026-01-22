@@ -68,15 +68,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const fullLeaderboardBtn = document.getElementById('full-leaderboard-btn');
     if (fullLeaderboardBtn) {
-        fullLeaderboardBtn.addEventListener('click', () => {
-            const activeTab = document.querySelector('.tab-btn.active');
-            const range = activeTab?.dataset?.range || 'realtime';
+        fullLeaderboardBtn.addEventListener('click', async () => {
+            const uid = await new Promise(resolve => {
+                browserStorage.sync.get(['biliUserId'], (result) => {
+                    resolve(result.biliUserId || null);
+                });
+            });
+            const baseUrl = 'https://web.bili-qml.com/';
+            const url = uid ? `${baseUrl}?uid=${encodeURIComponent(uid)}` : baseUrl;
             if (typeof chrome !== 'undefined' && chrome.tabs && chrome.tabs.create) {
-                chrome.tabs.create({ url: `leaderboard.html?range=${range}` });
+                chrome.tabs.create({ url });
             } else if (typeof browser !== 'undefined' && browser.tabs && browser.tabs.create) {
-                browser.tabs.create({ url: `leaderboard.html?range=${range}` });
+                browser.tabs.create({ url });
             } else {
-                window.open(`leaderboard.html?range=${range}`, '_blank');
+                window.open(url, '_blank');
             }
         });
     }

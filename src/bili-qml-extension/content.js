@@ -371,6 +371,20 @@ function getUserId() {
     return null; // 未登录返回 null
 }
 
+let lastStoredUserId = null;
+
+function cacheUserId(userId) {
+    if (userId && userId !== lastStoredUserId) {
+        browserStorage.sync.set({ biliUserId: userId });
+        lastStoredUserId = userId;
+        return;
+    }
+    if (!userId && lastStoredUserId !== null) {
+        browserStorage.sync.remove(['biliUserId']);
+        lastStoredUserId = null;
+    }
+}
+
 // 获取当前视频的 BVID
 function getBvid() {
     // 1. 从 URL 路径获取
@@ -407,6 +421,7 @@ async function syncButtonState() {
     try {
         isSyncing = true;
         const userId = getUserId();
+        cacheUserId(userId);
         // 增加 _t 参数防止浏览器缓存 GET 请求
         const statusRes = await fetch(`${API_BASE}/status?bvid=${bvid}&userId=${userId || ''}&_t=${Date.now()}`);
         const statusData = await statusRes.json();
