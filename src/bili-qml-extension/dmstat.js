@@ -6,7 +6,7 @@ Map.prototype.set = function (key, value) {
         Map.prototype.set = originalSet;    //还原
 
         bpx_player = key;
-        window.bpx_player = key;
+        // window.bpx_player = key;
         const danmakuStore = bpx_player.danmakuStore;
         const originalFetchDmSeg = danmakuStore.fetchDmSeg.bind(danmakuStore);
         danmakuStore.fetchDmSeg = async function (...args) {
