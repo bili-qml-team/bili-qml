@@ -20,7 +20,7 @@ Map.prototype.set = function (key, value) {
         Map.prototype.set = originalSet;    //还原
 
         const bpx_player = key;
-        window.bpx_player = key;
+        // window.bpx_player = bpx_player;
         const danmakuStore = bpx_player.danmakuStore;
         const originalFetchDmSeg = danmakuStore.fetchDmSeg.bind(danmakuStore);
         danmakuStore.fetchDmSeg = async function (...args) {
@@ -59,7 +59,8 @@ function getPercentage(n, t) {
 function updateDanmakuStat(dmList) {
     // console.log('updateDanmakuStat', dmList);
     if (!Array.isArray(dmList)) return;
-    if (!dmStatEl.isConnected) ensureDmStatEl();
+
+    ensureDmStatEl();
 
     const countText = dmStatEl.querySelector('span');
     if (!countText) return;
