@@ -734,26 +734,6 @@ async function injectQuestionButton() {
             isInjecting = false;
         }
 
-        let sBtn = document.getElementById('bili-qmr-stat-btn');
-        if (!sBtn) {
-            if (isInjecting) return;
-            isInjecting = true;
-
-            sBtn = document.createElement('div');
-            sBtn.id = 'bili-qmr-stat-btn';
-            sBtn.className = 'toolbar-left-item-wrap';
-            const sBtnInner = document.createElement('div');
-            sBtnInner.id = 'bili-qmr-stat-btn-inner';
-            sBtnInner.className = 'qmr-icon-wrap video-toolbar-left-item';
-            sBtnInner.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" t="1769094292907" class="video-fav-icon video-toolbar-item-icon" viewBox="0 0 1024 1024" version="1.1" p-id="7604" width="28" height="28"><path d="M493.714286 566.857143h340.297143a73.142857 73.142857 0 0 1 73.142857 85.577143A457.142857 457.142857 0 1 1 371.565714 117.76a73.142857 73.142857 0 0 1 85.577143 73.142857V530.285714a36.571429 36.571429 0 0 0 36.571429 36.571429z" fill="currentColor" p-id="7606"/><path d="M828 304c0 105.2-59.7 196.5-147.1 241.7-23.6 12.2-42.8 30.5-56.2 52.4-15.7 25.8-23.2 56.6-20 88.3 1 9.4-6.4 17.6-15.9 17.6H446.3c-18.9 0-34.3-15.3-34.3-34.3 0-127.4 71.3-243 183.2-303.9 24.3-13.2 40.9-33.7 40.7-65.2-0.2-42.5-35.4-76.6-77.9-76.6h-50c-31.9 0-59.5 18.8-72.3 45.8a31.98 31.98 0 0 1-28.9 18.2h-134c-20.3 0-35.4-18.6-31.4-38.4 1.8-8.7 3.9-17.2 6.5-25.6C282.1 112.8 385.6 32 508 32h48c75.1 0 143.1 30.4 192.3 79.7C797.6 160.9 828 228.9 828 304zM636 864c0 35.3-14.3 67.3-37.5 90.5-23.2 23.2-55.2 37.5-90.5 37.5s-67.3-14.3-90.5-37.5C394.3 931.3 380 899.3 380 864c0-70.7 57.3-128 128-128 35.3 0 67.3 14.3 90.5 37.5 23.2 23.2 37.5 55.2 37.5 90.5z" p-id="10313" id="element-1769094353388" transform="rotate(0) scale(0.5, 0.45) translate(800, 200)" fill="currentColor"/></svg><span class="qmr-text video-toolbar-item-text">...</span>`;
-            sBtn.appendChild(sBtnInner);
-
-            // 关键：挂载到 toolbarLeft，确保它和分享按钮是“远房亲戚”，互不干扰悬停
-            toolbarLeft.style.position = 'relative'; // 确保父容器有定位基准
-            toolbarLeft.appendChild(sBtn);
-
-            isInjecting = false;
-        }
         // 3. 状态同步检查
         await syncButtonState();
     } catch (e) {
