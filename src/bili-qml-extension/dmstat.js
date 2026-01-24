@@ -75,15 +75,20 @@ function updateDanmakuStat(dmList) {
     countText.innerText = `弹幕问号统计: ${formatCount(qCount)} (${getPercentage(qCount, count)})`;
 }
 
-function waitForElement(selector) {
+function waitForElement(selector, { timeoutMs = 10000 } = {}) {
     return new Promise(resolve => {
-        if (document.querySelector(selector)) {
-            return resolve(document.querySelector(selector));
+        const existing = document.querySelector(selector);
+        if (existing) {
+            return resolve(existing);
         }
 
-        const observer = new MutationObserver(mutations => {
+        let timeoutId;
+        const observer = new MutationObserver(() => {
             const target = document.querySelector(selector);
             if (target) {
+                if (timeoutId) {
+                    clearTimeout(timeoutId);
+                }
                 observer.disconnect(); // 找到后立即停止监听，释放内存
                 resolve(target);
             }
@@ -93,6 +98,13 @@ function waitForElement(selector) {
             childList: true,
             subtree: true
         });
+
+        if (timeoutMs > 0) {
+            timeoutId = window.setTimeout(() => {
+                observer.disconnect();
+                resolve(null);
+            }, timeoutMs);
+        }
     });
 }
 
@@ -101,7 +113,9 @@ async function ensureDmStatEl() {
     if (dmStatEl.isConnected || isWaiting) return;
     isWaiting = true;
     const container = await waitForElement('#danmukuBox .bui-collapse-body');
-    container.appendChild(dmStatEl);
+    if (container) {
+        container.appendChild(dmStatEl);
+    }
     isWaiting = false;
 }
 
