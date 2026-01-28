@@ -353,7 +353,7 @@
             cursor: grabbing;
         }
 
-        #bili-qmr-panel is('.qmr-dragging','.qmr-dragged') {
+        #bili-qmr-panel :is(.qmr-dragging, .qmr-dragged) {
             animation: none;
             transition: none;
         }
@@ -800,7 +800,7 @@
             border-bottom-color: rgba(255,255,255,0.05);
             }
             
-            #bili-qmr-panel is(.qmr-tab-btn:hover,.qmr-page-btn:hover,.qmr-settings-btn:hover,.qmr-close:hover) {
+            #bili-qmr-panel :is(.qmr-tab-btn:hover, .qmr-page-btn:hover, .qmr-settings-btn:hover, .qmr-close:hover) {
                 background: rgba(255,255,255,0.1);
             }
             
@@ -1915,7 +1915,8 @@
         const bvid = getBvid();
         if (!bvid) return;
 
-        if (document.querySelector('.rec-list').children.length === 0) return;
+        const recList = document.querySelector('.rec-list');
+        if (!recList || recList.children.length === 0) return;
 
         // 避免重复注入
         if (document.getElementById('bili-qmr-btn')) return;

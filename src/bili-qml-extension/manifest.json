@@ -40,6 +40,16 @@
         "content.css"
       ],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://www.bilibili.com/video/*"
+      ],
+      "js": [
+        "dmstat.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
     }
   ]
 }

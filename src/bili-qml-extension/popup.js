@@ -236,7 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 // 设置选中的单选按钮
-                const radio = document.querySelector(`input[name="danmaku-pref"][value="${result.value}"]`);
+                const radio = document.querySelector(`input[name="danmaku-pref"][value="${value}"]`);
                 if (radio) {
                     radio.checked = true;
                 }
@@ -340,10 +340,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // theme 设置
-            if (theme) {
+            if (theme === 'system' || theme === null) {
+                removals.push('theme');
+            } else if (theme) {
                 updates.theme = theme;
-                removals.push(theme);
-                browserStorage.sync.set({ theme });
             }
 
             // 执行存储操作

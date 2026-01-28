@@ -598,7 +598,8 @@ async function injectQuestionButton() {
         if (!bvid) return;
 
         // 排除私密视频
-        if (document.querySelector('.rec-list').children.length === 0) return;
+        const recList = document.querySelector('.rec-list');
+        if (!recList || recList.children.length === 0) return;
 
         // 1. 寻找工具栏左侧容器作为真正的父壳子
         const toolbarLeft = document.querySelector('.video-toolbar-left-main');
