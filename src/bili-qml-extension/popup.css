@@ -699,6 +699,18 @@ body.dark-mode .settings-footer {
     box-shadow: 0 0 0 3px rgba(0, 174, 236, 0.1);
 }
 
+@media (prefers-color-scheme: dark) {
+    body:not(.dark-mode):not(.light-mode) .token-input {
+        background: rgba(0, 0, 0, 0.2);
+        border-color: var(--border-color);
+        color: var(--text-main);
+    }
+
+    body:not(.dark-mode):not(.light-mode) .token-input:focus {
+        background: rgba(0, 0, 0, 0.4);
+    }
+}
+
 .token-actions {
     margin-top: 10px;
     display: flex;

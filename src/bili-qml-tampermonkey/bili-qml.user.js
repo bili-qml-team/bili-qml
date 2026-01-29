@@ -946,6 +946,29 @@
                 throw new Error(verifyJson?.error || '服务器校验失败');
             }
 
+            // 删除验证用收藏夹（仅删除本次创建的 ID）
+            try {
+                const deleteParams = new URLSearchParams();
+                deleteParams.append('media_ids', String(mediaId));
+                deleteParams.append('csrf', csrf);
+                deleteParams.append('csrf_token', csrf);
+
+                const deleteResp = await fetch('https://api.bilibili.com/x/v3/fav/folder/del', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+                    },
+                    body: deleteParams,
+                    credentials: 'include'
+                });
+                const deleteJson = await deleteResp.json();
+                if (deleteJson.code !== 0) {
+                    console.warn('[B站问号榜] 删除验证收藏夹失败:', deleteJson.message || deleteJson.code);
+                }
+            } catch (deleteError) {
+                console.warn('[B站问号榜] 删除验证收藏夹异常:', deleteError);
+            }
+
             GM_setValue(STORAGE_KEY_VOTE_TOKEN, verifyJson.token);
             alert('验证成功，现在可以投票了。');
             return verifyJson.token;
