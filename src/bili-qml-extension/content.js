@@ -592,6 +592,98 @@ async function sendDanmaku(text) {
     }
 }
 
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return null;
+}
+
+async function acquireVoteToken(forceRenew = false) {
+    return new Promise((resolve) => {
+        localBrowserStorage.get(['voteToken'], async (result) => {
+            if (!forceRenew && result.voteToken) {
+                resolve(result.voteToken);
+                return;
+            }
+
+            if (!confirm('投票需要一次性验证，将在你的 B 站账号创建一个公开收藏夹用于验证。是否继续？')) {
+                resolve(null);
+                return;
+            }
+
+            try {
+                const userId = getCookie('DedeUserID');
+                const csrf = getCookie('bili_jct');
+
+                if (!userId || !csrf) {
+                    alert('请先登录 B 站。');
+                    resolve(null);
+                    return;
+                }
+
+                // 1. 获取挑战名称
+                const nameResp = await fetch(`${API_BASE}/token/fav-name`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId })
+                });
+                const nameJson = await nameResp.json();
+                if (!nameResp.ok || !nameJson?.success || !nameJson?.name) {
+                    throw new Error(nameJson?.error || '获取验证信息失败');
+                }
+
+                // 2. 创建收藏夹
+                const params = new URLSearchParams();
+                params.append('title', nameJson.name);
+                params.append('privacy', '0'); // Public
+                params.append('csrf', csrf);
+                params.append('csrf_token', csrf);
+
+                const createResp = await fetch('https://api.bilibili.com/x/v3/fav/folder/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+                    },
+                    body: params,
+                    credentials: 'include'
+                });
+                const createJson = await createResp.json();
+
+                if (createJson.code !== 0) {
+                    throw new Error(`创建收藏夹失败: ${createJson.message}`);
+                }
+
+                const mediaId = createJson.data?.id ?? createJson.data?.fid;
+                if (!mediaId) {
+                    throw new Error('创建收藏夹失败: 返回缺少 ID');
+                }
+
+                // 3. 校验并获取 Token
+                const verifyResp = await fetch(`${API_BASE}/token/verify`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, mediaId })
+                });
+                const verifyJson = await verifyResp.json();
+                if (!verifyResp.ok || !verifyJson?.success || !verifyJson?.token) {
+                    throw new Error(verifyJson?.error || '服务器校验失败');
+                }
+
+                // 4. 存储 Token
+                localBrowserStorage.set({ voteToken: verifyJson.token }, () => {
+                    alert('验证成功，现在可以投票了。');
+                    resolve(verifyJson.token);
+                });
+            } catch (e) {
+                console.error(e);
+                alert(`验证失败: ${e.message}`);
+                resolve(null);
+            }
+        });
+    });
+}
+
 async function injectQuestionButton() {
     try {
         const bvid = getBvid();
@@ -673,7 +765,7 @@ async function injectQuestionButton() {
                 const isVoting = !qBtn.classList.contains("voted");
 
                 // 内部函数：执行投票请求
-                const doVote = async (altchaSolution = null) => {
+                const doVote = async (token, altchaSolution = null) => {
                     const endpoint = isVoting ? "vote" : "unvote";
                     const requestBody = { bvid: activeBvid, userId };
                     if (altchaSolution) {
@@ -683,24 +775,40 @@ async function injectQuestionButton() {
                     const response = await fetch(`${API_BASE}/${endpoint}`, {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json'
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
                         },
                         body: JSON.stringify(requestBody)
                     });
-                    return response.json();
+                    return { status: response.status, data: await response.json() };
                 };
 
                 try {
                     qBtn.style.pointerEvents = 'none';
                     qBtn.style.opacity = '0.5';
 
-                    let resData = await doVote();
+                    let token = await acquireVoteToken();
+                    if (!token) {
+                        return;
+                    }
+
+                    let res = await doVote(token);
+                    if (res.status === 401) {
+                        await new Promise((resolve) => localBrowserStorage.remove(['voteToken'], resolve));
+                        token = await acquireVoteToken(true);
+                        if (!token) {
+                            return;
+                        }
+                        res = await doVote(token);
+                    }
+                    let resData = res.data;
 
                     // 处理频率限制，需要 CAPTCHA 验证
                     if (resData.requiresCaptcha) {
                         try {
                             const altchaSolution = await showAltchaCaptchaDialog();
-                            resData = await doVote(altchaSolution);
+                            const captchaRes = await doVote(token, altchaSolution);
+                            resData = captchaRes.data;
                         } catch (captchaError) {
                             // 用户取消了 CAPTCHA
                             console.log('[B站问号榜] CAPTCHA 已取消');
@@ -780,6 +888,23 @@ async function tryInject() {
     } catch (e) {
         console.error('[B站问号榜] 注入失败:', e);
     }
+}
+
+const runtimeApi = typeof chrome !== 'undefined' ? chrome.runtime : browser.runtime;
+if (runtimeApi?.onMessage) {
+    runtimeApi.onMessage.addListener((message, sender, sendResponse) => {
+        if (!message || message.type !== 'voteToken.acquire') {
+            return false;
+        }
+        acquireVoteToken(Boolean(message.forceRenew))
+            .then((token) => {
+                sendResponse({ success: Boolean(token), token });
+            })
+            .catch((error) => {
+                sendResponse({ success: false, error: error?.message || '获取失败' });
+            });
+        return true;
+    });
 }
 function waitFor(selector, ms = undefined) {
     return new Promise((resolve, reject) => {

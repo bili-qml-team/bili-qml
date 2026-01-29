@@ -26,6 +26,7 @@
     // 当前 API_BASE
     const STORAGE_KEY_API_ENDPOINT = 'apiEndpoint';
     const STORAGE_KEY_WEB_ENDPOINT = 'webEndpoint';
+    const STORAGE_KEY_VOTE_TOKEN = 'voteToken';
     let API_BASE = GM_getValue(STORAGE_KEY_API_ENDPOINT, null) || DEFAULT_API_BASE;
 
     // ==================== Altcha CAPTCHA 功能 ====================
@@ -881,6 +882,80 @@
         return null;
     }
 
+    function getCookie(name) {
+        const match = document.cookie.match(new RegExp(`${name}=([^;]+)`));
+        return match && match[1] ? match[1] : null;
+    }
+
+    async function acquireVoteToken(forceRenew = false) {
+        const cachedToken = forceRenew ? null : GM_getValue(STORAGE_KEY_VOTE_TOKEN, null);
+        if (cachedToken) {
+            return cachedToken;
+        }
+
+        if (!confirm('投票需要一次性验证，将在你的 B 站账号创建一个公开收藏夹用于验证。是否继续？')) {
+            return null;
+        }
+
+        const userId = getCookie('DedeUserID');
+        const csrf = getCookie('bili_jct');
+
+        if (!userId || !csrf) {
+            alert('请先登录 B 站。');
+            return null;
+        }
+
+        try {
+            // 1. 获取挑战名称
+            const nameResp = await fetch(`${API_BASE}/token/fav-name`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId })
+            });
+            const nameJson = await nameResp.json();
+            if (!nameResp.ok || !nameJson?.success || !nameJson?.name) {
+                throw new Error(nameJson?.error || '获取验证信息失败');
+            }
+
+            // 2. 创建收藏夹
+            const params = new URLSearchParams();
+            params.append('title', nameJson.name);
+            params.append('privacy', '0');
+            params.append('csrf', csrf);
+
+            const createResp = await fetch('https://api.bilibili.com/x/v3/fav/folder/add', {
+                method: 'POST',
+                body: params,
+                credentials: 'include'
+            });
+            const createJson = await createResp.json();
+            if (createJson.code !== 0) {
+                throw new Error(`创建收藏夹失败: ${createJson.message}`);
+            }
+
+            const mediaId = createJson.data.id;
+
+            // 3. 校验并获取 Token
+            const verifyResp = await fetch(`${API_BASE}/token/verify`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, mediaId })
+            });
+            const verifyJson = await verifyResp.json();
+            if (!verifyResp.ok || !verifyJson?.success || !verifyJson?.token) {
+                throw new Error(verifyJson?.error || '服务器校验失败');
+            }
+
+            GM_setValue(STORAGE_KEY_VOTE_TOKEN, verifyJson.token);
+            alert('验证成功，现在可以投票了。');
+            return verifyJson.token;
+        } catch (e) {
+            console.error(e);
+            alert(`验证失败: ${e.message}`);
+            return null;
+        }
+    }
+
     // 获取当前视频的 BVID
     function getBvid() {
         // 1. 从 URL 路径获取
@@ -1268,7 +1343,7 @@
                     const isVoting = !qBtn.classList.contains("voted");
 
                     // 内部函数：执行投票请求
-                    const doVote = async (altchaSolution = null) => {
+                    const doVote = async (token, altchaSolution = null) => {
                         const endpoint = isVoting ? "vote" : "unvote";
                         const requestBody = { bvid: activeBvid, userId };
                         if (altchaSolution) {
@@ -1278,25 +1353,41 @@
                         const response = await fetch(`${API_BASE}/${endpoint}`, {
                             method: 'POST',
                             headers: {
-                                'Content-Type': 'application/json'
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
                             },
                             body: JSON.stringify(requestBody)
                         });
-                        return response.json();
+                        return { status: response.status, data: await response.json() };
                     };
 
                     try {
                         qBtn.style.pointerEvents = 'none';
                         qBtn.style.opacity = '0.5';
 
-                        let resData = await doVote();
+                        let token = await acquireVoteToken();
+                        if (!token) {
+                            return;
+                        }
+
+                        let res = await doVote(token);
+                        if (res.status === 401) {
+                            GM_setValue(STORAGE_KEY_VOTE_TOKEN, null);
+                            token = await acquireVoteToken(true);
+                            if (!token) {
+                                return;
+                            }
+                            res = await doVote(token);
+                        }
+                        let resData = res.data;
 
                         // 处理频率限制，需要 CAPTCHA 验证
                         if (resData.requiresCaptcha) {
                             try {
                                 const altchaSolution = await showAltchaCaptchaDialog();
-                                resData = await doVote(altchaSolution);
-                            } catch (captchaError) {
+                            const captchaRes = await doVote(token, altchaSolution);
+                            resData = captchaRes.data;
+                        } catch (captchaError) {
                                 // 用户取消了 CAPTCHA
                                 console.log('[B站问号榜] CAPTCHA 已取消');
                                 return;

@@ -81,6 +81,17 @@
                         </label>
                     </div>
                 </div>
+                <div class="settings-section" style="margin-top: 15px;">
+                    <h3>投票 Token</h3>
+                    <p class="settings-desc">显示当前 Token，并可获取或续期</p>
+                    <div class="token-display">
+                        <input id="vote-token-value" class="token-input" type="text" readonly placeholder="未设置">
+                    </div>
+                    <div class="token-actions">
+                        <button id="token-refresh" class="token-btn">获取 / 续期</button>
+                    </div>
+                    <div id="token-status" class="token-status"></div>
+                </div>
                 <details class="advanced-section" style="margin-top: 15px;">
                     <summary class="advanced-toggle">高级选项</summary>
                     <div class="settings-section">

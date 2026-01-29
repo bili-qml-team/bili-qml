@@ -221,6 +221,66 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function updateTokenDisplay(token) {
+        const tokenInput = document.getElementById('vote-token-value');
+        if (tokenInput) {
+            tokenInput.value = token || '';
+            tokenInput.placeholder = token ? '' : '未设置';
+        }
+    }
+
+    function updateTokenStatus(message) {
+        const status = document.getElementById('token-status');
+        if (status) {
+            status.textContent = message || '';
+        }
+    }
+
+    function loadVoteToken() {
+        return new Promise((resolve) => {
+            localBrowserStorage.get(['voteToken'], (result) => {
+                updateTokenDisplay(result.voteToken || '');
+                resolve();
+            });
+        });
+    }
+
+    function getActiveTab() {
+        return new Promise((resolve, reject) => {
+            const tabsApi = typeof chrome !== 'undefined' ? chrome.tabs : browser.tabs;
+            if (!tabsApi || !tabsApi.query) {
+                reject(new Error('浏览器不支持标签页查询'));
+                return;
+            }
+            tabsApi.query({ active: true, currentWindow: true }, (tabs) => {
+                const tab = tabs && tabs[0];
+                if (!tab || !tab.id) {
+                    reject(new Error('未找到当前标签页'));
+                    return;
+                }
+                resolve(tab);
+            });
+        });
+    }
+
+    async function requestTokenFromTab(forceRenew) {
+        updateTokenStatus('正在请求验证...');
+        try {
+            const tab = await getActiveTab();
+            const runtimeApi = typeof chrome !== 'undefined' ? chrome.tabs : browser.tabs;
+            runtimeApi.sendMessage(tab.id, { type: 'voteToken.acquire', forceRenew }, (response) => {
+                if (!response || !response.success) {
+                    updateTokenStatus(response?.error || '获取失败，请在B站视频页重试');
+                    return;
+                }
+                updateTokenDisplay(response.token || '');
+                updateTokenStatus('Token 已更新');
+            });
+        } catch (error) {
+            updateTokenStatus(error.message || '获取失败');
+        }
+    }
+
     // 加载设置
     async function loadSettings() {
         return new Promise((resolve) => {
@@ -405,6 +465,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (settingsWrapper) settingsWrapper.style.display = 'flex';
             document.querySelector('.tabs').style.display = 'none'; // 隐藏排行榜Tab
             loadSettings();
+            loadVoteToken();
+            updateTokenStatus('');
         } else {
             leaderboard.style.display = 'block';
             if (settingsWrapper) settingsWrapper.style.display = 'none';
@@ -474,4 +536,18 @@ document.addEventListener('DOMContentLoaded', () => {
     initApiBase().then(() => {
         fetchLeaderboard();
     });
+
+    const tokenRefreshBtn = document.getElementById('token-refresh');
+    if (tokenRefreshBtn) {
+        tokenRefreshBtn.addEventListener('click', async () => {
+            const tokenValue = document.getElementById('vote-token-value')?.value || '';
+            if (tokenValue) {
+                const confirmRenew = confirm('当前已存在 Token，是否续期？');
+                if (!confirmRenew) {
+                    return;
+                }
+            }
+            requestTokenFromTab(Boolean(tokenValue));
+        });
+    }
 });
