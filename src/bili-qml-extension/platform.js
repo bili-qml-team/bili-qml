@@ -12,15 +12,6 @@ const browserStorage = (function () {
   }
   throw new Error('No storage API available');
 })();
-const localBrowserStorage = (function () {
-  if (typeof browser !== 'undefined' && browser.storage?.local) {
-    return browser.storage.local;
-  }
-  if (typeof chrome !== 'undefined' && chrome.storage?.local) {
-    return chrome.storage.local;
-  }
-  throw new Error('No local storage API available');
-})();
 const STORAGE_KEY_DANMAKU_PREF = 'danmakuPreference';
 const STORAGE_KEY_API_ENDPOINT = 'apiEndpoint';
 const STORAGE_KEY_WEB_ENDPOINT = 'webEndpoint';
