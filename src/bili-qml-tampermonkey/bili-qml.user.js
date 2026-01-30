@@ -1479,6 +1479,7 @@
     function openWebLeaderboard() {
         const rawBase = GM_getValue(STORAGE_KEY_WEB_ENDPOINT, null) || DEFAULT_WEB_BASE;
         const normalizedBase = normalizeWebEndpoint(rawBase) || DEFAULT_WEB_BASE;
+        const voteToken = String(GM_getValue(STORAGE_KEY_VOTE_TOKEN, '') || '').trim();
         let targetUrl;
         try {
             const url = new URL(normalizedBase);
@@ -1486,12 +1487,20 @@
             if (uid) {
                 url.searchParams.set('uid', uid);
             }
+            url.searchParams.set('from', 'extension');
+            if (voteToken) {
+                url.searchParams.set('token', voteToken);
+            }
             targetUrl = url.toString();
         } catch (error) {
             const fallbackUrl = new URL(DEFAULT_WEB_BASE);
             const uid = getUserId();
             if (uid) {
                 fallbackUrl.searchParams.set('uid', uid);
+            }
+            fallbackUrl.searchParams.set('from', 'extension');
+            if (voteToken) {
+                fallbackUrl.searchParams.set('token', voteToken);
             }
             targetUrl = fallbackUrl.toString();
         }
@@ -1508,7 +1517,7 @@
         panel.id = 'bili-qmr-panel';
         panel.innerHTML = `
             <div class="qmr-header">
-                <button class="qmr-page-btn" title="打开 Web 端">📊</button>
+                <button class="qmr-page-btn" title="打开web页面">📊</button>
                 <h2 class="qmr-title" style="flex:1; margin-left: 12px;">B站问号榜 ❓</h2>
                 <div style="display: flex; align-items: center;">
                     <span class="qmr-settings-btn" title="设置">⚙️</span>
@@ -1687,7 +1696,7 @@
             }
         };
 
-        // 页面按钮：打开 Web 端
+        // 页面按钮：打开web页面
         panel.querySelector('.qmr-page-btn').onclick = () => {
             openWebLeaderboard();
         };
