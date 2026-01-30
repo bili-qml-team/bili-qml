@@ -1408,9 +1408,9 @@
                         if (resData.requiresCaptcha) {
                             try {
                                 const altchaSolution = await showAltchaCaptchaDialog();
-                            const captchaRes = await doVote(token, altchaSolution);
-                            resData = captchaRes.data;
-                        } catch (captchaError) {
+                                const captchaRes = await doVote(token, altchaSolution);
+                                resData = captchaRes.data;
+                            } catch (captchaError) {
                                 // 用户取消了 CAPTCHA
                                 console.log('[B站问号榜] CAPTCHA 已取消');
                                 return;
@@ -1719,7 +1719,7 @@
         const themeBtnDark = panel.querySelector('input[name="qmr-theme-pref"][value="dark"]');
         if (themeBtnSystem) {
             themeBtnSystem.addEventListener('change', () => {
-                panel.classList.remove('qmr-light','qmr-dark');
+                panel.classList.remove('qmr-light', 'qmr-dark');
             });
         }
         if (themeBtnLight) {
@@ -1739,7 +1739,7 @@
             const value = GM_getValue('theme');
             switch (value) {
                 case 'system':
-                    panel.classList.remove('qmr-dark','qmr-light');
+                    panel.classList.remove('qmr-dark', 'qmr-light');
                     break;
                 case 'light':
                     panel.classList.remove('qmr-dark');
