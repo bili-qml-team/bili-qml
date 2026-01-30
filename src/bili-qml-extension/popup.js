@@ -72,7 +72,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await new Promise(resolve => {
                 browserStorage.sync.get(['biliUserId', STORAGE_KEY_WEB_ENDPOINT], resolve);
             });
+            const tokenResult = await new Promise(resolve => {
+                localBrowserStorage.get(['voteToken'], resolve);
+            });
             const uid = result.biliUserId || null;
+            const voteToken = (tokenResult.voteToken || '').trim();
             const normalizedBase = normalizeWebEndpoint(result[STORAGE_KEY_WEB_ENDPOINT]) || DEFAULT_WEB_BASE;
             let targetUrl;
             try {
@@ -80,11 +84,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (uid) {
                     url.searchParams.set('uid', uid);
                 }
+                url.searchParams.set('from', 'extension');
+                if (voteToken) {
+                    url.searchParams.set('token', voteToken);
+                }
                 targetUrl = url.toString();
             } catch (error) {
                 const fallbackUrl = new URL(DEFAULT_WEB_BASE);
                 if (uid) {
                     fallbackUrl.searchParams.set('uid', uid);
+                }
+                fallbackUrl.searchParams.set('from', 'extension');
+                if (voteToken) {
+                    fallbackUrl.searchParams.set('token', voteToken);
                 }
                 targetUrl = fallbackUrl.toString();
             }
