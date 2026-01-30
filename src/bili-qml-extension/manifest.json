@@ -19,8 +19,12 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["icons/button-icon.png"],
-      "matches": ["https://www.bilibili.com/*"]
+      "resources": [
+        "icons/button-icon.png"
+      ],
+      "matches": [
+        "https://www.bilibili.com/*"
+      ]
     }
   ],
   "action": {
@@ -29,7 +33,8 @@
   "content_scripts": [
     {
       "matches": [
-        "https://www.bilibili.com/video/*"
+        "https://www.bilibili.com/video/*",
+        "https://www.bilibili.com/list/watchlater*"
       ],
       "js": [
         "platform.js",
@@ -43,7 +48,8 @@
     },
     {
       "matches": [
-        "https://www.bilibili.com/video/*"
+        "https://www.bilibili.com/video/*",
+        "https://www.bilibili.com/list/watchlater*"
       ],
       "js": [
         "dmstat.js"
