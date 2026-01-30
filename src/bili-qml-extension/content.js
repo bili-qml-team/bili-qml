@@ -163,9 +163,19 @@ function showAltchaCaptchaDialog() {
 
 // 获取弹幕发送偏好
 // 返回: null (未设置), true (总是发送), false (总是不发送)
+/**
+ * 获取弹幕偏好设置的异步函数
+ * 该函数会从浏览器存储中读取弹幕相关的配置信息
+ * @returns {Promise} 返回一个Promise对象，解析后得到弹幕偏好设置
+ */
 async function getDanmakuPreference() {
+    // 创建一个新的Promise对象，用于异步获取弹幕偏好设置
     return new Promise((resolve) => {
+        // 从浏览器同步存储中获取指定键的值
+        // STORAGE_KEY_DANMAKU_PREF 是存储弹幕偏好设置的键名
         browserStorage.sync.get([STORAGE_KEY_DANMAKU_PREF], (result) => {
+            // 检查结果中是否包含该键的值
+            // 如果存在则返回该值，否则返回null
             resolve(result[STORAGE_KEY_DANMAKU_PREF] !== undefined ? result[STORAGE_KEY_DANMAKU_PREF] : null);
         });
     });
@@ -195,35 +205,35 @@ function showDanmakuConfirmDialog() {
         // 创建对话框
         const dialog = document.createElement('div');
         dialog.style.cssText = `
-            background: white; border-radius: 8px; padding: 24px;
+            background: var(--bg1); border-radius: 8px; padding: 24px;
             width: 360px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
         `;
 
         dialog.innerHTML = `
-            <div style="font-size: 18px; font-weight: bold; color: #18191c; margin-bottom: 16px;">
+            <div style="font-size: 18px; font-weight: bold; color: var(--text1); margin-bottom: 16px;">
                 发送弹幕确认
             </div>
-            <div style="font-size: 14px; color: #61666d; margin-bottom: 20px;">
+            <div style="font-size: 14px; color: var(--text1); margin-bottom: 20px;">
                 点亮问号后是否自动发送"?"弹幕？
             </div>
             <div style="margin-bottom: 20px;">
                 <label style="display: flex; align-items: center; cursor: pointer; user-select: none;">
                     <input type="checkbox" id="qmr-dont-ask" style="margin-right: 8px;">
-                    <span style="font-size: 14px; color: #61666d;">不再询问（记住我的选择）</span>
+                    <span style="font-size: 14px; color: var(--text3);">不再询问（记住我的选择）</span>
                 </label>
             </div>
             <div style="display: flex; gap: 12px; justify-content: flex-end;">
                 <button id="qmr-btn-no" style="
-                    padding: 8px 20px; border: 1px solid #e3e5e7; border-radius: 4px;
-                    background: white; color: #61666d; cursor: pointer;
+                    padding: 8px 20px; border: 1px solid var(--line_regular); border-radius: 4px;
+                    background: var(--bg1_float); color: var(--text1); cursor: pointer;
                     font-size: 14px; transition: all 0.2s;
                 ">
                     不发送
                 </button>
                 <button id="qmr-btn-yes" style="
                     padding: 8px 20px; border: none; border-radius: 4px;
-                    background: #00aeec; color: white; cursor: pointer;
+                    background: var(--brand_blue); color: white; cursor: pointer;
                     font-size: 14px; transition: all 0.2s;
                 ">
                     发送弹幕
@@ -239,10 +249,10 @@ function showDanmakuConfirmDialog() {
         const btnYes = dialog.querySelector('#qmr-btn-yes');
 
         btnNo.addEventListener('mouseenter', () => {
-            btnNo.style.background = '#f4f5f7';
+            btnNo.style.background = 'var(--bg3)';
         });
         btnNo.addEventListener('mouseleave', () => {
-            btnNo.style.background = 'white';
+            btnNo.style.background = 'var(--bg1_float)';
         });
 
         btnYes.addEventListener('mouseenter', () => {
@@ -361,6 +371,20 @@ function getUserId() {
     return null; // 未登录返回 null
 }
 
+let lastStoredUserId = null;
+
+function cacheUserId(userId) {
+    if (userId && userId !== lastStoredUserId) {
+        browserStorage.sync.set({ biliUserId: userId });
+        lastStoredUserId = userId;
+        return;
+    }
+    if (!userId && lastStoredUserId !== null) {
+        browserStorage.sync.remove(['biliUserId']);
+        lastStoredUserId = null;
+    }
+}
+
 // 获取当前视频的 BVID
 function getBvid() {
     // 1. 从 URL 路径获取
@@ -397,6 +421,7 @@ async function syncButtonState() {
     try {
         isSyncing = true;
         const userId = getUserId();
+        cacheUserId(userId);
         // 增加 _t 参数防止浏览器缓存 GET 请求
         const statusRes = await fetch(`${API_BASE}/status?bvid=${bvid}&userId=${userId || ''}&_t=${Date.now()}`);
         const statusData = await statusRes.json();
@@ -567,10 +592,129 @@ async function sendDanmaku(text) {
     }
 }
 
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return null;
+}
+
+async function acquireVoteToken(forceRenew = false) {
+    return new Promise((resolve) => {
+        localBrowserStorage.get(['voteToken'], async (result) => {
+            if (!forceRenew && result.voteToken) {
+                resolve(result.voteToken);
+                return;
+            }
+
+            if (!confirm('投票需要一次性验证，将在你的 B 站账号创建一个公开收藏夹用于验证。是否继续？')) {
+                resolve(null);
+                return;
+            }
+
+            try {
+                const userId = getCookie('DedeUserID');
+                const csrf = getCookie('bili_jct');
+
+                if (!userId || !csrf) {
+                    alert('请先登录 B 站。');
+                    resolve(null);
+                    return;
+                }
+
+                // 1. 获取挑战名称
+                const nameResp = await fetch(`${API_BASE}/token/fav-name`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId })
+                });
+                const nameJson = await nameResp.json();
+                if (!nameResp.ok || !nameJson?.success || !nameJson?.name) {
+                    throw new Error(nameJson?.error || '获取验证信息失败');
+                }
+
+                // 2. 创建收藏夹
+                const params = new URLSearchParams();
+                params.append('title', nameJson.name);
+                params.append('privacy', '0'); // Public
+                params.append('csrf', csrf);
+                params.append('csrf_token', csrf);
+
+                const createResp = await fetch('https://api.bilibili.com/x/v3/fav/folder/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+                    },
+                    body: params,
+                    credentials: 'include'
+                });
+                const createJson = await createResp.json();
+
+                if (createJson.code !== 0) {
+                    throw new Error(`创建收藏夹失败: ${createJson.message}`);
+                }
+
+                const mediaId = createJson.data?.id ?? createJson.data?.fid;
+                if (!mediaId) {
+                    throw new Error('创建收藏夹失败: 返回缺少 ID');
+                }
+
+                // 3. 校验并获取 Token
+                const verifyResp = await fetch(`${API_BASE}/token/verify`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, mediaId })
+                });
+                const verifyJson = await verifyResp.json();
+                if (!verifyResp.ok || !verifyJson?.success || !verifyJson?.token) {
+                    throw new Error(verifyJson?.error || '服务器校验失败');
+                }
+
+                // 4. 删除验证用收藏夹（仅删除本次创建的 ID）
+                try {
+                    const deleteParams = new URLSearchParams();
+                    deleteParams.append('media_ids', String(mediaId));
+                    deleteParams.append('csrf', csrf);
+                    deleteParams.append('csrf_token', csrf);
+
+                    const deleteResp = await fetch('https://api.bilibili.com/x/v3/fav/folder/del', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+                        },
+                        body: deleteParams,
+                        credentials: 'include'
+                    });
+                    const deleteJson = await deleteResp.json();
+                    if (deleteJson.code !== 0) {
+                        console.warn('[B站问号榜] 删除验证收藏夹失败:', deleteJson.message || deleteJson.code);
+                    }
+                } catch (deleteError) {
+                    console.warn('[B站问号榜] 删除验证收藏夹异常:', deleteError);
+                }
+
+                // 5. 存储 Token
+                localBrowserStorage.set({ voteToken: verifyJson.token }, () => {
+                    alert('验证成功，现在可以投票了。');
+                    resolve(verifyJson.token);
+                });
+            } catch (e) {
+                console.error(e);
+                alert(`验证失败: ${e.message}`);
+                resolve(null);
+            }
+        });
+    });
+}
+
 async function injectQuestionButton() {
     try {
         const bvid = getBvid();
         if (!bvid) return;
+
+        // 排除私密视频
+        const recList = document.querySelector('.rec-list, .recommend-list-container');
+        if (!recList || recList.children.length === 0) return;
 
         // 1. 寻找工具栏左侧容器作为真正的父壳子
         const toolbarLeft = document.querySelector('.video-toolbar-left-main');
@@ -644,7 +788,7 @@ async function injectQuestionButton() {
                 const isVoting = !qBtn.classList.contains("voted");
 
                 // 内部函数：执行投票请求
-                const doVote = async (altchaSolution = null) => {
+                const doVote = async (token, altchaSolution = null) => {
                     const endpoint = isVoting ? "vote" : "unvote";
                     const requestBody = { bvid: activeBvid, userId };
                     if (altchaSolution) {
@@ -654,24 +798,40 @@ async function injectQuestionButton() {
                     const response = await fetch(`${API_BASE}/${endpoint}`, {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json'
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
                         },
                         body: JSON.stringify(requestBody)
                     });
-                    return response.json();
+                    return { status: response.status, data: await response.json() };
                 };
 
                 try {
                     qBtn.style.pointerEvents = 'none';
                     qBtn.style.opacity = '0.5';
 
-                    let resData = await doVote();
+                    let token = await acquireVoteToken();
+                    if (!token) {
+                        return;
+                    }
+
+                    let res = await doVote(token);
+                    if (res.status === 401) {
+                        await new Promise((resolve) => localBrowserStorage.remove(['voteToken'], resolve));
+                        token = await acquireVoteToken(true);
+                        if (!token) {
+                            return;
+                        }
+                        res = await doVote(token);
+                    }
+                    let resData = res.data;
 
                     // 处理频率限制，需要 CAPTCHA 验证
                     if (resData.requiresCaptcha) {
                         try {
                             const altchaSolution = await showAltchaCaptchaDialog();
-                            resData = await doVote(altchaSolution);
+                            const captchaRes = await doVote(token, altchaSolution);
+                            resData = captchaRes.data;
                         } catch (captchaError) {
                             // 用户取消了 CAPTCHA
                             console.log('[B站问号榜] CAPTCHA 已取消');
@@ -752,6 +912,23 @@ async function tryInject() {
         console.error('[B站问号榜] 注入失败:', e);
     }
 }
+
+const runtimeApi = typeof chrome !== 'undefined' ? chrome.runtime : browser.runtime;
+if (runtimeApi?.onMessage) {
+    runtimeApi.onMessage.addListener((message, sender, sendResponse) => {
+        if (!message || message.type !== 'voteToken.acquire') {
+            return false;
+        }
+        acquireVoteToken(Boolean(message.forceRenew))
+            .then((token) => {
+                sendResponse({ success: Boolean(token), token });
+            })
+            .catch((error) => {
+                sendResponse({ success: false, error: error?.message || '获取失败' });
+            });
+        return true;
+    });
+}
 function waitFor(selector, ms = undefined) {
     return new Promise((resolve, reject) => {
         const target = document.querySelector(selector);
@@ -789,21 +966,17 @@ function waitFor(selector, ms = undefined) {
     });
 }
 // Main Entry Point
-initApiBase().then(() => {
+initApiBase().then(async () => {
     // 初始加载：等待 Vue 加载时须:搜索框应该是最后进行load
-    waitFor('.nav-search-input').then((ele) => {
-        ele.addEventListener("load", () => {
-            const fn = () => {
-                if (ele.readyState == 'complete') {
-                    tryInject()
-                } else {
-                    setTimeout(fn, 100);
-                }
-            }
-            fn()
+    function insertPromise(selector) {
+        return new Promise((resolve) => {
+            waitFor(selector).then((ele) => {
+                resolve();
+            });
         });
-    });
-
+    }
+    await Promise.all([insertPromise('.nav-search-input[maxlength]'), insertPromise('.view-icon[width]')]);
+    tryInject()
     // 处理 SPA 软导航 (URL 变化)
     let lastUrl = location.href;
     setInterval(() => {

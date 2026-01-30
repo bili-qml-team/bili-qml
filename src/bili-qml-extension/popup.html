@@ -10,9 +10,9 @@
     <div class="container">
         <header>
             <div class="header-top">
+
                 <div class="header-left">
-                    <div class="settings-btn" id="full-leaderboard-btn" title="打开完整榜单">📊</div>
-                    <div class="settings-btn" id="theme-btn" title="切换深色/浅色模式">🌓</div>
+                    <div class="settings-btn" id="full-leaderboard-btn" title="打开web页面">📊</div>
                 </div>
                 <h1>B站问号榜 ❓</h1>
                 <div class="header-actions">
@@ -64,6 +64,34 @@
                         </label>
                     </div>
                 </div>
+                <div class="settings-section" style="margin-top: 15px;">
+                    <h3>主题色设置</h3>
+                    <div class="radio-group">
+                        <label class="radio-item">
+                            <input type="radio" name="theme-pref" value="system" checked>
+                            <span>跟随系统</span>
+                        </label>
+                        <label class="radio-item">
+                            <input type="radio" name="theme-pref" value="light">
+                            <span>浅色模式</span>
+                        </label>
+                        <label class="radio-item">
+                            <input type="radio" name="theme-pref" value="dark">
+                            <span>深色模式</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="settings-section" style="margin-top: 15px;">
+                    <h3>投票 Token</h3>
+                    <p class="settings-desc">显示当前 Token，并可获取或续期</p>
+                    <div class="token-display">
+                        <input id="vote-token-value" class="token-input" type="text" readonly placeholder="未设置">
+                    </div>
+                    <div class="token-actions">
+                        <button id="token-refresh" class="token-btn">获取 / 续期</button>
+                    </div>
+                    <div id="token-status" class="token-status"></div>
+                </div>
                 <details class="advanced-section" style="margin-top: 15px;">
                     <summary class="advanced-toggle">高级选项</summary>
                     <div class="settings-section">
@@ -72,7 +100,17 @@
                         <div class="endpoint-input-group">
                             <input type="text" id="endpoint-input" class="endpoint-input"
                                 placeholder="https://bili-qml.bydfk.com/api">
-                            <button id="reset-endpoint" class="reset-btn" title="恢复默认">↺</button>
+                        <button id="reset-endpoint" class="reset-btn" title="恢复默认">↺</button>
+                        </div>
+                    </div>
+
+                    <div class="settings-section" style="margin-top: 15px;">
+                        <h3>Web 端网址设置</h3>
+                        <p class="settings-desc">自定义 Web 端跳转地址</p>
+                        <div class="endpoint-input-group">
+                            <input type="text" id="web-endpoint-input" class="endpoint-input"
+                                placeholder="https://web.bili-qml.com/">
+                            <button id="reset-web-endpoint" class="reset-btn" title="恢复默认">↺</button>
                         </div>
                     </div>
                 </details>

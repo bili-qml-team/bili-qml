@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         B站问号榜
 // @namespace    https://github.com/bili-qml-team/bili-qml
-// @version      1.2
+// @version      1.3
 // @description  在B站视频下方增加问号键，统计并展示抽象视频排行榜。油猴脚本版本。
 // @author       bili-qml-team
 // @match        https://www.bilibili.com/video/*
@@ -15,15 +15,18 @@
 // @license      AGPL-3.0
 // ==/UserScript==
 
-(function () {
+(async function () {
     'use strict';
 
     const DEFAULT_API_BASE = 'https://bili-qml.bydfk.com/api';
+    const DEFAULT_WEB_BASE = 'https://web.bili-qml.com/';
     // for debug
     //const DEFAULT_API_BASE = 'http://localhost:3000/api'
 
     // 当前 API_BASE
     const STORAGE_KEY_API_ENDPOINT = 'apiEndpoint';
+    const STORAGE_KEY_WEB_ENDPOINT = 'webEndpoint';
+    const STORAGE_KEY_VOTE_TOKEN = 'voteToken';
     let API_BASE = GM_getValue(STORAGE_KEY_API_ENDPOINT, null) || DEFAULT_API_BASE;
 
     // ==================== Altcha CAPTCHA 功能 ====================
@@ -82,7 +85,7 @@
 
             const dialog = document.createElement('div');
             dialog.style.cssText = `
-                background: white; border-radius: 12px; padding: 24px;
+                background: var(--bg-color); border-radius: 12px; padding: 24px;
                 width: 320px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);
                 font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
                 text-align: center;
@@ -90,29 +93,29 @@
 
             dialog.innerHTML = `
                 <div style="font-size: 48px; margin-bottom: 16px;">🤖</div>
-                <div style="font-size: 18px; font-weight: bold; color: #18191c; margin-bottom: 12px;">
+                <div style="font-size: 18px; font-weight: bold; color: var(--text-main); margin-bottom: 12px;">
                     人机验证
                 </div>
-                <div id="qmr-captcha-status" style="font-size: 14px; color: #61666d; margin-bottom: 20px;">
+                <div id="qmr-captcha-status" style="font-size: 14px; color: var(--text-secondary); margin-bottom: 20px;">
                     检测到频繁操作，请完成验证
                 </div>
                 <div id="qmr-captcha-progress" style="display: none; margin-bottom: 20px;">
-                    <div style="width: 100%; height: 6px; background: #e3e5e7; border-radius: 3px; overflow: hidden;">
+                    <div style="width: 100%; height: 6px; background: var(--border-color); border-radius: 3px; overflow: hidden;">
                         <div id="qmr-captcha-bar" style="width: 0%; height: 100%; background: #00aeec; transition: width 0.3s;"></div>
                     </div>
-                    <div style="font-size: 12px; color: #9499a0; margin-top: 8px;">正在验证中...</div>
+                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">正在验证中...</div>
                 </div>
                 <div id="qmr-captcha-buttons">
                     <button id="qmr-captcha-start" style="
                         padding: 10px 32px; border: none; border-radius: 6px;
-                        background: #00aeec; color: white; cursor: pointer;
+                        background: var(--primary-color); color: white; cursor: pointer;
                         font-size: 14px; transition: all 0.2s;
                     ">
                         开始验证
                     </button>
                     <button id="qmr-captcha-cancel" style="
-                        padding: 10px 20px; border: 1px solid #e3e5e7; border-radius: 6px;
-                        background: white; color: #61666d; cursor: pointer;
+                        padding: 10px 20px; border: 1px solid var(--border-color); border-radius: 6px;
+                        background: var(--card-bg); color: var(--text-main); cursor: pointer;
                         font-size: 14px; margin-left: 12px; transition: all 0.2s;
                     ">
                         取消
@@ -129,8 +132,8 @@
             const progressDiv = dialog.querySelector('#qmr-captcha-progress');
             const buttonsDiv = dialog.querySelector('#qmr-captcha-buttons');
 
-            startBtn.addEventListener('mouseenter', () => startBtn.style.background = '#00a1d6');
-            startBtn.addEventListener('mouseleave', () => startBtn.style.background = '#00aeec');
+            startBtn.addEventListener('mouseenter', () => startBtn.style.background = 'var(--primary-hover)');
+            startBtn.addEventListener('mouseleave', () => startBtn.style.background = 'var(--primary-color)');
 
             cancelBtn.onclick = () => {
                 overlay.remove();
@@ -198,7 +201,7 @@
             --qmr-shadow-md: 0 8px 16px rgba(0, 0, 0, 0.08);
             --qmr-radius: 12px;
         }
-
+        
         #bili-qmr-panel.qmr-dark {
             --qmr-bg: rgba(31, 32, 35, 0.95);
             --qmr-card-bg: #2a2b30;
@@ -213,11 +216,8 @@
             border-bottom-color: rgba(255,255,255,0.05);
         }
 
-        #bili-qmr-panel.qmr-dark .qmr-tab-btn:hover,
-        #bili-qmr-panel.qmr-dark .qmr-page-btn:hover,
-        #bili-qmr-panel.qmr-dark .qmr-settings-btn:hover,
-        #bili-qmr-panel.qmr-dark .qmr-close:hover {
-            background: rgba(255,255,255,0.1);
+        #bili-qmr-panel.qmr-dark :is(.qmr-tab-btn, .qmr-page-btn, .qmr-settings-btn, .qmr-close):hover {
+            background: rgba(255, 255, 255, 0.1);
         }
 
         #bili-qmr-panel.qmr-dark .qmr-tab-btn.active {
@@ -242,10 +242,7 @@
             background: rgba(255,255,255,0.05);
         }
 
-        #bili-qmr-panel.qmr-dark .qmr-advanced-section,
-        #bili-qmr-panel.qmr-dark .qmr-advanced-toggle,
-        #bili-qmr-panel.qmr-dark .qmr-advanced-content,
-        #bili-qmr-panel.qmr-dark .qmr-settings {
+        #bili-qmr-panel.qmr-dark :is(.qmr-advanced-section, .qmr-advanced-toggle, .qmr-advanced-content, .qmr-settings) {
             background-color: var(--qmr-card-bg);
             border-color: #3f4045;
         }
@@ -270,8 +267,6 @@
             background: rgba(255, 255, 255, 0.05);
         }
 
-
-
         /* 问号按钮样式 */
         #bili-qmr-btn {
             cursor: pointer;
@@ -282,7 +277,7 @@
             transition: color 0.3s;
             user-select: none;
         }
-
+        
         #bili-qmr-btn:hover {
             color: var(--qmr-primary);
             transform: translateY(-1px);
@@ -359,8 +354,7 @@
             cursor: grabbing;
         }
 
-        #bili-qmr-panel.qmr-dragging,
-        #bili-qmr-panel.qmr-dragged {
+        #bili-qmr-panel :is(.qmr-dragging, .qmr-dragged) {
             animation: none;
             transition: none;
         }
@@ -385,7 +379,11 @@
             padding: 0;
             line-height: 1;
         }
-
+        
+        #bili-qmr-panel.light .qmr-close {
+            color: var(--qmr-text-sec);
+        }
+        
         #bili-qmr-panel .qmr-close:hover {
             color: var(--qmr-text-main);
             transform: rotate(90deg);
@@ -778,6 +776,99 @@
         @keyframes qmr-spin {
             to { transform: rotate(360deg); }
         }
+        
+        @media (prefers-color-scheme: dark) {
+            :root {
+            --qmr-bg: rgba(31, 32, 35, 0.95);
+            --qmr-card-bg: #2a2b30;
+            --qmr-text-main: #ffffff;
+            --qmr-text-sec: #a0a0a0;
+            --qmr-border: #3f4045;
+            --qmr-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+            }
+            
+            #bili-qmr-panel {
+            --qmr-bg: rgba(31, 32, 35, 0.95);
+            --qmr-card-bg: #2a2b30;
+            --qmr-text-main: #ffffff;
+            --qmr-text-sec: #a0a0a0;
+            --qmr-border: #3f4045;
+            --qmr-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+            }
+            
+            #bili-qmr-panel .qmr-header {
+            background: rgba(40, 41, 45, 0.5);
+            border-bottom-color: rgba(255,255,255,0.05);
+            }
+            
+            #bili-qmr-panel :is(.qmr-tab-btn:hover, .qmr-page-btn:hover, .qmr-settings-btn:hover, .qmr-close:hover) {
+                background: rgba(255,255,255,0.1);
+            }
+            
+            #bili-qmr-panel .qmr-tab-btn.active {
+                background: #3f4045;
+                color: var(--qmr-primary);
+            }
+            
+            #bili-qmr-panel .qmr-count {
+                background: rgba(255,255,255,0.1);
+            }
+
+            #bili-qmr-panel .qmr-settings-desc {
+                color: #888;
+            }
+            
+            #bili-qmr-panel .qmr-radio-item {
+                background: #2a2b30;
+                border-color: #3f4045;
+            }
+            
+            #bili-qmr-panel .qmr-radio-item:hover {
+                background: rgba(255,255,255,0.05);
+            }
+            
+            #bili-qmr-panel :is(.qmr-advanced-section, .qmr-advanced-toggle, .qmr-advanced-content, .qmr-settings) {
+                background-color: var(--qmr-card-bg);
+                border-color: #3f4045;
+            }
+            
+            #bili-qmr-panel .qmr-reset-btn {
+                background: rgba(255, 255, 255, 0.05);
+                border-color: #3f4045;
+                color: #eee;
+            }
+
+            #bili-qmr-panel .qmr-reset-btn:hover {
+                background: rgba(255, 255, 255, 0.1);
+            }
+
+            #bili-qmr-panel .qmr-tabs {
+                background: rgba(255, 255, 255, 0.05);
+            }
+        }
+        
+         #bili-qmr-panel.qmr-light {
+            --qmr-bg: rgba(255, 255, 255, 0.95);
+            --qmr-card-bg: #ffffff;
+            --qmr-text-main: #18191c;
+            --qmr-text-sec: #9499a0;
+            --qmr-border: #e3e5e7;
+            --qmr-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+            
+            
+            .qmr-tab-btn.active {
+                background: #fff;
+                color: var(--qmr-primary);
+            }
+            
+            .qmr-radio-item {
+                background: #fff;
+            }
+            
+            .qmr-header {
+                background: rgba(255,255,255,0.5);
+            }
+        }
     `);
 
     // ==================== 工具函数 ====================
@@ -789,6 +880,103 @@
             return match[1];
         }
         return null;
+    }
+
+    function getCookie(name) {
+        const match = document.cookie.match(new RegExp(`${name}=([^;]+)`));
+        return match && match[1] ? match[1] : null;
+    }
+
+    async function acquireVoteToken(forceRenew = false) {
+        const cachedToken = forceRenew ? null : GM_getValue(STORAGE_KEY_VOTE_TOKEN, null);
+        if (cachedToken) {
+            return cachedToken;
+        }
+
+        if (!confirm('投票需要一次性验证，将在你的 B 站账号创建一个公开收藏夹用于验证。是否继续？')) {
+            return null;
+        }
+
+        const userId = getCookie('DedeUserID');
+        const csrf = getCookie('bili_jct');
+
+        if (!userId || !csrf) {
+            alert('请先登录 B 站。');
+            return null;
+        }
+
+        try {
+            // 1. 获取挑战名称
+            const nameResp = await fetch(`${API_BASE}/token/fav-name`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId })
+            });
+            const nameJson = await nameResp.json();
+            if (!nameResp.ok || !nameJson?.success || !nameJson?.name) {
+                throw new Error(nameJson?.error || '获取验证信息失败');
+            }
+
+            // 2. 创建收藏夹
+            const params = new URLSearchParams();
+            params.append('title', nameJson.name);
+            params.append('privacy', '0');
+            params.append('csrf', csrf);
+
+            const createResp = await fetch('https://api.bilibili.com/x/v3/fav/folder/add', {
+                method: 'POST',
+                body: params,
+                credentials: 'include'
+            });
+            const createJson = await createResp.json();
+            if (createJson.code !== 0) {
+                throw new Error(`创建收藏夹失败: ${createJson.message}`);
+            }
+
+            const mediaId = createJson.data.id;
+
+            // 3. 校验并获取 Token
+            const verifyResp = await fetch(`${API_BASE}/token/verify`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, mediaId })
+            });
+            const verifyJson = await verifyResp.json();
+            if (!verifyResp.ok || !verifyJson?.success || !verifyJson?.token) {
+                throw new Error(verifyJson?.error || '服务器校验失败');
+            }
+
+            // 删除验证用收藏夹（仅删除本次创建的 ID）
+            try {
+                const deleteParams = new URLSearchParams();
+                deleteParams.append('media_ids', String(mediaId));
+                deleteParams.append('csrf', csrf);
+                deleteParams.append('csrf_token', csrf);
+
+                const deleteResp = await fetch('https://api.bilibili.com/x/v3/fav/folder/del', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+                    },
+                    body: deleteParams,
+                    credentials: 'include'
+                });
+                const deleteJson = await deleteResp.json();
+                if (deleteJson.code !== 0) {
+                    console.warn('[B站问号榜] 删除验证收藏夹失败:', deleteJson.message || deleteJson.code);
+                }
+            } catch (deleteError) {
+                console.warn('[B站问号榜] 删除验证收藏夹异常:', deleteError);
+            }
+
+            GM_setValue(STORAGE_KEY_VOTE_TOKEN, verifyJson.token);
+            alert('验证成功，现在可以投票了。');
+            return verifyJson.token;
+        } catch (e) {
+            console.error(e);
+            alert(`验证失败: ${e.message}`);
+            return null;
+        }
     }
 
     // 获取当前视频的 BVID
@@ -822,6 +1010,24 @@
     function escapeHtml(text) {
         if (!text) return '';
         return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+
+    function normalizeWebEndpoint(value) {
+        const trimmed = (value || '').trim();
+        if (!trimmed) return '';
+        let candidate = trimmed;
+        if (!/^[a-zA-Z][a-zA-Z\d+\-.]*:\/\//.test(candidate)) {
+            candidate = `https://${candidate}`;
+        }
+        try {
+            const url = new URL(candidate);
+            if (!['http:', 'https:'].includes(url.protocol)) {
+                return null;
+            }
+            return url.toString();
+        } catch (error) {
+            return null;
+        }
     }
 
     // 防抖函数
@@ -860,41 +1066,41 @@
 
             const dialog = document.createElement('div');
             dialog.style.cssText = `
-                background: white; border-radius: 8px; padding: 24px;
-                width: 360px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-                font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: var(--bg1); border-radius: 8px; padding: 24px;
+            width: 360px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
             `;
 
             dialog.innerHTML = `
-                <div style="font-size: 18px; font-weight: bold; color: #18191c; margin-bottom: 16px;">
-                    发送弹幕确认
-                </div>
-                <div style="font-size: 14px; color: #61666d; margin-bottom: 20px;">
-                    点亮问号后是否自动发送"?"弹幕？
-                </div>
-                <div style="margin-bottom: 20px;">
-                    <label style="display: flex; align-items: center; cursor: pointer; user-select: none;">
-                        <input type="checkbox" id="qmr-dont-ask" style="margin-right: 8px;">
-                        <span style="font-size: 14px; color: #61666d;">不再询问（记住我的选择）</span>
-                    </label>
-                </div>
-                <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                    <button id="qmr-btn-no" style="
-                        padding: 8px 20px; border: 1px solid #e3e5e7; border-radius: 4px;
-                        background: white; color: #61666d; cursor: pointer;
-                        font-size: 14px; transition: all 0.2s;
-                    ">
-                        不发送
-                    </button>
-                    <button id="qmr-btn-yes" style="
-                        padding: 8px 20px; border: none; border-radius: 4px;
-                        background: #00aeec; color: white; cursor: pointer;
-                        font-size: 14px; transition: all 0.2s;
-                    ">
-                        发送弹幕
-                    </button>
-                </div>
-            `;
+            <div style="font-size: 18px; font-weight: bold; color: var(--text1); margin-bottom: 16px;">
+                发送弹幕确认
+            </div>
+            <div style="font-size: 14px; color: var(--text1); margin-bottom: 20px;">
+                点亮问号后是否自动发送"?"弹幕？
+            </div>
+            <div style="margin-bottom: 20px;">
+                <label style="display: flex; align-items: center; cursor: pointer; user-select: none;">
+                    <input type="checkbox" id="qmr-dont-ask" style="margin-right: 8px;">
+                    <span style="font-size: 14px; color: var(--text3);">不再询问（记住我的选择）</span>
+                </label>
+            </div>
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button id="qmr-btn-no" style="
+                    padding: 8px 20px; border: 1px solid var(--line_regular); border-radius: 4px;
+                    background: var(--bg1_float); color: var(--text1); cursor: pointer;
+                    font-size: 14px; transition: all 0.2s;
+                ">
+                    不发送
+                </button>
+                <button id="qmr-btn-yes" style="
+                    padding: 8px 20px; border: none; border-radius: 4px;
+                    background: var(--brand_blue); color: white; cursor: pointer;
+                    font-size: 14px; transition: all 0.2s;
+                ">
+                    发送弹幕
+                </button>
+            </div>
+        `;
 
             overlay.appendChild(dialog);
             document.body.appendChild(overlay);
@@ -902,8 +1108,8 @@
             const btnNo = dialog.querySelector('#qmr-btn-no');
             const btnYes = dialog.querySelector('#qmr-btn-yes');
 
-            btnNo.addEventListener('mouseenter', () => { btnNo.style.background = '#f4f5f7'; });
-            btnNo.addEventListener('mouseleave', () => { btnNo.style.background = 'white'; });
+            btnNo.addEventListener('mouseenter', () => { btnNo.style.background = 'var(--bg3)'; });
+            btnNo.addEventListener('mouseleave', () => { btnNo.style.background = 'var(--bg1_float)'; });
             btnYes.addEventListener('mouseenter', () => { btnYes.style.background = '#00a1d6'; });
             btnYes.addEventListener('mouseleave', () => { btnYes.style.background = '#00aeec'; });
 
@@ -1110,9 +1316,6 @@
     // 注入问号按钮
     async function injectQuestionButton() {
         try {
-            const bvid = getBvid();
-            if (!bvid) return;
-
             const toolbarLeft = document.querySelector('.video-toolbar-left-main');
             const shareBtn = document.querySelector('.video-toolbar-left-item.share') ||
                 document.querySelector('.video-share') ||
@@ -1163,7 +1366,7 @@
                     const isVoting = !qBtn.classList.contains("voted");
 
                     // 内部函数：执行投票请求
-                    const doVote = async (altchaSolution = null) => {
+                    const doVote = async (token, altchaSolution = null) => {
                         const endpoint = isVoting ? "vote" : "unvote";
                         const requestBody = { bvid: activeBvid, userId };
                         if (altchaSolution) {
@@ -1173,24 +1376,40 @@
                         const response = await fetch(`${API_BASE}/${endpoint}`, {
                             method: 'POST',
                             headers: {
-                                'Content-Type': 'application/json'
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
                             },
                             body: JSON.stringify(requestBody)
                         });
-                        return response.json();
+                        return { status: response.status, data: await response.json() };
                     };
 
                     try {
                         qBtn.style.pointerEvents = 'none';
                         qBtn.style.opacity = '0.5';
 
-                        let resData = await doVote();
+                        let token = await acquireVoteToken();
+                        if (!token) {
+                            return;
+                        }
+
+                        let res = await doVote(token);
+                        if (res.status === 401) {
+                            GM_setValue(STORAGE_KEY_VOTE_TOKEN, null);
+                            token = await acquireVoteToken(true);
+                            if (!token) {
+                                return;
+                            }
+                            res = await doVote(token);
+                        }
+                        let resData = res.data;
 
                         // 处理频率限制，需要 CAPTCHA 验证
                         if (resData.requiresCaptcha) {
                             try {
                                 const altchaSolution = await showAltchaCaptchaDialog();
-                                resData = await doVote(altchaSolution);
+                                const captchaRes = await doVote(token, altchaSolution);
+                                resData = captchaRes.data;
                             } catch (captchaError) {
                                 // 用户取消了 CAPTCHA
                                 console.log('[B站问号榜] CAPTCHA 已取消');
@@ -1257,502 +1476,38 @@
 
     let panelCreated = false;
 
-    function openStandaloneLeaderboardPage(initialRange = 'realtime') {
-        const win = window.open('about:blank', '_blank');
+    function openWebLeaderboard() {
+        const rawBase = GM_getValue(STORAGE_KEY_WEB_ENDPOINT, null) || DEFAULT_WEB_BASE;
+        const normalizedBase = normalizeWebEndpoint(rawBase) || DEFAULT_WEB_BASE;
+        const voteToken = String(GM_getValue(STORAGE_KEY_VOTE_TOKEN, '') || '').trim();
+        let targetUrl;
+        try {
+            const url = new URL(normalizedBase);
+            const uid = getUserId();
+            if (uid) {
+                url.searchParams.set('uid', uid);
+            }
+            url.searchParams.set('from', 'extension');
+            if (voteToken) {
+                url.searchParams.set('token', voteToken);
+            }
+            targetUrl = url.toString();
+        } catch (error) {
+            const fallbackUrl = new URL(DEFAULT_WEB_BASE);
+            const uid = getUserId();
+            if (uid) {
+                fallbackUrl.searchParams.set('uid', uid);
+            }
+            fallbackUrl.searchParams.set('from', 'extension');
+            if (voteToken) {
+                fallbackUrl.searchParams.set('token', voteToken);
+            }
+            targetUrl = fallbackUrl.toString();
+        }
+        const win = window.open(targetUrl, '_blank');
         if (!win) {
             alert('[B站问号榜] 打开新页面失败：可能被浏览器拦截了弹窗');
-            return;
         }
-
-        const safeRange = ['realtime', 'daily', 'weekly', 'monthly'].includes(initialRange) ? initialRange : 'realtime';
-
-        const html = `<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>B站问号榜 ❓</title>
-    <style>
-        :root {
-            /* 默认浅色模式 */
-            --bg-color: #f6f7f8;
-            --card-bg: #ffffff;
-            --card-border: rgba(0, 0, 0, 0.06);
-            --card-hover-bg: #ffffff;
-            --primary-color: #00aeec;
-            --text-primary: #18191c;
-            --text-secondary: #9499a0;
-            --accent-glow: rgba(0, 174, 236, 0.15);
-            --font-family: 'Inter', "PingFang SC", "Microsoft YaHei", sans-serif;
-            --scroll-track: #f6f7f8;
-            --scroll-thumb: #c1c1c1;
-            --scroll-thumb-hover: #a8a8a8;
-            --rank-badge-color: rgba(0, 0, 0, 0.05);
-            --rank-badge-hover: rgba(0, 174, 236, 0.1);
-            --mesh-color-1: rgba(0, 174, 236, 0.05);
-            --mesh-color-2: rgba(255, 102, 153, 0.04);
-            --tab-container-bg: rgba(0, 0, 0, 0.04);
-            --tab-hover-bg: rgba(0, 0, 0, 0.05);
-        }
-
-        /* 黑暗模式 */
-        body.dark-mode {
-            --bg-color: #0f0f11;
-            --card-bg: rgba(255, 255, 255, 0.03);
-            --card-border: rgba(255, 255, 255, 0.08);
-            --card-hover-bg: rgba(255, 255, 255, 0.06);
-            --primary-color: #00aeec;
-            --text-primary: #ffffff;
-            --text-secondary: #a0a0a0;
-            --accent-glow: rgba(0, 174, 236, 0.3);
-            --scroll-track: #0f0f11;
-            --scroll-thumb: #333;
-            --scroll-thumb-hover: #555;
-            --rank-badge-color: rgba(255, 255, 255, 0.1);
-            --rank-badge-hover: rgba(0, 174, 236, 0.15);
-            --mesh-color-1: rgba(0, 174, 236, 0.08);
-            --mesh-color-2: rgba(255, 102, 153, 0.06);
-            --tab-container-bg: rgba(255, 255, 255, 0.05);
-            --tab-hover-bg: rgba(255, 255, 255, 0.05);
-        }
-
-        /* 修复 dark mode 下的高级选项和重置按钮 */
-        body.dark-mode .qmr-advanced-section,
-        body.dark-mode .qmr-advanced-toggle {
-            background: var(--card-bg);
-            border-color: var(--card-border);
-        }
-
-        body.dark-mode .qmr-reset-btn {
-            background: rgba(255, 255, 255, 0.05);
-            border-color: var(--card-border);
-            color: var(--text-primary);
-        }
-        body.dark-mode .qmr-reset-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-
-        body {
-            margin: 0; padding: 0;
-            background-color: var(--bg-color);
-            color: var(--text-primary);
-            font-family: var(--font-family);
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-
-        /* 背景网格 */
-        .background-mesh {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1;
-            background: radial-gradient(circle at 10% 20%, var(--mesh-color-1) 0%, transparent 40%),
-                        radial-gradient(circle at 90% 80%, var(--mesh-color-2) 0%, transparent 40%);
-            pointer-events: none;
-        }
-
-        .container { max-width: 1200px; margin: 0 auto; padding: 40px 20px; }
-
-        header {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 60px; flex-wrap: wrap; gap: 20px;
-        }
-        .logo-section { display: flex; align-items: center; gap: 16px; }
-        .logo-icon { font-size: 48px; display: inline-block; animation: float 3s ease-in-out infinite; }
-        .logo-section h1 { font-size: 2rem; font-weight: 700; margin: 0; line-height: 1.2; }
-        .highlight {
-            background: linear-gradient(135deg, #00aeec 0%, #ff6699 100%);
-            -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; opacity: 0.9;
-        }
-        @keyframes float { 0%{transform:translateY(0)} 50%{transform:translateY(-5px)} 100%{transform:translateY(0)} }
-
-        /* 切换按钮 */
-        .theme-toggle-btn {
-            background: transparent; border: none; font-size: 1.5rem; cursor: pointer;
-            padding: 8px; border-radius: 50%; transition: background 0.3s ease;
-            display: flex; align-items: center; justify-content: center; margin-left: 20px;
-        }
-        .theme-toggle-btn:hover { background: var(--tab-hover-bg); }
-
-        /* 选项卡 */
-        .time-range-tabs {
-            display: flex; background: var(--tab-container-bg); padding: 4px; border-radius: 12px;
-            backdrop-filter: blur(10px); border: 1px solid var(--card-border);
-        }
-        .tab-btn {
-            background: transparent; border: none; color: var(--text-secondary);
-            padding: 10px 24px; font-size: 0.95rem; font-weight: 500; cursor: pointer;
-            border-radius: 8px; transition: all 0.3s ease; font-family: var(--font-family);
-        }
-        .tab-btn:hover { color: var(--text-primary); background: var(--tab-hover-bg); }
-        .tab-btn.active { background: var(--primary-color); color: white; box-shadow: 0 4px 12px rgba(0, 174, 236, 0.3); }
-
-        /* 网格布局 */
-        .leaderboard-grid {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px; perspective: 1000px;
-        }
-
-        /* 卡片 */
-        .video-card {
-            background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px;
-            padding: 0; display: flex; flex-direction: column; gap: 0;
-            text-decoration: none; color: var(--text-primary);
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            position: relative; overflow: hidden; backdrop-filter: blur(20px); cursor: pointer;
-        }
-        .video-card:hover {
-            transform: translateY(-5px) scale(1.02); background: var(--card-hover-bg);
-            border-color: rgba(0, 174, 236, 0.3); box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
-        }
-        .video-card::before {
-            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px;
-            background: linear-gradient(90deg, #00aeec, #ff6699); opacity: 0; transition: opacity 0.3s ease;
-        }
-        .video-card:hover::before { opacity: 1; }
-
-        .thumb-container {
-            position: relative; width: 100%; padding-top: 56.25%; overflow: hidden;
-            border-radius: 12px; background: rgba(0, 0, 0, 0.2);
-        }
-        .thumb-img {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease;
-        }
-        .video-card:hover .thumb-img { transform: scale(1.05); }
-
-        .card-content { padding: 16px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
-        .card-header-overlay { position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; z-index: 2; }
-        .score-tag {
-            background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(4px); color: #fff;
-            padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: 600;
-            display: flex; align-items: center; gap: 4px; border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .qml-icon { color: #4facfe; }
-
-
-
-        .video-title { font-size: 1rem; line-height: 1.4; margin-bottom: 4px; font-weight: 500; }
-        .video-card:hover .video-title { color: var(--primary-color); }
-        .video-info-row {
-            display: flex; align-items: center; justify-content: space-between;
-            font-size: 0.85rem; color: var(--text-secondary); margin-top: auto;
-        }
-        .owner-info { display: flex; align-items: center; gap: 6px; overflow: hidden; }
-        .owner-icon { font-size: 0.8rem; opacity: 0.8; }
-        .owner-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-block; max-width: 100px; }
-        .stat-item { display: flex; align-items: center; gap: 4px; }
-
-        .loading-state {
-            grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-            padding: 60px 0; color: var(--text-secondary);
-        }
-        .spinner {
-            width: 40px; height: 40px; border: 3px solid rgba(255, 255, 255, 0.1); border-radius: 50%;
-            border-top-color: var(--primary-color); animation: spin 1s ease-in-out infinite; margin-bottom: 20px;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* Rank Badges */
-        .rank-badge {
-            position: absolute; top: 4px; left: 8px; right: auto;
-            font-size: 2.5rem; font-weight: 900; color: rgba(255, 255, 255, 0.95);
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); z-index: 3;
-            font-style: italic; font-family: 'Impact', sans-serif; pointer-events: none;
-            display: flex; align-items: center; justify-content: center; width: 3.5rem; height: 3.5rem;
-        }
-        .rank-1, .rank-2, .rank-3 {
-            font-size: 1.8rem; font-style: normal; text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-            color: #fff; background-size: cover; background-position: center;
-            border-radius: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.3); border: 2px solid rgba(255,255,255,0.4);
-        }
-        .rank-1 { background: linear-gradient(135deg, #FFD700 0%, #FDB931 100%); font-size: 2rem; }
-        .rank-2 { background: linear-gradient(135deg, #E0E0E0 0%, #BDBDBD 100%); }
-        .rank-3 { background: linear-gradient(135deg, #CD7F32 0%, #A0522D 100%); }
-        .rank-1::after {
-            content: '👑'; position: absolute; top: -16px; left: 30%;
-            transform: translateX(-50%) rotate(-15deg); font-size: 1.5rem; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));
-        }
-
-        /* Custom Rank Text Style (matches extension) */
-        .rank-badge.rank-custom-text {
-            font-size: 1rem;
-            line-height: 1.1;
-            letter-spacing: -1px;
-            color: #FF4D4F;
-            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
-        }
-    </style>
-</head>
-<body>
-    <div class="background-mesh"></div>
-    <div class="container">
-        <header>
-            <div class="logo-section">
-                <span class="logo-icon">❓</span>
-                <h1>B站 <span class="highlight">问号榜</span></h1>
-                <button id="theme-toggle" class="theme-toggle-btn" title="切换深色/浅色模式">🌓</button>
-            </div>
-            <nav class="time-range-tabs">
-                <button class="tab-btn active" data-range="realtime">实时</button>
-                <button class="tab-btn" data-range="daily">日榜</button>
-                <button class="tab-btn" data-range="weekly">周榜</button>
-                <button class="tab-btn" data-range="monthly">月榜</button>
-            </nav>
-        </header>
-
-        <main id="leaderboard-grid" class="leaderboard-grid">
-            <div class="loading-state">
-                <div class="spinner"></div>
-                <p>正在获取最新抽象指数...</p>
-            </div>
-        </main>
-    </div>
-
-    <script>
-        (function(){
-            const API_BASE = ${JSON.stringify(API_BASE)};
-            const initialRange = ${JSON.stringify(safeRange)};
-            const rank1Custom = ${JSON.stringify(GM_getValue('rank1Setting', 'custom') === 'custom')};
-            const grid = document.getElementById('leaderboard-grid');
-            const tabs = document.querySelectorAll('.tab-btn');
-            
-
-            const themeToggleBtn = document.getElementById('theme-toggle');
-            const savedTheme = localStorage.getItem('theme');
-            if (savedTheme === 'dark') {
-                document.body.classList.add('dark-mode');
-            }
-            if (themeToggleBtn) {
-                themeToggleBtn.addEventListener('click', () => {
-                    document.body.classList.toggle('dark-mode');
-                    const isDark = document.body.classList.contains('dark-mode');
-                    localStorage.setItem('theme', isDark ? 'dark' : 'light');
-                });
-            }
-
-            function formatCount(num) {
-                const n = Number(num) || 0;
-                if (n >= 100000000) {
-                    const v = n / 100000000;
-                    return (v >= 10 ? Math.round(v) : v.toFixed(1)) + '亿';
-                }
-                if (n >= 10000) {
-                    const v = n / 10000;
-                    return (v >= 10 ? Math.round(v) : v.toFixed(1)) + '万';
-                }
-                return String(n);
-            }
-
-            function escapeHtml(text) {
-                if (!text) return '';
-                return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-            }
-
-            // ==================== CAPTCHA 功能 ====================
-            async function fetchAltchaChallenge(){
-                const response = await fetch(API_BASE + '/altcha/challenge');
-                if(!response.ok) throw new Error('Failed to fetch challenge');
-                return response.json();
-            }
-
-            async function solveAltchaChallenge(challenge){
-                const { algorithm, challenge: challengeHash, salt, maxnumber, signature } = challenge;
-                const encoder = new TextEncoder();
-                for(let number = 0; number <= maxnumber; number++){
-                    const data = encoder.encode(salt + number);
-                    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-                    const hashArray = Array.from(new Uint8Array(hashBuffer));
-                    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-                    if(hashHex === challengeHash){
-                        return btoa(JSON.stringify({ algorithm, challenge: challengeHash, number, salt, signature }));
-                    }
-                    if(number % 1000 === 0) await new Promise(r => setTimeout(r, 0));
-                }
-                throw new Error('Failed to solve challenge');
-            }
-
-            function showAltchaCaptchaDialog(){
-                return new Promise((resolve, reject) => {
-                    const overlay = document.createElement('div');
-                    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:999999;display:flex;align-items:center;justify-content:center;';
-                    const dialog = document.createElement('div');
-                    dialog.style.cssText = 'background:white;border-radius:12px;padding:24px;width:320px;box-shadow:0 4px 20px rgba(0,0,0,0.3);text-align:center;font-family:"Microsoft YaHei",sans-serif;';
-                    dialog.innerHTML = '<div style="font-size:48px;margin-bottom:16px;">🤖</div><div style="font-size:18px;font-weight:bold;color:#18191c;margin-bottom:12px;">人机验证</div><div id="qmr-status" style="font-size:14px;color:#61666d;margin-bottom:20px;">检测到频繁操作，请完成验证</div><div id="qmr-progress" style="display:none;margin-bottom:20px;"><div style="width:100%;height:6px;background:#e3e5e7;border-radius:3px;overflow:hidden;"><div id="qmr-bar" style="width:0%;height:100%;background:#00aeec;transition:width 0.3s;"></div></div><div style="font-size:12px;color:#9499a0;margin-top:8px;">正在验证中...</div></div><div id="qmr-buttons"><button id="qmr-start" type="button" style="padding:10px 32px;border:none;border-radius:6px;background:#00aeec;color:white;cursor:pointer;font-size:14px;">开始验证</button><button id="qmr-cancel" type="button" style="padding:10px 20px;border:1px solid #e3e5e7;border-radius:6px;background:white;color:#61666d;cursor:pointer;font-size:14px;margin-left:12px;">取消</button></div>';
-                    overlay.appendChild(dialog);
-                    document.body.appendChild(overlay);
-                    const startBtn = dialog.querySelector('#qmr-start');
-                    const cancelBtn = dialog.querySelector('#qmr-cancel');
-                    const statusDiv = dialog.querySelector('#qmr-status');
-                    const progressDiv = dialog.querySelector('#qmr-progress');
-                    const buttonsDiv = dialog.querySelector('#qmr-buttons');
-
-                    // Hover effects
-                    startBtn.onmouseenter = () => startBtn.style.backgroundColor = '#00a1d6';
-                    startBtn.onmouseleave = () => startBtn.style.backgroundColor = '#00aeec';
-
-                    cancelBtn.onclick = () => { overlay.remove(); reject(new Error('CAPTCHA cancelled')); };
-                    
-                    startBtn.onclick = async () => {
-                        try{
-                            buttonsDiv.style.display = 'none';
-                            progressDiv.style.display = 'block';
-                            statusDiv.textContent = '正在获取验证挑战...';
-                            
-                            const challenge = await fetchAltchaChallenge();
-                            statusDiv.textContent = '正在计算验证...';
-                            
-                            const progressBar = dialog.querySelector('#qmr-bar');
-                            let progress = 0;
-                            // 模拟进度条
-                            const progressInterval = setInterval(() => { 
-                                progress = Math.min(progress + Math.random() * 15, 95); 
-                                progressBar.style.width = progress + '%'; 
-                            }, 200);
-
-                            const solution = await solveAltchaChallenge(challenge);
-                            
-                            clearInterval(progressInterval);
-                            progressBar.style.width = '100%';
-                            statusDiv.textContent = '验证成功！';
-                            
-                            setTimeout(() => { overlay.remove(); resolve(solution); }, 500);
-                        }catch(error){
-                            statusDiv.textContent = '验证失败: ' + error.message;
-                            statusDiv.style.color = '#ff4d4f';
-                            buttonsDiv.style.display = 'block';
-                            progressDiv.style.display = 'none';
-                        }
-                    };
-
-                    document.addEventListener('keydown', function escHandler(e){
-                        if(e.key === 'Escape'){ 
-                            overlay.remove(); 
-                            reject(new Error('CAPTCHA cancelled')); 
-                            document.removeEventListener('keydown', escHandler); 
-                        }
-                    });
-                });
-            }
-
-            async function fetchLeaderboard(range = 'realtime', altchaSolution = null) {
-                grid.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>正在获取排行数据...</p></div>';
-                try {
-                    let url = API_BASE + '/leaderboard?range=' + range + '&type=2&_t=' + Date.now();
-                    if(altchaSolution) {
-                        url += '&altcha=' + encodeURIComponent(altchaSolution);
-                    }
-                    
-                    const response = await fetch(url);
-                    const data = await response.json();
-                    
-                    if (data.requiresCaptcha) {
-                        grid.innerHTML = '<div class="loading-state"><p>🤖 需要进行人机验证...</p></div>';
-                        try {
-                            const solution = await showAltchaCaptchaDialog();
-                            return fetchLeaderboard(range, solution);
-                        } catch (captchaError) {
-                            grid.innerHTML = '<div class="loading-state"><p>🚫 验证已取消</p></div>';
-                            return;
-                        }
-                    }
-
-                    if (data.success && data.list && data.list.length > 0) {
-                        await renderList(data.list);
-                    } else {
-                        grid.innerHTML = '<div class="loading-state"><p>📭 暂无数据</p></div>';
-                    }
-                } catch (error) {
-                    console.error('Leaderboard Fetch Error:', error);
-                    grid.innerHTML = '<div class="loading-state"><p style="color: #ff4d4f;">⚠️ 获取失败: ' + (error.message || '未知错误') + '</p></div>';
-                }
-            }
-
-            async function fetchVideoInfo(bvid) {
-                try {
-                     const resp = await fetch('https://api.bilibili.com/x/web-interface/view?bvid='+encodeURIComponent(bvid));
-                     const json = await resp.json();
-                     if (json && json.code === 0 && json.data) return json.data;
-                } catch (e) {}
-                return null;
-            }
-
-            async function renderList(list) {
-                grid.innerHTML = '';
-                const items = await Promise.all(list.map(async (item, index) => {
-                    let details = { title: '加载中...', pic: '', ownerName: '', view: null, danmaku: null };
-                    try {
-                        const info = await fetchVideoInfo(item.bvid);
-                        if (info) {
-                            details.title = info.title || '未知标题';
-                            details.pic = info.pic;
-                            details.ownerName = info.owner && info.owner.name;
-                            details.view = info.stat && info.stat.view;
-                            details.danmaku = info.stat && info.stat.danmaku;
-                        }
-                    } catch (e) {
-                         details.title = 'Video ' + item.bvid;
-                    }
-
-                    const rank = index + 1;
-                    let rankDisplay = rank <= 3 ? rank : '#' + rank;
-                    let rankClass = rank <= 3 ? 'rank-' + rank : '';
-
-                    if (rank === 1 && rank1Custom) {
-                        rankDisplay = '何一位';
-                        rankClass += ' rank-custom-text';
-                    }
-                    const safeTitle = escapeHtml(details.title);
-                    const picUrl = details.pic ? details.pic.replace('http:', 'https:') : '';
-                    const ownerName = escapeHtml(details.ownerName || '未知UP');
-                    const viewText = details.view != null ? formatCount(details.view) : '-';
-                    const danmakuText = details.danmaku != null ? formatCount(details.danmaku) : '-';
-                    
-                    return \`
-                        <a href="https://www.bilibili.com/video/\${item.bvid}" target="_blank" class="video-card">
-                            <div class="thumb-container">
-                                \${picUrl ? '<img src="' + picUrl + '" alt="' + safeTitle + '" class="thumb-img" loading="lazy" />' : ''}
-                                <span class="rank-badge \${rankClass}">\${rankDisplay}</span>
-                                <div class="card-header-overlay">
-                                    <div class="score-tag">
-                                        <span class="qml-icon">❓</span> \${item.count}
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="card-content">
-                                <h3 class="video-title" title="\${safeTitle}">\${safeTitle}</h3>
-                                <div class="video-info-row">
-                                    <div class="owner-info">
-                                        <span class="owner-icon">UP</span>
-                                        <span class="owner-name" title="\${ownerName}">\${ownerName}</span>
-                                    </div>
-                                </div>
-                                <div class="video-info-row" style="margin-top: 4px;">
-                                    <div class="stat-item" title="播放量"><span>▶</span> \${viewText}</div>
-                                    <div class="stat-item" title="弹幕数"><span>💬</span> \${danmakuText}</div>
-                                </div>
-                            </div>
-                        </a>
-                    \`;
-                }));
-                grid.innerHTML = items.join('');
-            }
-
-            tabs.forEach(tab => {
-                tab.addEventListener('click', () => {
-                    tabs.forEach(t => t.classList.remove('active'));
-                    tab.classList.add('active');
-                    fetchLeaderboard(tab.dataset.range);
-                });
-            });
-
-            fetchLeaderboard(initialRange);
-        })();
-    </script>
-</body>
-</html>`;
-
-        win.document.open();
-        win.document.write(html);
-        win.document.close();
     }
 
     function createLeaderboardPanel() {
@@ -1762,8 +1517,7 @@
         panel.id = 'bili-qmr-panel';
         panel.innerHTML = `
             <div class="qmr-header">
-                <button class="qmr-page-btn" title="打开独立页面">📊</button>
-                <div class="qmr-page-btn" id="qmr-theme-btn" title="切换深色/浅色模式" style="cursor: pointer;margin-left:8px;">🌓</div>
+                <button class="qmr-page-btn" title="打开web页面">📊</button>
                 <h2 class="qmr-title" style="flex:1; margin-left: 12px;">B站问号榜 ❓</h2>
                 <div style="display: flex; align-items: center;">
                     <span class="qmr-settings-btn" title="设置">⚙️</span>
@@ -1809,6 +1563,23 @@
                         <span>抽象 (何一位)</span>
                     </label>
                 </div>
+                <div class="settings-section" style="margin-top: 15px;">
+                    <h3>主题色设置</h3>
+                    <div class="qmr-radio-group">
+                        <label class="qmr-radio-item">
+                            <input type="radio" name="qmr-theme-pref" value="system" checked>
+                            <span>跟随系统主题</span>
+                        </label>
+                        <label class="qmr-radio-item">
+                            <input type="radio" name="qmr-theme-pref" value="light">
+                            <span>浅色模式</span>
+                        </label>
+                        <label class="qmr-radio-item">
+                            <input type="radio" name="qmr-theme-pref" value="dark">
+                            <span>深色模式</span>
+                        </label>
+                    </div>
+                </div>
                 <details class="qmr-advanced-section">
                     <summary class="qmr-advanced-toggle">高级选项</summary>
                     <div class="qmr-advanced-content">
@@ -1817,6 +1588,12 @@
                         <div class="qmr-endpoint-group">
                             <input type="text" class="qmr-endpoint-input" placeholder="https://bili-qml.bydfk.com/api">
                             <button class="qmr-reset-btn" title="恢复默认">↺</button>
+                        </div>
+                        <h3>Web 端网址设置</h3>
+                        <p class="qmr-settings-desc">自定义 Web 端跳转地址</p>
+                        <div class="qmr-endpoint-group">
+                            <input type="text" class="qmr-endpoint-input" data-role="web-endpoint" placeholder="https://web.bili-qml.com/">
+                            <button class="qmr-reset-btn" data-role="reset-web-endpoint" title="恢复默认">↺</button>
                         </div>
                     </div>
                 </details>
@@ -1919,40 +1696,73 @@
             }
         };
 
-        // 页面按钮：打开独立榜单页
+        // 页面按钮：打开web页面
         panel.querySelector('.qmr-page-btn').onclick = () => {
-            const active = panel.querySelector('.qmr-tab-btn.active');
-            const range = active?.dataset?.range || 'realtime';
-            openStandaloneLeaderboardPage(range);
+            openWebLeaderboard();
         };
 
         // 重置 Endpoint 按钮
-        panel.querySelector('.qmr-reset-btn').onclick = () => {
-            const endpointInput = panel.querySelector('.qmr-endpoint-input');
-            if (endpointInput) {
-                endpointInput.value = DEFAULT_API_BASE;
-            }
-        };
+        const resetEndpointBtn = panel.querySelector('.qmr-endpoint-group .qmr-reset-btn');
+        if (resetEndpointBtn) {
+            resetEndpointBtn.onclick = () => {
+                const endpointInput = panel.querySelector('.qmr-endpoint-input');
+                if (endpointInput) {
+                    endpointInput.value = DEFAULT_API_BASE;
+                }
+            };
+        }
+
+        const resetWebEndpointBtn = panel.querySelector('[data-role="reset-web-endpoint"]');
+        if (resetWebEndpointBtn) {
+            resetWebEndpointBtn.onclick = () => {
+                const webEndpointInput = panel.querySelector('[data-role="web-endpoint"]');
+                if (webEndpointInput) {
+                    webEndpointInput.value = DEFAULT_WEB_BASE;
+                }
+            };
+        }
 
         // 主题切换
-        const themeBtn = panel.querySelector('#qmr-theme-btn');
-        const applyTheme = () => {
-            const theme = GM_getValue('theme', 'light');
-            if (theme === 'dark') {
-                panel.classList.add('qmr-dark');
-            } else {
+        const themeBtnSystem = panel.querySelector('input[name="qmr-theme-pref"][value="system"]');
+        const themeBtnLight = panel.querySelector('input[name="qmr-theme-pref"][value="light"]');
+        const themeBtnDark = panel.querySelector('input[name="qmr-theme-pref"][value="dark"]');
+        if (themeBtnSystem) {
+            themeBtnSystem.addEventListener('change', () => {
+                panel.classList.remove('qmr-light', 'qmr-dark');
+            });
+        }
+        if (themeBtnLight) {
+            themeBtnLight.addEventListener('change', () => {
                 panel.classList.remove('qmr-dark');
+                panel.classList.add('qmr-light');
+            })
+        }
+        if (themeBtnDark) {
+            themeBtnDark.addEventListener('change', () => {
+                panel.classList.remove('qmr-light');
+                panel.classList.add('qmr-dark');
+            })
+        }
+
+        const applyTheme = () => {
+            const value = GM_getValue('theme');
+            switch (value) {
+                case 'system':
+                    panel.classList.remove('qmr-dark', 'qmr-light');
+                    break;
+                case 'light':
+                    panel.classList.remove('qmr-dark');
+                    panel.classList.add('qmr-light');
+                    break;
+                case 'dark':
+                    panel.classList.remove('qmr-light');
+                    panel.classList.add('qmr-dark');
+                    break;
+                default:
+                    break;
             }
         };
-        // 初始应用主题
         applyTheme();
-
-        themeBtn.onclick = () => {
-            const currentTheme = GM_getValue('theme', 'light');
-            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-            GM_setValue('theme', newTheme);
-            applyTheme();
-        };
 
         // 保存按钮
         panel.querySelector('.qmr-save-btn').onclick = () => {
@@ -1960,6 +1770,21 @@
             const rank1Radio = panel.querySelector('input[name="qmr-rank1-pref"]:checked');
             const endpointInput = panel.querySelector('.qmr-endpoint-input');
             const endpointValue = endpointInput ? endpointInput.value.trim() : '';
+            const webEndpointInput = panel.querySelector('[data-role="web-endpoint"]');
+            const webEndpointValue = webEndpointInput ? webEndpointInput.value.trim() : '';
+            const normalizedWebEndpoint = normalizeWebEndpoint(webEndpointValue);
+            const statusDiv = panel.querySelector('.qmr-save-status');
+
+            if (normalizedWebEndpoint === null) {
+                if (statusDiv) {
+                    statusDiv.textContent = 'Web 端地址格式不正确';
+                    statusDiv.style.opacity = '1';
+                }
+                return;
+            }
+            if (webEndpointInput && normalizedWebEndpoint && webEndpointInput.value !== normalizedWebEndpoint) {
+                webEndpointInput.value = normalizedWebEndpoint;
+            }
 
             // 弹幕偏好
             if (selectedRadio) {
@@ -1986,6 +1811,13 @@
                 GM_setValue('rank1Setting', rank1Radio.value);
             }
 
+            // 主题设置
+            const themeRadio = panel.querySelector('input[name="qmr-theme-pref"]:checked');
+            if (themeRadio) {
+                GM_setValue('theme', themeRadio.value);
+                applyTheme();
+            }
+
             // Endpoint 设置
             if (endpointValue && endpointValue !== DEFAULT_API_BASE) {
                 GM_setValue(STORAGE_KEY_API_ENDPOINT, endpointValue);
@@ -1995,9 +1827,17 @@
                 API_BASE = DEFAULT_API_BASE;
             }
 
-            const statusDiv = panel.querySelector('.qmr-save-status');
-            statusDiv.textContent = '设置已保存';
-            statusDiv.style.opacity = '1';
+            // Web Endpoint 设置
+            if (normalizedWebEndpoint && normalizedWebEndpoint !== DEFAULT_WEB_BASE) {
+                GM_setValue(STORAGE_KEY_WEB_ENDPOINT, normalizedWebEndpoint);
+            } else {
+                GM_setValue(STORAGE_KEY_WEB_ENDPOINT, null);
+            }
+
+            if (statusDiv) {
+                statusDiv.textContent = '设置已保存';
+                statusDiv.style.opacity = '1';
+            }
 
             setTimeout(() => {
                 statusDiv.style.opacity = '0';
@@ -2051,6 +1891,12 @@
             radio.checked = true;
         }
 
+        const themeValue = GM_getValue('theme', null);
+        const themeRadio = document.querySelector(`input[name="qmr-theme-pref"][value="${themeValue}"]`);
+        if (themeRadio) {
+            themeRadio.checked = true;
+        }
+
         // 第一名显示设置
         const rank1Setting = GM_getValue('rank1Setting', 'custom');
         const rank1Radio = panel.querySelector(`input[name="qmr-rank1-pref"][value="${rank1Setting}"]`);
@@ -2063,6 +1909,12 @@
         if (endpointInput) {
             const savedEndpoint = GM_getValue(STORAGE_KEY_API_ENDPOINT, null);
             endpointInput.value = savedEndpoint || '';
+        }
+
+        const webEndpointInput = panel.querySelector('[data-role="web-endpoint"]');
+        if (webEndpointInput) {
+            const savedWebEndpoint = GM_getValue(STORAGE_KEY_WEB_ENDPOINT, null);
+            webEndpointInput.value = savedWebEndpoint || DEFAULT_WEB_BASE;
         }
     }
 
@@ -2186,6 +2038,9 @@
         const bvid = getBvid();
         if (!bvid) return;
 
+        const recList = document.querySelector('.rec-list');
+        if (!recList || recList.children.length === 0) return;
+
         // 避免重复注入
         if (document.getElementById('bili-qmr-btn')) return;
 
@@ -2208,18 +2063,15 @@
     // ==================== 初始化 ====================
 
     // 初始加载：等待 Vue 加载完成，搜索框应该是最后进行 load 的元素
-    waitFor('.nav-search-input').then((ele) => {
-        ele.addEventListener("load", () => {
-            const fn = () => {
-                if (ele.readyState == 'complete') {
-                    tryInject();
-                } else {
-                    setTimeout(fn, 100);
-                }
-            };
-            fn();
+    function insertPromise(selector) {
+        return new Promise((resolve) => {
+            waitFor(selector).then(() => {
+                resolve();
+            });
         });
-    });
+    }
+    await Promise.all([insertPromise('.nav-search-input[maxlength]'), insertPromise('.view-icon[width]')]);
+    tryInject()
 
     // 处理 SPA 软导航 (URL 变化)
     let lastUrl = location.href;

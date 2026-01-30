@@ -29,16 +29,22 @@ document.addEventListener('DOMContentLoaded', () => {
     browserStorage.sync.get(['theme'], (result) => {
         if (result.theme === 'dark') {
             document.body.classList.add('dark-mode');
+        } else if (result.theme === 'light') {
+            document.body.classList.add('light-mode');
         }
     });
 
 
     browserStorage.onChanged.addListener((changes, areaName) => {
         if (areaName === 'sync' && changes.theme) {
+            const classList = [...document.body.classList];
+            classList.forEach(className => {
+                document.body.classList.remove(className);
+            });
             if (changes.theme.newValue === 'dark') {
                 document.body.classList.add('dark-mode');
-            } else {
-                document.body.classList.remove('dark-mode');
+            } else if (changes.theme.newValue === 'light') {
+                document.body.classList.add('light-mode');
             }
         }
     });
@@ -62,29 +68,72 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const fullLeaderboardBtn = document.getElementById('full-leaderboard-btn');
     if (fullLeaderboardBtn) {
-        fullLeaderboardBtn.addEventListener('click', () => {
-            const activeTab = document.querySelector('.tab-btn.active');
-            const range = activeTab?.dataset?.range || 'realtime';
+        fullLeaderboardBtn.addEventListener('click', async () => {
+            const result = await new Promise(resolve => {
+                browserStorage.sync.get(['biliUserId', STORAGE_KEY_WEB_ENDPOINT], resolve);
+            });
+            const tokenResult = await new Promise(resolve => {
+                localBrowserStorage.get(['voteToken'], resolve);
+            });
+            const uid = result.biliUserId || null;
+            const voteToken = (tokenResult.voteToken || '').trim();
+            const normalizedBase = normalizeWebEndpoint(result[STORAGE_KEY_WEB_ENDPOINT]) || DEFAULT_WEB_BASE;
+            let targetUrl;
+            try {
+                const url = new URL(normalizedBase);
+                if (uid) {
+                    url.searchParams.set('uid', uid);
+                }
+                url.searchParams.set('from', 'extension');
+                if (voteToken) {
+                    url.searchParams.set('token', voteToken);
+                }
+                targetUrl = url.toString();
+            } catch (error) {
+                const fallbackUrl = new URL(DEFAULT_WEB_BASE);
+                if (uid) {
+                    fallbackUrl.searchParams.set('uid', uid);
+                }
+                fallbackUrl.searchParams.set('from', 'extension');
+                if (voteToken) {
+                    fallbackUrl.searchParams.set('token', voteToken);
+                }
+                targetUrl = fallbackUrl.toString();
+            }
             if (typeof chrome !== 'undefined' && chrome.tabs && chrome.tabs.create) {
-                chrome.tabs.create({ url: `leaderboard.html?range=${range}` });
+                chrome.tabs.create({ url: targetUrl });
             } else if (typeof browser !== 'undefined' && browser.tabs && browser.tabs.create) {
-                browser.tabs.create({ url: `leaderboard.html?range=${range}` });
+                browser.tabs.create({ url: targetUrl });
             } else {
-                window.open(`leaderboard.html?range=${range}`, '_blank');
+                window.open(targetUrl, '_blank');
             }
         });
     }
 
     // 主题切换
-    const themeBtn = document.getElementById('theme-btn');
-    if (themeBtn) {
-        themeBtn.addEventListener('click', () => {
-            document.body.classList.toggle('dark-mode');
-            const isDark = document.body.classList.contains('dark-mode');
-            browserStorage.sync.set({ theme: isDark ? 'dark' : 'light' });
-        });
-    }
-
+    const themeRadioSystem = document.querySelector('input[name="theme-pref"][value="system"]');
+    const themeRadioLight = document.querySelector('input[name="theme-pref"][value="light"]');
+    const themeRadioDark = document.querySelector('input[name="theme-pref"][value="dark"]');
+    if (themeRadioSystem) {
+        themeRadioSystem.onclick = () => {
+            const classList = [...document.body.classList];
+            classList.forEach(className => {
+                document.body.classList.remove(className);
+            });
+        };
+    };
+    if (themeRadioLight) {
+        themeRadioLight.onclick = () => {
+            document.body.classList.remove('dark-mode');
+            document.body.classList.add('light-mode');
+        };
+    };
+    if (themeRadioDark) {
+        themeRadioDark.onclick = () => {
+            document.body.classList.remove('light-mode');
+            document.body.classList.add('dark-mode');
+        };
+    };
     // 加载排行榜
     async function fetchLeaderboard(range = 'realtime', altchaSolution = null) {
         leaderboard.innerHTML = '<div class="loading">加载中...</div>';
@@ -184,10 +233,70 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function updateTokenDisplay(token) {
+        const tokenInput = document.getElementById('vote-token-value');
+        if (tokenInput) {
+            tokenInput.value = token || '';
+            tokenInput.placeholder = token ? '' : '未设置';
+        }
+    }
+
+    function updateTokenStatus(message) {
+        const status = document.getElementById('token-status');
+        if (status) {
+            status.textContent = message || '';
+        }
+    }
+
+    function loadVoteToken() {
+        return new Promise((resolve) => {
+            localBrowserStorage.get(['voteToken'], (result) => {
+                updateTokenDisplay(result.voteToken || '');
+                resolve();
+            });
+        });
+    }
+
+    function getActiveTab() {
+        return new Promise((resolve, reject) => {
+            const tabsApi = typeof chrome !== 'undefined' ? chrome.tabs : browser.tabs;
+            if (!tabsApi || !tabsApi.query) {
+                reject(new Error('浏览器不支持标签页查询'));
+                return;
+            }
+            tabsApi.query({ active: true, currentWindow: true }, (tabs) => {
+                const tab = tabs && tabs[0];
+                if (!tab || !tab.id) {
+                    reject(new Error('未找到当前标签页'));
+                    return;
+                }
+                resolve(tab);
+            });
+        });
+    }
+
+    async function requestTokenFromTab(forceRenew) {
+        updateTokenStatus('正在请求验证...');
+        try {
+            const tab = await getActiveTab();
+            const runtimeApi = typeof chrome !== 'undefined' ? chrome.tabs : browser.tabs;
+            runtimeApi.sendMessage(tab.id, { type: 'voteToken.acquire', forceRenew }, (response) => {
+                if (!response || !response.success) {
+                    updateTokenStatus(response?.error || '获取失败，请在B站视频页重试');
+                    return;
+                }
+                updateTokenDisplay(response.token || '');
+                updateTokenStatus('Token 已更新');
+            });
+        } catch (error) {
+            updateTokenStatus(error.message || '获取失败');
+        }
+    }
+
     // 加载设置
     async function loadSettings() {
         return new Promise((resolve) => {
-            browserStorage.sync.get([STORAGE_KEY_DANMAKU_PREF, STORAGE_KEY_API_ENDPOINT, 'rank1Setting'], (result) => {
+            browserStorage.sync.get([STORAGE_KEY_DANMAKU_PREF, STORAGE_KEY_API_ENDPOINT, STORAGE_KEY_WEB_ENDPOINT, 'rank1Setting', 'theme'], (result) => {
                 // 弹幕偏好设置
                 const preference = result[STORAGE_KEY_DANMAKU_PREF];
                 let value = 'ask'; // 默认每次询问
@@ -211,10 +320,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     rank1Radio.checked = true;
                 }
 
+                // theme 设置状态
+                const themeRadio = document.querySelector(`input[name="theme-pref"][value="${result.theme}"]`);
+                if (themeRadio) {
+                    themeRadio.checked = true;
+                }
+
                 // Endpoint 设置
                 const endpointInput = document.getElementById('endpoint-input');
                 if (endpointInput) {
                     endpointInput.value = result[STORAGE_KEY_API_ENDPOINT] || '';
+                }
+
+                // Web Endpoint 设置
+                const webEndpointInput = document.getElementById('web-endpoint-input');
+                if (webEndpointInput) {
+                    webEndpointInput.value = result[STORAGE_KEY_WEB_ENDPOINT] || DEFAULT_WEB_BASE;
                 }
 
                 resolve();
@@ -228,6 +349,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const rank1Radio = document.querySelector('input[name="rank1-pref"]:checked');
         const endpointInput = document.getElementById('endpoint-input');
         const endpointValue = endpointInput ? endpointInput.value.trim() : '';
+        const webEndpointInput = document.getElementById('web-endpoint-input');
+        const webEndpointValue = webEndpointInput ? webEndpointInput.value.trim() : '';
+        const normalizedWebEndpoint = normalizeWebEndpoint(webEndpointValue);
+        const themeRadio = document.querySelector('input[name="theme-pref"]:checked');
+
+        if (normalizedWebEndpoint === null) {
+            showSaveStatus('Web 端地址格式不正确');
+            return;
+        }
+        if (webEndpointInput && normalizedWebEndpoint && webEndpointInput.value !== normalizedWebEndpoint) {
+            webEndpointInput.value = normalizedWebEndpoint;
+        }
 
         // 处理弹幕偏好
         let preference = null;
@@ -242,6 +375,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Handle Rank 1 Setting
         const rank1Setting = rank1Radio ? rank1Radio.value : 'default';
+
+        // theme Setting
+        let theme = null;
+        if (themeRadio) {
+            theme = themeRadio.value;
+        }
 
         return new Promise((resolve) => {
             const updates = {};
@@ -265,6 +404,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 API_BASE = DEFAULT_API_BASE;
             }
 
+            // Web Endpoint 设置
+            if (normalizedWebEndpoint && normalizedWebEndpoint !== DEFAULT_WEB_BASE) {
+                updates[STORAGE_KEY_WEB_ENDPOINT] = normalizedWebEndpoint;
+            } else {
+                removals.push(STORAGE_KEY_WEB_ENDPOINT);
+            }
+
+            // theme 设置
+            if (theme === 'system' || theme === null) {
+                removals.push('theme');
+            } else if (theme) {
+                updates.theme = theme;
+            }
+
             // 执行存储操作
             const doSave = () => {
                 if (Object.keys(updates).length > 0) {
@@ -286,6 +439,26 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function normalizeWebEndpoint(value) {
+        const trimmed = (value || '').trim();
+        if (!trimmed) {
+            return '';
+        }
+        let candidate = trimmed;
+        if (!/^[a-zA-Z][a-zA-Z\d+\-.]*:\/\//.test(candidate)) {
+            candidate = `https://${candidate}`;
+        }
+        try {
+            const url = new URL(candidate);
+            if (!['http:', 'https:'].includes(url.protocol)) {
+                return null;
+            }
+            return url.toString();
+        } catch (error) {
+            return null;
+        }
+    }
+
     // 显示保存状态提示
     function showSaveStatus(message) {
         const statusDiv = document.getElementById('save-status');
@@ -304,6 +477,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (settingsWrapper) settingsWrapper.style.display = 'flex';
             document.querySelector('.tabs').style.display = 'none'; // 隐藏排行榜Tab
             loadSettings();
+            loadVoteToken();
+            updateTokenStatus('');
         } else {
             leaderboard.style.display = 'block';
             if (settingsWrapper) settingsWrapper.style.display = 'none';
@@ -358,8 +533,33 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // 重置 Web Endpoint 按钮
+    const resetWebEndpointBtn = document.getElementById('reset-web-endpoint');
+    if (resetWebEndpointBtn) {
+        resetWebEndpointBtn.addEventListener('click', () => {
+            const webEndpointInput = document.getElementById('web-endpoint-input');
+            if (webEndpointInput) {
+                webEndpointInput.value = DEFAULT_WEB_BASE;
+            }
+        });
+    }
+
     // 初始化 API_BASE 后加载排行榜
     initApiBase().then(() => {
         fetchLeaderboard();
     });
+
+    const tokenRefreshBtn = document.getElementById('token-refresh');
+    if (tokenRefreshBtn) {
+        tokenRefreshBtn.addEventListener('click', async () => {
+            const tokenValue = document.getElementById('vote-token-value')?.value || '';
+            if (tokenValue) {
+                const confirmRenew = confirm('当前已存在 Token，是否续期？');
+                if (!confirmRenew) {
+                    return;
+                }
+            }
+            requestTokenFromTab(Boolean(tokenValue));
+        });
+    }
 });
