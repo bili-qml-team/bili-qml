@@ -33,6 +33,10 @@
 
 本项目支持 **Chrome / Edge** (扩展程序)、**Firefox** (扩展程序) 和 **油猴脚本 (Tampermonkey)** 三种方式。
 
+另外可以前往 [Flutter版本仓库](https://github.com/bili-qml-team/bili-qml-flutter) 获取安卓，Windows和linux版本
+
+以及直接使用 [Web版本](https://web.bili-qml.com/)
+
 #### 1. Chrome / Edge 浏览器
 **推荐方式：应用商店安装**
 - [Chrome 应用商店](https://chromewebstore.google.com/detail/b%E7%AB%99%E9%97%AE%E5%8F%B7%E6%A6%9C/kpfomdjnloglfedoamjaflnhojkcjndh?hl=zh-c)

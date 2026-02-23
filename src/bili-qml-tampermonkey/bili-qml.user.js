@@ -1966,33 +1966,80 @@
         }
     }
 
-    function renderLeaderboard(list) {
+    async function renderLeaderboard(list) {
         const leaderboard = document.querySelector('#bili-qmr-panel .qmr-leaderboard');
         if (!leaderboard) return;
 
         const rank1Custom = GM_getValue('rank1Setting', 'custom') === 'custom';
 
         leaderboard.innerHTML = '';
-        list.forEach((item, index) => {
-            const div = document.createElement('div');
-            div.className = 'qmr-item';
-
-            let rankDisplay = index + 1;
-            let rankClass = 'qmr-rank';
-            if (index === 0 && rank1Custom) {
-                rankDisplay = '何一位';
-                rankClass += ' qmr-rank-custom';
+        // 获取设置
+        await Promise.all(list.map(async (item, index) => {
+            try {
+                let cache = {};
+                const conn = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${item.bvid}`);
+                const json = await conn.json();
+                if (json.code === 0 && json.data?.title) {
+                    cache.title = json.data.title;
+                } else {
+                    cache.title = '未知标题';
+                }
+                cache.bvid = item.bvid;
+                cache.count = item.count;
+                renderEntry(cache, index + 1, rank1Custom);
+            } catch (err) {
+                console.error(`获取标题失败 ${item.bvid}:`, err);
+                cache.title = '加载失败';
+                cache.bvid = item.bvid;
+                cache.count = item.count;
+                renderEntry(cache, index + 1, rank1Custom);
             }
+        }));
+    }
 
-            div.innerHTML = `
-                <div class="${rankClass}">${rankDisplay}</div>
-                <div class="qmr-info">
-                    <a href="https://www.bilibili.com/video/${item.bvid}" target="_blank" class="qmr-video-title" title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</a>
-                    <div class="qmr-count">❓ 抽象指数: ${item.count}</div>
-                </div>
-            `;
-            leaderboard.appendChild(div);
+    function renderEntry(item, index, rank1Custom) {
+        const leaderboard = document.querySelector('#bili-qmr-panel .qmr-leaderboard');
+        if (!leaderboard) return;
+
+        const div = document.createElement('div');
+        div.className = 'qmr-item';
+
+        let rankDisplay = index;
+        let rankClass = 'qmr-rank';
+        if (index === 1 && rank1Custom) {
+            rankDisplay = '何一位';
+            rankClass += ' qmr-rank-custom';
+        }
+
+        // 对数据进行HTML转义，防止特殊字符破坏HTML结构
+        const escapedTitle = escapeHtml(item.title);
+        const escapedBvid = escapeHtml(item.bvid);
+        const escapedCount = escapeHtml(String(item.count));
+
+        div.innerHTML = `
+            <div class="${rankClass}">${rankDisplay}</div>
+            <div class="qmr-info">
+                <a href="https://www.bilibili.com/video/${escapedBvid}" target="_blank" class="qmr-video-title" title="${escapedTitle}">${escapedTitle}</a>
+                <div class="qmr-count">❓ 抽象指数: ${escapedCount}</div>
+            </div>
+        `;
+        
+        // 找到正确的插入位置以维持排行顺序
+        const allItems = Array.from(leaderboard.querySelectorAll('.qmr-item'));
+        const nextItem = allItems.find(el => {
+            // 需要处理 '何一位' 这种非数字的情况，确保排序正确
+            const rankText = el.querySelector('.qmr-rank')?.textContent || '999999';
+            let rank = parseInt(rankText);
+            if (rankText === '何一位') rank = 1;
+
+            return rank >= index;
         });
+        
+        if (nextItem) {
+            nextItem.before(div);
+        } else {
+            leaderboard.appendChild(div);
+        }
     }
 
     function waitFor(selector, ms = undefined) {
