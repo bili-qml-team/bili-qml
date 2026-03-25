@@ -197,6 +197,7 @@
             --qmr-text-main: #18191c;
             --qmr-text-sec: #9499a0;
             --qmr-border: #e3e5e7;
+            --qmr-count-bg: #f6f7f8;
             --qmr-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
             --qmr-shadow-md: 0 8px 16px rgba(0, 0, 0, 0.08);
             --qmr-radius: 12px;
@@ -208,6 +209,7 @@
             --qmr-text-main: #ffffff;
             --qmr-text-sec: #a0a0a0;
             --qmr-border: #3f4045;
+            --qmr-count-bg: rgba(255,255,255,0.1);
             --qmr-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
         }
         
@@ -223,10 +225,6 @@
         #bili-qmr-panel.qmr-dark .qmr-tab-btn.active {
             background: #3f4045;
             color: var(--qmr-primary);
-        }
-
-        #bili-qmr-panel.qmr-dark .qmr-count {
-            background: rgba(255,255,255,0.1);
         }
 
         #bili-qmr-panel.qmr-dark .qmr-settings-desc {
@@ -508,7 +506,7 @@
         #bili-qmr-panel .qmr-count {
             font-size: 12px;
             color: var(--qmr-text-sec);
-            background: #f6f7f8;
+            background: var(--qmr-count-bg);
             padding: 2px 8px;
             border-radius: 4px;
             display: inline-block;
@@ -1000,16 +998,29 @@
 
     // 格式化数字显示
     function formatCount(num) {
-        if (num >= 10000) {
-            return (num / 10000).toFixed(1) + '万';
+        const n = Number(num) || 0;
+        if (n >= 100000000) {
+            const v = n / 100000000;
+            return `${v >= 10 ? Math.round(v) : v.toFixed(1)}亿`;
         }
-        return num.toString();
+        if (n >= 10000) {
+            const v = n / 10000;
+            return `${v >= 10 ? Math.round(v) : v.toFixed(1)}万`;
+        }
+        return String(n);
     }
 
     // HTML 转义函数，防止特殊字符导致 HTML 属性被截断
     function escapeHtml(text) {
         if (!text) return '';
-        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        };
+        return text.replace(/[&<>"']/g, char => map[char]);
     }
 
     function normalizeWebEndpoint(value) {
